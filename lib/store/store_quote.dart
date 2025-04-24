@@ -1,4 +1,4 @@
-import 'package:irich/store/stock.dart';
+import 'package:irich/types/stock.dart';
 import 'package:irich/utils/chinese_pin_yin.dart';
 import 'package:irich/utils/trie.dart';
 
@@ -127,4 +127,7 @@ class StoreQuote {
 
   /// 获取所有省份分类名称
   static List<String> get provinces => _provinceShares.keys.toList();
+
+  /// 获取所有股票列表
+  static List<Share> get shares => _shares;
 }

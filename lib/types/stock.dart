@@ -388,7 +388,7 @@ class UiKline {
   double marketCap = 0.0; // 股票市值
   double changeRate = 0.0; // 涨跌幅
   double changeAmount = 0.0; // 涨跌额
-  BigInt volume = BigInt.from(0); // 成交量
+  BigInt volume; // 成交量
   double amount = 0.0; // 成交额
   double priceOpen = 0.0; // 开盘价
   double priceClose = 0.0; // 收盘价
@@ -404,6 +404,7 @@ class UiKline {
     this.marketCap = 0.0,
     this.changeRate = 0.0,
     this.changeAmount = 0.0,
+    required this.volume,
     this.amount = 0.0,
     this.priceOpen = 0.0,
     this.priceClose = 0.0,
@@ -413,7 +414,7 @@ class UiKline {
     this.turnoverRate = 0.0,
     this.danger = 0,
     this.favorite = 0,
-  }) : volume = BigInt.from(0);
+  });
 }
 
 bool isUpLimitPrice(UiKline kline, Share pShare) {

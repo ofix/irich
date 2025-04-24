@@ -19,9 +19,18 @@ enum EnumApiType {
 class ApiProviderCapabilities {
   final Map<EnumApiType, List<EnumApiProvider>> _capabilities = {
     EnumApiType.quote: [EnumApiProvider.heXun],
-    EnumApiType.minuteKline: [EnumApiProvider.eastMoney, EnumApiProvider.baiduFinance],
-    EnumApiType.dayKline: [EnumApiProvider.eastMoney, EnumApiProvider.baiduFinance],
-    EnumApiType.fiveDayKline: [EnumApiProvider.eastMoney, EnumApiProvider.baiduFinance],
+    EnumApiType.minuteKline: [
+      EnumApiProvider.eastMoney,
+      EnumApiProvider.baiduFinance,
+    ],
+    EnumApiType.dayKline: [
+      EnumApiProvider.eastMoney,
+      EnumApiProvider.baiduFinance,
+    ],
+    EnumApiType.fiveDayKline: [
+      EnumApiProvider.eastMoney,
+      EnumApiProvider.baiduFinance,
+    ],
   };
 
   ApiProviderCapabilities();
@@ -35,6 +44,7 @@ class ApiProviderCapabilities {
   List<EnumApiType> getAllEnumApiTypes() {
     return _capabilities.keys.toList();
   }
+
   // 根据供应商枚举类型，返回对应供应商的实例
   ApiProvider getProviderByEnum(EnumApiProvider provider) {
     switch (provider) {

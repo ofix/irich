@@ -2,26 +2,26 @@
 
 enum RichStatus {
   ok,
-  dataNotFound,       // 数据不存在
-  repeatInit,         // 重复初始化
-  parameterError,     // 参数错误
-  networkError,       // 网络错误
-  parseError,         // 数据解析错误
-  memoryAllocFailed,  // 内存分配失败
-  shareNotExist,      // 股票不存在
-  fileNotFound,       // 文件不存在
-  fileReadFailed,     // 文件读取失败
-  fileExpired,        // 文件数据过期
-  fileDirty,          // 文件内容被污染了
-  fileWriteDeny,      // 文件拒绝写入
-  fileWriteFailed,    // 文件写入失败
-  innerError          // 内部错误
+  dataNotFound, // 数据不存在
+  repeatInit, // 重复初始化
+  parameterError, // 参数错误
+  networkError, // 网络错误
+  parseError, // 数据解析错误
+  memoryAllocFailed, // 内存分配失败
+  shareNotExist, // 股票不存在
+  fileNotFound, // 文件不存在
+  fileReadFailed, // 文件读取失败
+  fileExpired, // 文件数据过期
+  fileDirty, // 文件内容被污染了
+  fileWriteDeny, // 文件拒绝写入
+  fileWriteFailed, // 文件写入失败
+  innerError, // 内部错误
 }
 
 class RichResult {
   final RichStatus status;
   final String desc;
-  
+
   RichResult({this.status = RichStatus.ok, this.desc = ""});
 
   String what() {

@@ -3,7 +3,7 @@ import "dart:convert";
 
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_provider.dart";
-import "package:irich/store/stock.dart";
+import "package:irich/types/stock.dart";
 import "package:http/http.dart" as http;
 
 // 和讯网股票列表获取函数

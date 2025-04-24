@@ -2,7 +2,7 @@
 import "dart:convert";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_provider.dart";
-import "package:irich/store/stock.dart";
+import "package:irich/types/stock.dart";
 
 // 东方财富分时K线 URL 生成函数
 String klineUrlEastMoneyMinute(String shareCode, int market) {

@@ -1,18 +1,17 @@
 import 'package:intl/intl.dart';
 
-
 /// Calculates a date relative to today
-/// 
+///
 /// [ndays] Number of days from today (positive for future, negative for past)
-/// 
+///
 /// Returns: Date in "YYYY-MM-DD" format (e.g. "2024-07-25")
 String getDayFromNow(int ndays) {
   // Calculate target date
   final targetDate = DateTime.now().add(Duration(days: ndays));
-  
+
   // Format as YYYY-MM-DD
   final formattedDate = DateFormat('yyyy-MM-dd').format(targetDate);
-  
+
   return formattedDate;
 }
 
@@ -31,14 +30,13 @@ bool betweenTimePeriod(String startTime, String endTime) {
     final currentTime = DateFormat('HH:mm').format(now);
 
     // Compare as strings (works because format is fixed-length)
-    return currentTime.compareTo(startTime) >= 0 && 
-           currentTime.compareTo(endTime) <= 0;
+    return currentTime.compareTo(startTime) >= 0 &&
+        currentTime.compareTo(endTime) <= 0;
   } catch (e) {
     // Handle any format errors
     return false;
   }
 }
-
 
 /// Calculates the number of seconds between two timestamps in "YYYY-MM-DD HH:mm:ss" format
 ///
@@ -86,9 +84,9 @@ int diffDays(String startDay, String endDay) {
 }
 
 /// Formats current time according to specified format
-/// 
+///
 /// [format] Format string (e.g. "%Y-%m-%d %H:%M:%S")
-/// 
+///
 /// Returns: Formatted date/time string
 String now(String format) {
   // Convert C-style format to Dart's DateFormat patterns
@@ -108,17 +106,16 @@ String now(String format) {
 /// Returns true if it's a trading day, false otherwise
 bool isTradeDay(String day) {
   try {
-
     final date = DateFormat('yyyy-MM-dd').parseStrict(day);
 
     if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
       return false;
     }
-  
+
     if (isChineseHoliday(day)) {
       return false;
     }
-    
+
     return true;
   } catch (e) {
     // Handle date parsing errors
