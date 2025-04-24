@@ -2,7 +2,6 @@
 import "dart:convert";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_provider.dart";
-import "package:irich/service/api_url.dart";
 import "package:irich/store/stock.dart";
 
 // 东方财富分时K线 URL 生成函数
@@ -42,7 +41,7 @@ String klineUrlEastMoney(String shareCode, int market, int klineType) {
 }
 
 // 2. 实现具体数据源（示例：东方财富）
-class ApiProviderEastMoney implements ApiProvider {
+class ApiProviderEastMoney extends ApiProvider {
   @override
   final name = EnumApiProvider.eastMoney;
 

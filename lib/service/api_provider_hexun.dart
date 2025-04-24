@@ -19,7 +19,7 @@ String shareListUrlHexun(int market) {
 }
 
 // 通过和讯财经获取股票数据
-class ApiProviderHexun implements ApiProvider {
+class ApiProviderHexun extends ApiProvider {
   @override
   final name = EnumApiProvider.heXun;
   List<Share> marketShares = [];

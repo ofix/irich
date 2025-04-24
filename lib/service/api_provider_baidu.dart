@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print
 import "package:irich/service/api_provider.dart";
 import "package:irich/service/api_provider_capabilities.dart";
-import "package:irich/service/api_url.dart";
 
 // 百度股市通 K 线数据 URL 生成函数
 String klineUrlFinanceBaidu(String shareCode, String klineType, String extra) {
@@ -41,7 +40,7 @@ String klineUrlFinanceBaiduFiveDay(String shareCode, String shareName) {
 }
 
 // 3. 实现百度财经数据源（支持分页）
-class ApiProviderBaidu implements ApiProvider {
+class ApiProviderBaidu extends ApiProvider {
   @override
   final name = EnumApiProvider.baiduFinance;
 
