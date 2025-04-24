@@ -26,3 +26,7 @@ linter:
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
+
+data_format:
+  line-length: 120  # Set the maximum line length for the Dart code
+  indent: 2  # Set the number of spaces for indentation
