@@ -1,32 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:irich/store/state_favorite.dart';
 
-class FavoriteView extends StatefulWidget {
+class FavoriteView extends ConsumerWidget {
   const FavoriteView({super.key, required this.title});
   final String title;
-
   @override
-  State<FavoriteView> createState() => _FavoriteViewState();
-}
-
-class _FavoriteViewState extends State<FavoriteView> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(counterProvider);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           const Text('自选页面: You have pushed the button this many times:'),
-          Text('$_counter', style: Theme.of(context).textTheme.headlineMedium),
+          Text('$count', style: Theme.of(context).textTheme.headlineMedium),
           MaterialButton(
-            onPressed: _incrementCounter,
+            onPressed: () => ref.read(counterProvider.notifier).state++,
             color: Theme.of(context).colorScheme.primary,
             textColor: Theme.of(context).colorScheme.onPrimary,
             padding: const EdgeInsets.all(16.0),
