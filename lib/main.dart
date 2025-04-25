@@ -1,38 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:irich/views/market_page.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:irich/router/router_provider.dart';
+import 'package:irich/theme/app_theme.dart';
 
 void main() {
-
-  //runApp(const RichApp());
+  runApp(const ProviderScope(child: RichApp()));
 }
 
-class RichApp extends StatelessWidget {
+class RichApp extends ConsumerWidget {
   const RichApp({super.key});
 
-  // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+    return MaterialApp.router(
       title: '东方价值',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
-      ),
-      home: const MarketPage(title: 'Flutter Demo Home Page'),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.getLightTheme(),
+      darkTheme: AppTheme.getDarkTheme(),
+      routerConfig: router,
     );
   }
 }
