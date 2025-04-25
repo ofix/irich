@@ -7,17 +7,16 @@ class DesktopMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 140,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(
-          right: BorderSide(color: Theme.of(context).dividerColor, width: 1),
-        ),
-      ),
+      width: 120,
+      // decoration: BoxDecoration(
+      //   color: Theme.of(context).colorScheme.surface,
+      //   border: Border(
+      //     right: BorderSide(color: Theme.of(context).dividerColor, width: 1),
+      //   ),
+      // ),
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
-          _buildMenuHeader('东方价值'),
           _buildMenuItem(
             context,
             icon: Icons.star,
@@ -42,29 +41,7 @@ class DesktopMenu extends StatelessWidget {
             label: '决策',
             route: '/portfolio',
           ),
-          const Divider(height: 32),
-          _buildMenuHeader('工具'),
-          _buildMenuItem(
-            context,
-            icon: Icons.calculate,
-            label: '计算器',
-            route: '/calculator',
-          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMenuHeader(String text) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-          letterSpacing: 0.5,
-        ),
       ),
     );
   }
