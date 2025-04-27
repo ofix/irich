@@ -50,7 +50,7 @@ class LoadBalancer {
   }
 
   // 5. 带负载均衡的请求方法
-  dynamic request(EnumApiType apiType, Map<String,dynamic> params) async {
+  Future<dynamic> request(EnumApiType apiType, Map<String,dynamic> params) async {
     final provider = _selectProvider(apiType);
     try {
       final response = await provider.doRequest(apiType, params);
