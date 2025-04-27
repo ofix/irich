@@ -2,6 +2,7 @@
 
 import 'dart:io';
 import 'package:intl/intl.dart';
+import 'package:irich/utils/date_time.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:typed_data';
 
@@ -127,6 +128,47 @@ class FileTool {
       return (true, lastLine);
     } catch (e) {
       return (false, "");
+    }
+  }
+
+  /// 检查每日需要更新的本地数据文件是否过期
+  static Future<bool> isDailyFileExpired(String filePath) async {
+    // 获取本地行情数据文件修改时间
+    String localQuoteFileModifiedTime = await FileTool.getFileModifiedTime(
+      filePath,
+    );
+    String today = now("%Y-%m-%d");
+    String nowTime = now("%Y-%m-%d %H:%M:%S");
+    if (isTradeDay(today)) {
+      // 如果当天是交易日
+      // String lastTradeDay = getNearestTradeDay(-1);
+      // 上一个交易日的收盘时间
+      String currentTradeDay = getNearestTradeDay();
+      String currentTradeOpenTime = "$currentTradeDay 09:30:00"; // 当天开盘时间
+      String currentTradeCloseTime = "$currentTradeDay 15:00:00"; // 当天收盘时间
+      if (compareTime(localQuoteFileModifiedTime, currentTradeCloseTime) >
+              0 && // 文件时间大于昨天收盘时间
+          compareTime(nowTime, currentTradeOpenTime) < 0 && // 当前时间未开盘
+          compareTime(localQuoteFileModifiedTime, currentTradeOpenTime) <
+              0 // 文件时间小于今天开盘时间
+              ) {
+        return false;
+      }
+
+      if (compareTime(localQuoteFileModifiedTime, currentTradeCloseTime) > 0) {
+        // 文件时间大于当天收盘时间
+        return false;
+      }
+
+      return true;
+    } else {
+      String lastTradeDay = getNearestTradeDay();
+      String lastTradeCloseTime = "$lastTradeDay 15:00:00";
+      // 检查文件修改时间是否 > 最近交易日收盘时间
+      if (compareTime(localQuoteFileModifiedTime, lastTradeCloseTime) > 0) {
+        return false;
+      }
+      return true;
     }
   }
 }

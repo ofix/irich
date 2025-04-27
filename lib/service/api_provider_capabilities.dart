@@ -11,6 +11,10 @@ enum EnumApiProvider {
 
 enum EnumApiType {
   quote, // 大A股票实时行情
+  sideMenu, // 侧边栏数据
+  industry, // 行业分类数据
+  concept, // 概念分类数据
+  province, // 省份分类数据
   minuteKline, // 分时K线
   dayKline, // 日K线
   fiveDayKline, // 5日K线
@@ -19,6 +23,10 @@ enum EnumApiType {
 class ApiProviderCapabilities {
   final Map<EnumApiType, List<EnumApiProvider>> _capabilities = {
     EnumApiType.quote: [EnumApiProvider.heXun],
+    EnumApiType.sideMenu: [EnumApiProvider.eastMoney],
+    EnumApiType.industry: [EnumApiProvider.eastMoney],
+    EnumApiType.concept: [EnumApiProvider.eastMoney],
+    EnumApiType.province: [EnumApiProvider.eastMoney],
     EnumApiType.minuteKline: [
       EnumApiProvider.eastMoney,
       EnumApiProvider.baiduFinance,

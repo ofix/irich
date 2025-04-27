@@ -51,6 +51,14 @@ class ApiProviderEastMoney extends ApiProvider {
     Map<String, dynamic> params,
   ) async {
     switch (enumApiType) {
+      case EnumApiType.sideMenu:
+        return fetchSideMenu(params);
+      case EnumApiType.industry:
+        return fetchIndustry(params);
+      case EnumApiType.concept:
+        return fetchConcept(params);
+      case EnumApiType.province:
+        return fetchProvince(params);
       case EnumApiType.dayKline:
         return fetchDayKline(params);
       case EnumApiType.fiveDayKline:
@@ -66,15 +74,114 @@ class ApiProviderEastMoney extends ApiProvider {
   @override
   dynamic parseResponse(EnumApiType enumApiType, dynamic response) {
     switch (enumApiType) {
+      case EnumApiType.sideMenu:
+        return parseSideMenu(response); // 侧边栏数据
+      case EnumApiType.industry:
+        return parseIndustry(response); // 行业数据
+      case EnumApiType.concept:
+        return parseConcept(response); // 概念数据
+      case EnumApiType.province:
+        return parseProvince(response); // 省份数据
       case EnumApiType.dayKline:
-        return parseDayKline(response);
+        return parseDayKline(response); // 日K线数据
       case EnumApiType.fiveDayKline:
-        return parseFiveDayKline(response);
+        return parseFiveDayKline(response); // 5日K线分时数据
       case EnumApiType.minuteKline:
-        return parseMinuteKline(response);
+        return parseMinuteKline(response); // 分时K线数据
       default:
         throw UnimplementedError('Unsupported API type: $enumApiType');
     }
+  }
+
+  // 获取侧边栏数据
+  Future<dynamic> fetchSideMenu(Map<String, dynamic> params) async {
+    final url = " https://quote.eastmoney.com/center/api/sidemenu_new.json";
+    try {
+      return asyncRequest(url);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  List<List<String>> parseSideMenu(String response) {
+    final List<String> concepts = [];
+    final List<String> industries = [];
+    final List<String> provinces = [];
+    final List<List<String>> menu = [];
+    // 解析JSON数据
+    final dynamic result = jsonDecode(response);
+    final List<dynamic> bklist = result["bklist"]; // 行业/概念/地域板块列表
+    for (final bk in bklist) {
+      final int type = bk["type"];
+      if (type == 1) {
+        provinces.add(bk["name"]); // 地域板块
+      } else if (type == 2) {
+        industries.add(bk["name"]); // 行业板块
+      } else if (type == 3) {
+        concepts.add(bk["name"]); // 概念板块
+      }
+    }
+    menu.addAll([provinces, industries, concepts]);
+    return menu;
+  }
+
+  Future<dynamic> fetchConcept(Map<String, dynamic> params) async {
+    return fetchBk(params);
+  }
+
+  Future<dynamic> fetchIndustry(Map<String, dynamic> params) async {
+    return fetchBk(params);
+  }
+
+  Future<dynamic> fetchProvince(Map<String, dynamic> params) async {
+    return fetchBk(params);
+  }
+
+  Future<dynamic> fetchBk(Map<String, dynamic> params) async {
+    final name = params['name'];
+    final url =
+        "https://push2delay.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fltt=1&invt=2&dect=1&fid=f3&fs=b:$name&fields=f3,f12,f14";
+    try {
+      return asyncRequest(url);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  List<String> parseConcept(String response) {
+    final List<String> concept = [];
+    // 解析JSON数据
+    final dynamic result = jsonDecode(response);
+    final List<dynamic> data = result["data"]['diff'];
+    for (final row in data) {
+      final String shareCode = row["f12"];
+      final String shareName = row['f14'];
+    }
+    return concept;
+  }
+
+  List<String> parseProvince(String response) {
+    final List<String> province = [];
+    // 解析JSON数据
+    final dynamic result = jsonDecode(response);
+    final List<dynamic> data = result["data"];
+    for (final row in data) {
+      final String name = row["name"];
+      province.add(name);
+    }
+    return province;
+  }
+
+  List<String> parseIndustry(String response) {
+    final List<String> industry = [];
+    // 解析JSON数据
+    final dynamic result = jsonDecode(response);
+    final List<dynamic> data = result["data"];
+    for (final row in data) {
+      final String name = row["name"];
+      industry.add(name);
+    }
+    return industry;
   }
 
   // 获取分时K线数据
