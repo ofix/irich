@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum Market {
   shangHai(1, '上海A股'), // 沪市
   shenZhen(2, '深圳A股'), // 深市
@@ -66,6 +68,11 @@ enum KlineType {
   quarter, // 季度K线
   year, // 年K线
   all, // 以上所有K线
+}
+
+// 在KlineType枚举中添加扩展方法
+extension KlineTypeExtension on KlineType {
+  bool get isMinuteType => this == KlineType.minute || this == KlineType.fiveDay;
 }
 
 enum DataProvider {
@@ -283,7 +290,7 @@ class Share {
 // EMA指数移动平均线
 class ShareEmaCurve {
   int period; // 周期
-  int color; // 曲线显示颜色
+  Color color; // 曲线显示颜色
   bool visible; // 是否显示
   List<double> emaPrice; // 收盘价简单移动平均值
 
