@@ -10,13 +10,7 @@ enum Market {
   final int market;
   final String name;
   const Market(this.market, this.name);
-  static const Map<int, String> marketMap = {
-    1: '上海A股',
-    2: '深圳A股',
-    3: '创业板',
-    4: '科创板',
-    5: '北交所',
-  };
+  static const Map<int, String> marketMap = {1: '上海A股', 2: '深圳A股', 3: '创业板', 4: '科创板', 5: '北交所'};
   static String getMarketName(int market) {
     return marketMap[market] ?? '未知市场';
   }
@@ -36,11 +30,7 @@ class ShareIndustry {
   final String name; // 行业分类名称
 
   // 构造函数
-  ShareIndustry({
-    required this.source,
-    required this.level,
-    required this.name,
-  });
+  ShareIndustry({required this.source, required this.level, required this.name});
 
   // 可选：添加工厂构造函数（如从 JSON 解析）
   // factory ShareIndustry.fromJson(Map<String, dynamic> json) {
@@ -95,10 +85,7 @@ enum ShareCategoryType {
 
   static int getTypeValue(String typeName) {
     return typeMap.entries
-        .firstWhere(
-          (entry) => entry.value == typeName,
-          orElse: () => const MapEntry(0, '未知类型'),
-        )
+        .firstWhere((entry) => entry.value == typeName, orElse: () => const MapEntry(0, '未知类型'))
         .key;
   }
 }
@@ -389,6 +376,24 @@ class MinuteKline {
   });
 }
 
+enum UiIndicatorType {
+  volume, // 成交量
+  amount, // 成交额
+  turnoverRate, // 换手率
+  minuteVolume, // 分时成交量
+  minuteAmount, // 分时成交额
+  fiveDayMinuteVolume, // 五日分时成交量
+  fiveDayMinuteAmount, // 五日分时成交额
+}
+
+// 技术指标
+class UiIndicator {
+  UiIndicatorType type; // 技术指标类别
+  bool visible; // 是否显示
+  int height; // 指标的高度
+  UiIndicator({required this.type, this.visible = false, this.height = 200});
+}
+
 // K线数据
 class UiKline {
   String day; // 交易日期
@@ -445,8 +450,7 @@ bool isUpLimitPrice(UiKline kline, Share pShare) {
       return true;
     }
     return false;
-  } else if (pShare.market == Market.chuangYeBan ||
-      pShare.market == Market.keChuangBan) {
+  } else if (pShare.market == Market.chuangYeBan || pShare.market == Market.keChuangBan) {
     // 检查股票所在市场是否是创业板或者科创板，20%的涨幅限制
     if (kline.changeRate >= 0.1993) {
       return true;
@@ -483,8 +487,7 @@ bool isDownLimitPrice(UiKline kline, Share pShare) {
       return true;
     }
     return false;
-  } else if (pShare.market == Market.chuangYeBan ||
-      pShare.market == Market.keChuangBan) {
+  } else if (pShare.market == Market.chuangYeBan || pShare.market == Market.keChuangBan) {
     // 检查股票所在市场是否是创业板或者科创板，20%的跌幅限制
     if (kline.changeRate <= -0.1993) {
       return true;
@@ -515,8 +518,7 @@ double getShareUpLimitPrice(Share pShare) {
   } else if (pShare.code.substring(0, 2) == "ST") {
     // ST股，5%涨跌幅限制
     return pShare.priceYesterdayClose * (1 + 0.05);
-  } else if (pShare.code.substring(0, 3) == "688" ||
-      pShare.code.substring(0, 3) == "300") {
+  } else if (pShare.code.substring(0, 3) == "688" || pShare.code.substring(0, 3) == "300") {
     // 科创板和创业板股票, 20%涨跌幅限制
     return pShare.priceYesterdayClose * (1 + 0.2);
   } else if (pShare.code.substring(0, 1) == "8") {
@@ -535,8 +537,7 @@ double getShareDownLimitPrice(Share pShare) {
   } else if (pShare.code.substring(0, 2) == "ST") {
     // ST股，5%涨跌幅限制
     return pShare.priceYesterdayClose * (1 - 0.05);
-  } else if (pShare.code.substring(0, 3) == "688" ||
-      pShare.code.substring(0, 3) == "300") {
+  } else if (pShare.code.substring(0, 3) == "688" || pShare.code.substring(0, 3) == "300") {
     // 科创板和创业板股票, 20%涨跌幅限制
     return pShare.priceYesterdayClose * (1 - 0.2);
   } else if (pShare.code.substring(0, 1) == "8") {
