@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:irich/components/indicators/amount_indicator.dart';
+import 'package:irich/components/indicators/minute_volume_indicator.dart';
+import 'package:irich/components/indicators/turnoverrate_indicator.dart';
+import 'package:irich/components/indicators/volume_indicator.dart';
 import 'package:irich/store/components/state_kline.dart';
 import 'package:irich/types/stock.dart';
 import 'dart:math';
@@ -19,6 +23,7 @@ class _KlineChartState extends ConsumerState<KlineChart> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(klineProvider.notifier).loadKlines(widget.shareCode, KlineType.day);
+      ref.read(klineProvider.notifier).initIndicators();
     });
   }
 
@@ -60,6 +65,16 @@ class _KlineChartState extends ConsumerState<KlineChart> {
 }
 
 class _KlinePainter extends CustomPainter {
+  UiKlineRange klineRng = UiKlineRange(begin: 0, end: 0); // 可视K线范围
+  List<ShareEmaCurve> emaCurves = []; // EMA曲线数据
+  String stockCode = ''; // 当前股票代码
+  double minKlinePrice = 0.0; // 可视区域K线最低价
+  double maxKlinePrice = 0.0; // 可视区域K线最高价
+  double minRectPrice = 0.0; // 如果有EMA均线，可视区域最低价会变化
+  double maxRectPrice = 0.0; // 如果有EMA均线，可视区域最高价会变化
+  int minRectPriceIndex = 0; // 可见K线中最低价K线位置
+  int maxRectPriceIndex = 0; // 可见K险种最高价K线位置
+
   final KlineState state;
   final KlineNotifier notifier;
   _KlinePainter({required this.state, required this.notifier});
@@ -90,6 +105,50 @@ class _KlinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 
+  void _calcRectMaxPrice(List<UiKline> klines, int begin, int end) {
+    double max = double.negativeInfinity;
+    for (int i = begin; i <= end; i++) {
+      if (klines[i].priceMax > max) {
+        max = klines[i].priceMax;
+      }
+    }
+    maxKlinePrice = max;
+    if (emaCurves.isNotEmpty) {
+      for (final curve in emaCurves) {
+        if (curve.visible) {
+          for (int i = begin; i <= end; i++) {
+            if (curve.emaPrice[i] > max) {
+              max = curve.emaPrice[i];
+            }
+          }
+        }
+      }
+    }
+    maxRectPrice = max;
+  }
+
+  void _calcRectMinPrice(List<UiKline> klines, int begin, int end) {
+    double min = double.infinity;
+    for (int i = begin; i <= end; i++) {
+      if (klines[i].priceMax < min) {
+        min = klines[i].priceMax;
+      }
+    }
+    minKlinePrice = min;
+    if (emaCurves.isNotEmpty) {
+      for (final curve in emaCurves) {
+        if (curve.visible) {
+          for (int i = begin; i <= end; i++) {
+            if (curve.emaPrice[i] < min) {
+              min = curve.emaPrice[i];
+            }
+          }
+        }
+      }
+    }
+    minRectPrice = min;
+  }
+
   void _drawBackground(Canvas canvas, Size size) {
     final bgPaint =
         Paint()
@@ -112,7 +171,7 @@ class _KlinePainter extends CustomPainter {
       final y = i * hStep;
       canvas.drawLine(Offset(0, y), Offset(0 + size.width, y), gridPaint);
     }
-    notifier.getRectMaxPrice(state.klines, state.klineRng.begin, state.klineRng.end);
+    _calcRectMaxPrice(state.klines, klineRng.begin, klineRng.end);
     // 垂直网格线
     const verticalLines = 6;
     final vStep = size.width / verticalLines;
@@ -124,16 +183,16 @@ class _KlinePainter extends CustomPainter {
 
   void _drawDayKlines(Canvas canvas, Size size) {
     if (state.klines.isEmpty) return;
-    notifier.getRectMaxPrice(state.klines, state.klineRng.begin, state.klineRng.end);
-    notifier.getRectMinPrice(state.klines, state.klineRng.begin, state.klineRng.end);
+    _calcRectMaxPrice(state.klines, klineRng.begin, klineRng.end);
+    _calcRectMinPrice(state.klines, klineRng.begin, klineRng.end);
 
-    final priceRange = state.maxRectPrice - state.minRectPrice;
+    final priceRange = maxRectPrice - minRectPrice;
     final priceRatio = size.height / priceRange;
 
-    final maxPrice = state.maxRectPrice;
+    final maxPrice = maxRectPrice;
 
     // 绘制K线
-    for (var i = state.klineRng.begin; i < state.klineRng.end; i++) {
+    for (var i = klineRng.begin; i < klineRng.end; i++) {
       final kline = state.klines[i];
       final x = i * state.klineWidth;
       final centerX = x + state.klineInnerWidth / 2;
@@ -176,7 +235,7 @@ class _KlinePainter extends CustomPainter {
     }
 
     // 绘制EMA曲线
-    for (final ema in state.emaCurves) {
+    for (final ema in emaCurves) {
       if (ema.visible) {
         _drawEmaCurve(canvas, ema, size, maxPrice, priceRatio);
       }
@@ -198,11 +257,11 @@ class _KlinePainter extends CustomPainter {
           ..color = ema.color
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
-    for (int i = state.klineRng.begin; i <= state.klineRng.end; i++) {
+    for (int i = klineRng.begin; i <= klineRng.end; i++) {
       final x = i * state.klineWidth;
       final y = (maxPrice - ema.emaPrice[i]) * priceRatio;
 
-      if (i == state.klineRng.begin) {
+      if (i == klineRng.begin) {
         path.moveTo(x, y);
       } else {
         path.lineTo(x, y);
@@ -271,10 +330,15 @@ class _KlinePainter extends CustomPainter {
     canvas.drawPath(avgPath, avgPaint);
   }
 
-  void _drawFiveDayMinuteKlineBackground(Canvas canvas, double refClosePrice, double deltaPrice) {
+  void _drawFiveDayMinuteKlineBackground(
+    Canvas canvas,
+    Size size,
+    double refClosePrice,
+    double deltaPrice,
+  ) {
     const nRows = 16;
     const nCols = 20;
-    final wRect = state.width;
+    final wRect = size.width;
     double hRect = 2000;
     final hRow = (hRect - (nRows + 2)) / nRows;
     final wCol = wRect / nCols;
@@ -327,31 +391,30 @@ class _KlinePainter extends CustomPainter {
 
     double offsetX = 0;
 
-    // Draw outer borders
-    // Top border
+    // 绘制左右外边框
+    // 上边框
     canvas.drawLine(Offset(offsetX, 0), Offset(offsetX + wRect, 0), solidPen);
-    // Bottom border
+    // 下边框
     canvas.drawLine(Offset(offsetX, hRect), Offset(offsetX + wRect, hRect), solidPen);
-    // Left border
+    // 左边框
     canvas.drawLine(Offset(offsetX, 0), Offset(offsetX, hRect), solidPen);
-    // Right border
+    // 右边框
     canvas.drawLine(Offset(offsetX + wRect, 0), Offset(offsetX + wRect, hRect), solidPen);
 
-    // Draw center horizontal line (thick)
+    // 中间粗水平线
     canvas.drawLine(Offset(offsetX, hRect / 2), Offset(offsetX + wRect, hRect / 2), solidPen2);
 
-    // Draw 5-day vertical dividers (thick)
+    // 5日粗竖线
     final nDay = nCols ~/ 4;
     for (var i = 1; i <= nDay; i++) {
       final x = offsetX + dwCol * i;
       canvas.drawLine(Offset(x, 0), Offset(x, hRect), solidPen2);
     }
 
-    // Draw daily vertical dividers (dotted)
+    // 垂直分割虚线
     for (var i = 1; i < nCols; i++) {
       final x = offsetX + wCol * i;
       if (i % 4 != 0) {
-        // Draw dotted line
         final path = Path();
         path.moveTo(x, 0);
         path.lineTo(x, hRect);
@@ -359,35 +422,32 @@ class _KlinePainter extends CustomPainter {
       }
     }
 
-    // Draw horizontal dotted lines
+    // 水平分割虚线
     for (var i = 1; i <= nRows; i++) {
       final y = (hRow + 1) * i;
-      if (i == 8 || i == 16) continue; // Skip solid lines
+      if (i == 8 || i == 16) continue; // 跳过中间虚线
 
-      // Draw dotted line
       final path = Path();
       path.moveTo(offsetX, y);
       path.lineTo(offsetX + wRect, y);
       canvas.drawPath(path, dotPen);
     }
 
-    // Prepare text painter
     final textStyle = TextStyle(color: Colors.white, fontSize: 10);
     final textPainter = TextPainter(textDirection: TextDirection.ltr, textAlign: TextAlign.right);
 
-    // Draw prices and amplitudes on left and right sides
-    // Upper part (red)
+    // 左右两边上半部分价格和涨幅
     for (var i = 0; i < 8; i++) {
       final priceText = prices[8 - i - 1].toStringAsFixed(2);
       final amplitudeText = '${amplitudes[8 - i - 1].toStringAsFixed(2)}%';
       final y = (hRow + 1) * i + hRow / 2;
 
-      // Left side price (red)
+      // 左右两边开盘价格基准(上一个交易日收盘价)
       textPainter.text = TextSpan(text: priceText, style: textStyle.copyWith(color: Colors.red));
       textPainter.layout();
       textPainter.paint(canvas, Offset(offsetX - 4, y - textPainter.height / 2));
 
-      // Right side amplitude (red)
+      // 左右两边上半部分价格和涨幅
       textPainter.text = TextSpan(
         text: amplitudeText,
         style: textStyle.copyWith(color: Colors.red),
@@ -396,7 +456,7 @@ class _KlinePainter extends CustomPainter {
       textPainter.paint(canvas, Offset(offsetX + wRect + 4, y - textPainter.height / 2));
     }
 
-    // Middle reference price (white)
+    // 中间参考价格
     final middleY = (hRow + 1) * 8 - hRow / 2;
     textPainter.text = TextSpan(text: refClosePrice.toStringAsFixed(2), style: textStyle);
     textPainter.layout();
@@ -406,18 +466,18 @@ class _KlinePainter extends CustomPainter {
     textPainter.layout();
     textPainter.paint(canvas, Offset(offsetX + wRect + 4, middleY - textPainter.height / 2));
 
-    // Lower part (green)
+    // 下半部分绿色
     for (var i = 8; i < 16; i++) {
       final priceText = prices[i].toStringAsFixed(2);
       final amplitudeText = '${amplitudes[i].toStringAsFixed}%';
       final y = (hRow + 1) * i + hRow / 2;
 
-      // Left side price (green)
+      // 左右两边开盘价格基准(上一个交易日收盘价)
       textPainter.text = TextSpan(text: priceText, style: textStyle.copyWith(color: Colors.green));
       textPainter.layout();
       textPainter.paint(canvas, Offset(offsetX - 4, y - textPainter.height / 2));
 
-      // Right side amplitude (green)
+      // 左右两边下半部分价格和涨幅
       textPainter.text = TextSpan(
         text: amplitudeText,
         style: textStyle.copyWith(color: Colors.green),
@@ -442,7 +502,6 @@ class _KlinePainter extends CustomPainter {
         state.fiveDayMinuteKlines.first.price - state.fiveDayMinuteKlines.first.changeAmount;
 
     // 计算最大波动幅度
-
     double maxDelta = max(
       (maxMinutePrice - refClosePrice).abs(),
       (minMinutePrice - refClosePrice).abs(),
@@ -453,11 +512,10 @@ class _KlinePainter extends CustomPainter {
     }
 
     final maxPrice = refClosePrice + maxDelta;
-    // final minPrice = refClosePrice - maxDelta;
     final hZoomRatio = -size.height / (2 * maxDelta);
 
     // 绘制背景
-    _drawFiveDayMinuteKlineBackground(canvas, refClosePrice, maxPrice);
+    _drawFiveDayMinuteKlineBackground(canvas, size, refClosePrice, maxPrice);
 
     // 限制最大绘制数量
     final nTotalLine =
@@ -569,37 +627,43 @@ class _KlinePainter extends CustomPainter {
 }
 
 class KlineCtrl extends ConsumerWidget {
-  const KlineCtrl({super.key});
+  final String shareCode;
+  const KlineCtrl({super.key, required this.shareCode});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(klineProvider);
-
     return Row(
       children: [
-        // K线类型切换
-        _buildTypeButton(context, ref, '分时', KlineType.minute),
-        _buildTypeButton(context, ref, '五日', KlineType.fiveDay),
-        _buildTypeButton(context, ref, '日K', KlineType.day),
-        _buildTypeButton(context, ref, '周K', KlineType.week),
-        _buildTypeButton(context, ref, '月K', KlineType.month),
-
+        Column(
+          children: [
+            // K线类型切换
+            _buildTypeButton(context, ref, '分时', KlineType.minute),
+            _buildTypeButton(context, ref, '五日', KlineType.fiveDay),
+            _buildTypeButton(context, ref, '日K', KlineType.day),
+            _buildTypeButton(context, ref, '周K', KlineType.week),
+            _buildTypeButton(context, ref, '月K', KlineType.month),
+            _buildTypeButton(context, ref, '季K', KlineType.quarter),
+            _buildTypeButton(context, ref, '年K', KlineType.year),
+          ],
+        ),
         const Spacer(),
-
-        // 缩放控制
-        IconButton(
-          icon: const Icon(Icons.zoom_in, size: 20),
-          onPressed: () => ref.read(klineProvider.notifier).zoomIn(),
+        Column(
+          children: [
+            // EMA控制
+            _buildEmaButton(context, ref, 'EMA5', 5),
+            _buildEmaButton(context, ref, 'EMA10', 10),
+            _buildEmaButton(context, ref, 'EMA20', 20),
+            _buildEmaButton(context, ref, 'EMA20', 60),
+            _buildEmaButton(context, ref, 'EMA255', 255),
+            _buildEmaButton(context, ref, 'EMA905', 905),
+          ],
         ),
-        IconButton(
-          icon: const Icon(Icons.zoom_out, size: 20),
-          onPressed: () => ref.read(klineProvider.notifier).zoomOut(),
-        ),
-
-        // EMA控制
-        _buildEmaButton(context, ref, 'MA5', 5),
-        _buildEmaButton(context, ref, 'MA10', 10),
-        _buildEmaButton(context, ref, 'MA20', 20),
+        const Spacer(),
+        // K线主图
+        KlineChart(shareCode: shareCode),
+        const Spacer(),
+        // 技术指标图
+        Row(children: _buildIndicators(context, ref)),
       ],
     );
   }
@@ -631,6 +695,31 @@ class KlineCtrl extends ConsumerWidget {
       },
       child: Text(text),
     );
+  }
+
+  // 技术指标附图
+  List<Widget> _buildIndicators(BuildContext context, WidgetRef ref) {
+    final List<UiIndicator> indicators =
+        ref.read(klineProvider).indicators[ref.read(klineProvider).visibleIndicatorIndex];
+    List<Widget> widgets = [];
+    for (final indicator in indicators) {
+      if (indicator.type == UiIndicatorType.amount) {
+        widgets.add(AmountIndicator(height: 100));
+      } else if (indicator.type == UiIndicatorType.volume) {
+        widgets.add(VolumeIndicator(height: 100));
+      } else if (indicator.type == UiIndicatorType.turnoverRate) {
+        widgets.add(TurnoverRateIndicator(height: 100));
+      } else if (indicator.type == UiIndicatorType.minuteAmount) {
+        widgets.add(AmountIndicator(height: 100));
+      } else if (indicator.type == UiIndicatorType.minuteVolume) {
+        widgets.add(MinuteVolumeIndicator());
+      } else if (indicator.type == UiIndicatorType.fiveDayMinuteAmount) {
+        widgets.add(AmountIndicator(height: 100));
+      } else if (indicator.type == UiIndicatorType.fiveDayMinuteVolume) {
+        widgets.add(MinuteVolumeIndicator());
+      }
+    }
+    return widgets;
   }
 
   Color _getEmaColor(int period) {

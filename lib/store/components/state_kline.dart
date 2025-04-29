@@ -12,6 +12,8 @@ class KlineState {
   List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
   UiKlineRange klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
+  List<List<UiIndicator>> indicators; // 0:日/周/月/季/年K线技术指标列表,1:分时图技术指标列表,2:五日分时图技术指标列表
+  int visibleIndicatorIndex; // 需要显示的技术指标索引
   String stockCode; // 当前股票代码
   int crossLineIndex; // 十字线位置
   double klineWidth; // K线宽度
@@ -19,10 +21,10 @@ class KlineState {
   int visibleKlineCount; // 可视区域K线数量
 
   double width; // 画布宽度
-  double minKlinePrice; // 可视区域K线最低价
-  double maxKlinePrice; // 可视区域K线最高价
-  double minRectPrice; // 如果有EMA均线，可视区域最低价会变化
-  double maxRectPrice; // 如果有EMA均线，可视区域最高价会变化
+  // double minKlinePrice; // 可视区域K线最低价
+  // double maxKlinePrice; // 可视区域K线最高价
+  // double minRectPrice; // 如果有EMA均线，可视区域最低价会变化
+  // double maxRectPrice; // 如果有EMA均线，可视区域最高价会变化
   int minRectPriceIndex; // 可见K线中最低价K线位置
   int maxRectPriceIndex; // 可见K险种最高价K线位置
 
@@ -31,6 +33,8 @@ class KlineState {
     this.klines = const [],
     this.minuteKlines = const [],
     this.fiveDayMinuteKlines = const [],
+    this.indicators = const [],
+    this.visibleIndicatorIndex = 0,
     this.emaCurves = const [],
     UiKlineRange? klineRng,
     this.stockCode = '',
@@ -39,10 +43,6 @@ class KlineState {
     this.klineInnerWidth = 5.6,
     this.width = 960,
     this.visibleKlineCount = 120,
-    this.minKlinePrice = 0,
-    this.maxKlinePrice = 0,
-    this.minRectPrice = 0,
-    this.maxRectPrice = 0,
     this.minRectPriceIndex = 0,
     this.maxRectPriceIndex = 0,
   }) : klineRng = klineRng ?? UiKlineRange(begin: 0, end: 0);
@@ -53,16 +53,14 @@ class KlineState {
     List<MinuteKline>? minuteKlines,
     List<MinuteKline>? fiveDayMinuteKlines,
     List<ShareEmaCurve>? emaCurves,
+    List<List<UiIndicator>>? indicators,
+    int? visibleIndicatorIndex,
     String? stockCode,
     int? crossLineIndex,
     double? klineWidth,
     double? klineInnerWidth,
     double? width,
     int? visibleKlineCount,
-    double? minKlinePrice,
-    double? maxKlinePrice,
-    double? minRectPrice,
-    double? maxRectPrice,
     int? minRectPriceIndex,
     int? maxRectPriceIndex,
   }) {
@@ -72,15 +70,13 @@ class KlineState {
       minuteKlines: minuteKlines ?? this.minuteKlines,
       fiveDayMinuteKlines: fiveDayMinuteKlines ?? this.fiveDayMinuteKlines,
       emaCurves: emaCurves ?? this.emaCurves,
+      indicators: indicators ?? this.indicators,
+      visibleIndicatorIndex: visibleIndicatorIndex ?? this.visibleIndicatorIndex,
       stockCode: stockCode ?? this.stockCode,
       crossLineIndex: crossLineIndex ?? this.crossLineIndex,
       klineWidth: klineWidth ?? this.klineWidth,
       width: width ?? this.width,
       visibleKlineCount: visibleKlineCount ?? this.visibleKlineCount,
-      minKlinePrice: minKlinePrice ?? this.minKlinePrice,
-      maxKlinePrice: maxKlinePrice ?? this.maxKlinePrice,
-      minRectPrice: minRectPrice ?? this.minRectPrice,
-      maxRectPrice: maxRectPrice ?? this.maxRectPrice,
       minRectPriceIndex: minRectPriceIndex ?? this.minRectPriceIndex,
       maxRectPriceIndex: maxRectPriceIndex ?? this.maxRectPriceIndex,
     );
@@ -107,6 +103,32 @@ class KlineNotifier extends StateNotifier<KlineState> {
     }
   }
 
+  void initIndicators() {
+    List<List<UiIndicator>> indicators = [
+      [
+        UiIndicator(type: UiIndicatorType.amount, visible: true, height: 100),
+        UiIndicator(type: UiIndicatorType.volume, visible: true, height: 100),
+        UiIndicator(type: UiIndicatorType.turnoverRate, visible: true, height: 100),
+      ],
+      [
+        UiIndicator(type: UiIndicatorType.minuteAmount, visible: false, height: 100),
+        UiIndicator(type: UiIndicatorType.minuteVolume, visible: false, height: 100),
+      ],
+      [
+        UiIndicator(type: UiIndicatorType.fiveDayMinuteAmount, visible: false, height: 100),
+        UiIndicator(type: UiIndicatorType.fiveDayMinuteVolume, visible: false, height: 100),
+      ],
+    ];
+
+    state.indicators = indicators;
+    state.visibleIndicatorIndex = 0;
+  }
+
+  // 添加技术指标
+  void addIndicator(UiIndicator indicator, int i) {
+    state.indicators[i].add(indicator);
+  }
+
   Future<RichResult> _queryKlines(StoreKlines store, String stockCode, KlineType type) async {
     final klines = _getKlinesListForType(type);
 
@@ -128,6 +150,18 @@ class KlineNotifier extends StateNotifier<KlineState> {
   // 切换K线类型
   void setType(KlineType type) {
     state = state.copyWith(type: type);
+    // 需要切换技术指标
+    if (type == KlineType.day ||
+        type == KlineType.week ||
+        type == KlineType.month ||
+        type == KlineType.quarter ||
+        type == KlineType.year) {
+      state.visibleIndicatorIndex = 0;
+    } else if (type == KlineType.minute) {
+      state.visibleIndicatorIndex = 1;
+    } else {
+      state.visibleIndicatorIndex = 2;
+    }
   }
 
   // 添加EMA曲线
@@ -214,63 +248,6 @@ class KlineNotifier extends StateNotifier<KlineState> {
   // 处理十字线移动
   void moveCrossLine(int index) {
     state = state.copyWith(crossLineIndex: index);
-  }
-
-  double getRectMinPrice(List<UiKline> klines, int begin, int end) {
-    double min = double.maxFinite;
-    // 1. 先找出K线本身的最低价格
-    for (int i = begin; i <= end; i++) {
-      if (klines[i].priceMin < min) {
-        min = klines[i].priceMin;
-        state.minRectPriceIndex = i - begin; // 更新最低价索引
-      }
-    }
-    state.minKlinePrice = min; // 保存最低价格
-    // 2. 如果有EMA曲线，检查EMA值是否更低
-    if (hasEmaCurve()) {
-      for (final curve in state.emaCurves) {
-        if (curve.visible) {
-          for (int i = begin; i <= end; i++) {
-            if (curve.emaPrice[i] < min) {
-              min = curve.emaPrice[i];
-            }
-          }
-        }
-      }
-    }
-
-    state.minRectPrice = min; // 更新可视区域最低价
-    return min;
-  }
-
-  double getRectMaxPrice(List<UiKline> klines, int begin, int end) {
-    double max = -double.maxFinite;
-    // 1. 先找出K线本身的最高价格
-    for (int i = begin; i <= end; i++) {
-      if (klines[i].priceMax > max) {
-        max = klines[i].priceMax;
-        state.maxRectPriceIndex = i - begin; // 更新最高价索引
-      }
-    }
-    state.maxKlinePrice = max; // 保存最高价格
-    // 2. 如果有EMA曲线，检查EMA值是否更高
-    if (hasEmaCurve()) {
-      for (final curve in state.emaCurves) {
-        if (curve.visible) {
-          for (int i = begin; i <= end; i++) {
-            if (curve.emaPrice[i] > max) {
-              max = curve.emaPrice[i];
-            }
-          }
-        }
-      }
-    }
-    state.maxRectPrice = max; // 更新可视区域最高价
-    return max;
-  }
-
-  bool hasEmaCurve() {
-    return state.emaCurves.isNotEmpty;
   }
 
   void logError(String s, {required Object error, required StackTrace stackTrace}) {}
