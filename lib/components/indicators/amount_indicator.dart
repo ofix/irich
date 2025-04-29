@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/store/indicators/state_amount_indicator.dart';
 import 'package:irich/store/components/state_kline.dart';
 import 'package:irich/types/stock.dart';
 
@@ -11,10 +10,9 @@ class AmountIndicator extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(amountIndicatorProvider);
     final klineState = ref.watch(klineProvider);
 
-    if (!state.visible || state.amounts.isEmpty) {
+    if (klineState.klines.isEmpty) {
       return SizedBox(height: height);
     }
 
@@ -22,33 +20,37 @@ class AmountIndicator extends ConsumerWidget {
       height: height,
       child: CustomPaint(
         painter: _AmountIndicatorPainter(
-          amounts: state.amounts,
-          maxAmount: state.maxAmount,
-          crossLineIndex: state.crossLineIndex,
+          klines: klineState.klines,
+          klineRng: klineState.klineRng,
+          crossLineIndex: klineState.crossLineIndex,
           klineWidth: klineState.klineWidth,
           klineInnerWidth: klineState.klineInnerWidth,
-          isUpList: _getIsUpList(klineState.klines),
+          isUpList: _getIsUpList(klineState.klines, klineState.klineRng),
         ),
       ),
     );
   }
 
-  List<bool> _getIsUpList(List<UiKline> klines) {
-    return klines.map((k) => k.priceClose >= k.priceOpen).toList();
+  List<bool> _getIsUpList(List<UiKline> klines, UiKlineRange klineRng) {
+    List<bool> upList = [];
+    for (int i = klineRng.begin; i < klineRng.end; i++) {
+      upList.add(klines[i].priceClose >= klines[i].priceOpen);
+    }
+    return upList;
   }
 }
 
 class _AmountIndicatorPainter extends CustomPainter {
-  final List<double> amounts;
-  final double maxAmount;
+  final List<UiKline> klines;
+  final UiKlineRange klineRng;
   final int crossLineIndex;
   final double klineWidth;
   final double klineInnerWidth;
   final List<bool> isUpList;
 
   _AmountIndicatorPainter({
-    required this.amounts,
-    required this.maxAmount,
+    required this.klines,
+    required this.klineRng,
     required this.crossLineIndex,
     required this.klineWidth,
     required this.klineInnerWidth,
@@ -57,14 +59,12 @@ class _AmountIndicatorPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (amounts.isEmpty) return;
+    if (klines.isEmpty) return;
 
     // 绘制标题栏
     _drawTitleBar(canvas, size);
-
     // 绘制成交额柱状图
     _drawAmountBars(canvas, size);
-
     // 绘制十字线
     if (crossLineIndex != -1) {
       _drawCrossLine(canvas, size);
@@ -92,7 +92,7 @@ class _AmountIndicatorPainter extends CustomPainter {
     // 绘制昨日成交额
     final yesterdayText = TextPainter(
       text: TextSpan(
-        text: '昨: ${_formatAmount(amounts.isNotEmpty ? amounts[0] : 0)}',
+        text: '昨: ${_formatAmount(klines.isNotEmpty ? klines[0].amount : 0)}',
         style: textStyle.copyWith(color: Colors.grey),
       ),
       textDirection: TextDirection.ltr,
@@ -102,7 +102,7 @@ class _AmountIndicatorPainter extends CustomPainter {
     // 绘制今日成交额
     final todayText = TextPainter(
       text: TextSpan(
-        text: '今: ${_formatAmount(amounts.isNotEmpty ? amounts.last : 0)}',
+        text: '今: ${_formatAmount(klines.isNotEmpty ? klines.last.amount : 0)}',
         style: textStyle.copyWith(color: Colors.white),
       ),
       textDirection: TextDirection.ltr,
@@ -124,10 +124,11 @@ class _AmountIndicatorPainter extends CustomPainter {
           ..color = Colors.green
           ..style = PaintingStyle.fill;
 
-    for (int i = 0; i < amounts.length; i++) {
+    double maxAmount = _calcMaxAmount();
+    for (int i = klineRng.begin; i < klineRng.end; i++) {
       final x = i * klineWidth;
       final barWidth = klineInnerWidth;
-      final barHeight = (amounts[i] / maxAmount) * bodyHeight;
+      final barHeight = (klines[i].amount / maxAmount) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 
       // 根据涨跌决定颜色
@@ -158,6 +159,17 @@ class _AmountIndicatorPainter extends CustomPainter {
       return '${(amount / 10000).toStringAsFixed(2)}万';
     }
     return amount.toStringAsFixed(2);
+  }
+
+  double _calcMaxAmount() {
+    if (klines.isEmpty) return 0;
+    double maxAmount = 0;
+    for (int i = klineRng.begin; i < klineRng.end; i++) {
+      if (klines[i].amount > maxAmount) {
+        maxAmount = klines[i].amount;
+      }
+    }
+    return maxAmount;
   }
 
   @override

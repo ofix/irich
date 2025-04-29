@@ -1,33 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/store/components/state_kline.dart';
-import 'package:irich/store/indicators/state_minute_volume_indicator.dart';
 import 'package:irich/types/stock.dart';
 
 class MinuteVolumeIndicator extends ConsumerWidget {
+  final double width;
   final double height;
 
-  const MinuteVolumeIndicator({super.key, this.height = 100});
+  const MinuteVolumeIndicator({super.key, this.width = 800, this.height = 100});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(minuteVolumeProvider);
     final klineState = ref.watch(klineProvider);
 
-    if (!state.visible || state.volumes.isEmpty) {
+    if (klineState.klines.isEmpty) {
       return SizedBox(height: height);
     }
 
     return SizedBox(
+      width: width,
       height: height,
       child: CustomPaint(
         painter: _MinuteVolumePainter(
-          volumes: state.volumes,
-          prices: state.prices,
-          maxVolume: state.maxVolume,
-          crossLineIndex: state.crossLineIndex,
-          klineType: state.klineType,
-          width: klineState.width,
+          klines: klineState.minuteKlines,
+          crossLineIndex: klineState.crossLineIndex,
+          klineType: klineState.type,
         ),
       ),
     );
@@ -35,55 +32,47 @@ class MinuteVolumeIndicator extends ConsumerWidget {
 }
 
 class _MinuteVolumePainter extends CustomPainter {
-  final List<double> volumes;
-  final List<double> prices;
-  final double maxVolume;
+  final List<MinuteKline> klines;
   final int crossLineIndex;
   final KlineType klineType;
-  final double width;
+  late final double maxVolume;
 
   _MinuteVolumePainter({
-    required this.volumes,
-    required this.prices,
-    required this.maxVolume,
+    required this.klines,
     required this.crossLineIndex,
     required this.klineType,
-    required this.width,
-  });
+  }) {
+    maxVolume = calcMaxVolume().toDouble();
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (volumes.isEmpty) return;
-
+    if (klines.isEmpty) return;
     // 绘制成交量柱状图
     _drawVolumeBars(canvas, size);
-
     // 绘制边框和网格
     _drawGridAndBorder(canvas, size);
-
     // 绘制十字线
     if (crossLineIndex != -1) {
       _drawCrossLine(canvas, size);
     }
   }
 
-  void _drawVolumeBars(Canvas canvas, Size size) {
-    final innerWidth = width;
-    final maxLines = klineType == KlineType.minute ? 240 : 1200;
-    final barWidth = innerWidth / maxLines;
-    final totalLines =
-        klineType == KlineType.minute
-            ? volumes.length.clamp(0, 240)
-            : volumes.length.clamp(0, 1200);
+  BigInt calcMaxVolume() {
+    if (klines.isEmpty) return BigInt.from(0);
+    return klines.map((k) => k.volume).reduce((a, b) => a > b ? a : b);
+  }
 
-    // final redPaint = Paint()..color = Colors.red;
-    // final greenPaint = Paint()..color = Colors.green;
-    // final grayPaint = Paint()..color = Colors.grey;
+  void _drawVolumeBars(Canvas canvas, Size size) {
+    final maxKlines = klineType == KlineType.minute ? 240 : 1200;
+    final barWidth = size.width / maxKlines;
+    final totalLines =
+        klineType == KlineType.minute ? klines.length.clamp(0, 240) : klines.length.clamp(0, 1200);
 
     for (int i = 1; i < totalLines; i++) {
       final x = i * barWidth;
-      final y = size.height * (1 - volumes[i] / maxVolume);
-      final h = size.height * volumes[i] / maxVolume;
+      final y = size.height * (1 - klines[i].volume / BigInt.from(maxVolume));
+      final h = size.height * klines[i].volume.toDouble() / maxVolume;
 
       final paint = _getVolumePaint(i);
       canvas.drawLine(Offset(x, y), Offset(x, y + h), paint);
@@ -91,11 +80,10 @@ class _MinuteVolumePainter extends CustomPainter {
   }
 
   Paint _getVolumePaint(int index) {
-    if (index >= prices.length || index < 1) return Paint()..color = Colors.grey;
-
-    if (prices[index] > prices[index - 1]) {
+    if (index >= klines.length || index < 1) return Paint()..color = Colors.grey;
+    if (klines[index].price > klines[index - 1].price) {
       return Paint()..color = Colors.red;
-    } else if (prices[index] < prices[index - 1]) {
+    } else if (klines[index].price < klines[index - 1].price) {
       return Paint()..color = Colors.green;
     } else {
       return Paint()..color = Colors.grey;
@@ -110,7 +98,7 @@ class _MinuteVolumePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1;
 
-    canvas.drawRect(Rect.fromLTWH(0, 0, width, size.height), borderPaint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), borderPaint);
 
     // 绘制水平网格线
     final hRow = size.height / 4;
@@ -122,12 +110,12 @@ class _MinuteVolumePainter extends CustomPainter {
 
     for (int i = 1; i <= 3; i++) {
       final y = i * hRow;
-      canvas.drawLine(Offset(0, y), Offset(width, y), dotPaint);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), dotPaint);
     }
 
     // 绘制垂直网格线
     final nCols = klineType == KlineType.minute ? 8 : 20;
-    final wCol = (width) / nCols;
+    final wCol = (size.width) / nCols;
 
     for (int i = 1; i < nCols; i++) {
       if (i % 4 == 0) continue;
@@ -154,19 +142,16 @@ class _MinuteVolumePainter extends CustomPainter {
     for (int i = 0; i <= 4; i++) {
       final label = _formatVolume(maxVolume - rowVolume * i);
       final y = i * hRow;
-
       // 左侧标签
-      _drawText(canvas, label, Offset(-4, y), textStyle, TextAlign.right);
-
+      _drawLabel(canvas, label, Offset(-4, y), textStyle, TextAlign.right);
       // 右侧标签
-      _drawText(canvas, label, Offset(width + 4, y), textStyle, TextAlign.left);
+      _drawLabel(canvas, label, Offset(size.width + 4, y), textStyle, TextAlign.left);
     }
   }
 
   void _drawCrossLine(Canvas canvas, Size size) {
-    final innerWidth = width;
     final maxLines = klineType == KlineType.minute ? 240 : 1200;
-    final barWidth = innerWidth / maxLines;
+    final barWidth = size.width / maxLines;
 
     final x = crossLineIndex * barWidth;
 
@@ -179,7 +164,8 @@ class _MinuteVolumePainter extends CustomPainter {
     canvas.drawLine(Offset(x, 0), Offset(x, size.height), crossPaint);
   }
 
-  void _drawText(Canvas canvas, String text, Offset position, TextStyle style, TextAlign align) {
+  // 绘制右侧标签
+  void _drawLabel(Canvas canvas, String text, Offset position, TextStyle style, TextAlign align) {
     final textPainter = TextPainter(
       text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/store/components/state_kline.dart';
-import 'package:irich/store/indicators/state_turnoverrate_indicator.dart';
+import 'package:irich/types/stock.dart';
 
 class TurnoverRateIndicator extends ConsumerWidget {
   final double height;
@@ -10,10 +10,9 @@ class TurnoverRateIndicator extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(turnoverRateProvider);
     final klineState = ref.watch(klineProvider);
 
-    if (!state.visible || state.turnoverRates.isEmpty) {
+    if (klineState.klines.isEmpty) {
       return SizedBox(height: height);
     }
 
@@ -21,29 +20,33 @@ class TurnoverRateIndicator extends ConsumerWidget {
       height: height,
       child: CustomPaint(
         painter: _TurnoverRatePainter(
-          turnoverRates: state.turnoverRates,
-          maxTurnoverRate: state.maxTurnoverRate,
-          crossLineIndex: state.crossLineIndex,
+          klines: klineState.klines,
+          klineRng: klineState.klineRng,
+          crossLineIndex: klineState.crossLineIndex,
           klineWidth: klineState.klineWidth,
           klineInnerWidth: klineState.klineInnerWidth,
-          isUpList: state.isUpList,
+          isUpList: _getIsUpList(klineState.klines),
         ),
       ),
     );
   }
+
+  List<bool> _getIsUpList(List<UiKline> klines) {
+    return klines.map((k) => k.priceClose >= k.priceOpen).toList();
+  }
 }
 
 class _TurnoverRatePainter extends CustomPainter {
-  final List<double> turnoverRates;
-  final double maxTurnoverRate;
+  final List<UiKline> klines;
+  final UiKlineRange klineRng;
   final int crossLineIndex;
   final double klineWidth;
   final double klineInnerWidth;
   final List<bool> isUpList;
 
   _TurnoverRatePainter({
-    required this.turnoverRates,
-    required this.maxTurnoverRate,
+    required this.klines,
+    required this.klineRng,
     required this.crossLineIndex,
     required this.klineWidth,
     required this.klineInnerWidth,
@@ -52,14 +55,11 @@ class _TurnoverRatePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (turnoverRates.isEmpty) return;
-
+    if (klines.isEmpty) return;
     // 绘制标题栏
     _drawTitleBar(canvas, size);
-
     // 绘制换手率柱状图
     _drawTurnoverRateBars(canvas, size);
-
     // 绘制十字线
     if (crossLineIndex != -1) {
       _drawCrossLine(canvas, size);
@@ -87,7 +87,7 @@ class _TurnoverRatePainter extends CustomPainter {
     // 绘制昨日换手率
     final yesterdayText = TextPainter(
       text: TextSpan(
-        text: '昨: ${_formatRate(turnoverRates.isNotEmpty ? turnoverRates[0] : 0)}',
+        text: '昨: ${_formatRate(klines.isNotEmpty ? klines[0].turnoverRate : 0)}',
         style: textStyle.copyWith(color: Colors.grey),
       ),
       textDirection: TextDirection.ltr,
@@ -97,7 +97,7 @@ class _TurnoverRatePainter extends CustomPainter {
     // 绘制今日换手率
     final todayText = TextPainter(
       text: TextSpan(
-        text: '今: ${_formatRate(turnoverRates.isNotEmpty ? turnoverRates.last : 0)}',
+        text: '今: ${_formatRate(klines.isNotEmpty ? klines.last.turnoverRate : 0)}',
         style: textStyle.copyWith(color: Colors.white),
       ),
       textDirection: TextDirection.ltr,
@@ -119,10 +119,11 @@ class _TurnoverRatePainter extends CustomPainter {
           ..color = Colors.green
           ..style = PaintingStyle.fill;
 
-    for (int i = 0; i < turnoverRates.length; i++) {
+    double maxTurnoverRate = _calcMaxTurnoverRate();
+    for (int i = klineRng.begin; i < klineRng.end; i++) {
       final x = i * klineWidth;
       final barWidth = klineInnerWidth;
-      final barHeight = (turnoverRates[i] / maxTurnoverRate) * bodyHeight;
+      final barHeight = (klines[i].turnoverRate / maxTurnoverRate) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 
       // 确保最小高度
@@ -151,6 +152,18 @@ class _TurnoverRatePainter extends CustomPainter {
 
   String _formatRate(double rate) {
     return '${rate.toStringAsFixed(2)}%';
+  }
+
+  // 获取可视范围K线的最大换手率
+  double _calcMaxTurnoverRate() {
+    if (klines.isEmpty) return 0;
+    double max = 0;
+    for (int i = klineRng.begin; i < klineRng.end; i++) {
+      if (klines[i].turnoverRate > max) {
+        max = klines[i].turnoverRate;
+      }
+    }
+    return max;
   }
 
   @override

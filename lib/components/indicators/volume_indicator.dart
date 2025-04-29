@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/store/components/state_kline.dart';
-import 'package:irich/store/indicators/state_volume_indicator.dart';
 import 'package:irich/types/stock.dart';
 
 class VolumeIndicator extends ConsumerWidget {
@@ -11,10 +10,9 @@ class VolumeIndicator extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(volumeIndicatorProvider);
     final klineState = ref.watch(klineProvider);
 
-    if (!state.visible || state.volumes.isEmpty) {
+    if (klineState.klines.isEmpty) {
       return SizedBox(height: height);
     }
 
@@ -22,9 +20,9 @@ class VolumeIndicator extends ConsumerWidget {
       height: height,
       child: CustomPaint(
         painter: _VolumeIndicatorPainter(
-          volumes: state.volumes,
-          maxVolume: state.maxVolume,
-          crossLineIndex: state.crossLineIndex,
+          klines: klineState.klines,
+          klineRng: klineState.klineRng,
+          crossLineIndex: klineState.crossLineIndex,
           klineWidth: klineState.klineWidth,
           klineInnerWidth: klineState.klineInnerWidth,
           isUpList: _getIsUpList(klineState.klines),
@@ -39,16 +37,16 @@ class VolumeIndicator extends ConsumerWidget {
 }
 
 class _VolumeIndicatorPainter extends CustomPainter {
-  final List<double> volumes;
-  final double maxVolume;
-  final int crossLineIndex;
-  final double klineWidth;
-  final double klineInnerWidth;
-  final List<bool> isUpList;
+  final List<UiKline> klines; // 绘制K线
+  final UiKlineRange klineRng; // 可视K线范围
+  final int crossLineIndex; // 当前光标所在K线位置
+  final double klineWidth; // K线宽度
+  final double klineInnerWidth; // K线内部宽度
+  final List<bool> isUpList; // 红绿盘列表
 
   _VolumeIndicatorPainter({
-    required this.volumes,
-    required this.maxVolume,
+    required this.klines,
+    required this.klineRng,
     required this.crossLineIndex,
     required this.klineWidth,
     required this.klineInnerWidth,
@@ -57,14 +55,11 @@ class _VolumeIndicatorPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (volumes.isEmpty) return;
-
+    if (klines.isEmpty) return;
     // 绘制标题栏
     _drawTitleBar(canvas, size);
-
     // 绘制成交量柱状图
     _drawVolumeBars(canvas, size);
-
     // 绘制十字线
     if (crossLineIndex != -1) {
       _drawCrossLine(canvas, size);
@@ -84,25 +79,25 @@ class _VolumeIndicatorPainter extends CustomPainter {
 
     // 绘制标题文本
     final textPainter = TextPainter(
-      text: TextSpan(text: '成交额', style: textStyle.copyWith(color: Colors.white)),
+      text: TextSpan(text: '成交量', style: textStyle.copyWith(color: Colors.white)),
       textDirection: TextDirection.ltr,
     )..layout();
     textPainter.paint(canvas, const Offset(4, 4));
 
-    // 绘制昨日成交额
+    // 绘制昨日成交量
     final yesterdayText = TextPainter(
       text: TextSpan(
-        text: '昨: ${_formatVolume(volumes.isNotEmpty ? volumes[0] : 0)}',
+        text: '昨: ${_formatVolume(klines.isNotEmpty ? klines[0].volume as double : 0)}',
         style: textStyle.copyWith(color: Colors.grey),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
     yesterdayText.paint(canvas, Offset(textPainter.width + 12, 4));
 
-    // 绘制今日成交额
+    // 绘制今日成交量
     final todayText = TextPainter(
       text: TextSpan(
-        text: '今: ${_formatVolume(volumes.isNotEmpty ? volumes.last : 0)}',
+        text: '今: ${_formatVolume(klines.isNotEmpty ? klines.last.volume as double : 0)}',
         style: textStyle.copyWith(color: Colors.white),
       ),
       textDirection: TextDirection.ltr,
@@ -124,10 +119,12 @@ class _VolumeIndicatorPainter extends CustomPainter {
           ..color = Colors.green
           ..style = PaintingStyle.fill;
 
-    for (int i = 0; i < volumes.length; i++) {
+    BigInt maxVolume = _calcMaxVolume();
+
+    for (int i = klineRng.begin; i < klineRng.end; i++) {
       final x = i * klineWidth;
       final barWidth = klineInnerWidth;
-      final barHeight = (volumes[i] / maxVolume) * bodyHeight;
+      final barHeight = (klines[i].volume / maxVolume) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 
       // 根据涨跌决定颜色
@@ -158,6 +155,17 @@ class _VolumeIndicatorPainter extends CustomPainter {
       return '${(volume / 10000).toStringAsFixed(2)}万';
     }
     return volume.toStringAsFixed(2);
+  }
+
+  BigInt _calcMaxVolume() {
+    if (klines.isEmpty) return BigInt.from(0);
+    BigInt maxVolume = BigInt.from(0);
+    for (int i = klineRng.begin; i < klineRng.end; i++) {
+      if (klines[i].volume > maxVolume) {
+        maxVolume = klines[i].volume;
+      }
+    }
+    return maxVolume;
   }
 
   @override
