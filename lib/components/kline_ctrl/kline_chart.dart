@@ -20,7 +20,6 @@ class _KlineChartState extends State<KlineChart> {
   late KlineType type; // 当前绘制的K线类型
   late List<UiKline> klines; // 前复权日K线数据
   late List<MinuteKline> minuteKlines; // 分时K线数据
-  late List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
   late UiKlineRange klineRng; // 可视K线范围
   late List<ShareEmaCurve> emaCurves; // EMA曲线数据
   late List<List<UiIndicator>> indicators; // 0:日/周/月/季/年K线技术指标列表,1:分时图技术指标列表,2:五日分时图技术指标列表
@@ -31,98 +30,27 @@ class _KlineChartState extends State<KlineChart> {
   late double klineInnerWidth; // K线内部宽度
   late int visibleKlineCount; // 可视区域K线数量
 
-  final FocusNode _focusNode = FocusNode();
-  @override
-  void initState() async {
-    super.initState();
-    await loadKlines(stockCode, type);
-    // 初始化K线数据
-
-    _focusNode.requestFocus();
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: _focusNode,
-      onKeyEvent: _handleKeyEvent,
-      child: Listener(
-        onPointerSignal: _handleScroll,
-        child: GestureDetector(
-          onTapDown: _handleTapDown,
-          child: Transform.scale(
-            scale: 1.0,
-            child: Container(
-              width: 800,
-              height: 600,
-              color: const Color(0xFF1E1E1E),
-              padding: const EdgeInsets.only(left: 48, right: 48, top: 16, bottom: 16), // 背景色
-              child: CustomPaint(
-                size: Size.infinite,
-                painter: KlinePainter(
-                  klineType: type,
-                  klines: klines,
-                  minuteKlines: minuteKlines,
-                  fiveDayMinuteKlines: fiveDayMinuteKlines,
-                  klineRng: klineRng,
-                  emaCurves: emaCurves,
-                  crossLineIndex: crossLineIndex,
-                  klineWidth: klineWidth,
-                  klineInnerWidth: klineInnerWidth,
-                ),
-              ),
-            ),
-          ),
+    return Container(
+      width: 800,
+      height: 600,
+      color: const Color(0xFF1E1E1E),
+      padding: const EdgeInsets.only(left: 48, right: 48, top: 16, bottom: 16), // 背景色
+      child: CustomPaint(
+        size: Size.infinite,
+        painter: KlinePainter(
+          klineType: type,
+          klines: klines,
+          minuteKlines: minuteKlines,
+          klineRng: klineRng,
+          emaCurves: emaCurves,
+          crossLineIndex: crossLineIndex,
+          klineWidth: klineWidth,
+          klineInnerWidth: klineInnerWidth,
         ),
       ),
     );
-  }
-
-  void _handleKeyEvent(KeyEvent event) {
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      setState(() {});
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      setState(() {});
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      setState(() {});
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      setState(() {});
-    }
-  }
-
-  void _handleTapDown(TapDownDetails details) {
-    final RenderBox box = context.findRenderObject() as RenderBox;
-    final localPosition = box.globalToLocal(details.globalPosition);
-    // 计算点击的K线索引
-    final index = (localPosition.dx / klineWidth).floor();
-    crossLineIndex = index;
-    setState(() {});
-  }
-
-  void _handleScroll(PointerEvent event) {
-    if (event is PointerScrollEvent) {
-      setState(() {});
-    }
-  }
-
-  void logError(String s, {required Object error, required StackTrace stackTrace}) {}
-
-  // 加载K线数据
-  Future<bool> loadKlines(String stockCode, KlineType type) async {
-    try {
-      final store = StoreKlines();
-      final result = await _queryKlines(store, stockCode, type);
-      return result.ok();
-    } catch (e) {
-      logError('Failed to load klines', error: e, stackTrace: StackTrace.current);
-      return false;
-    }
   }
 
   void initIndicators() {
@@ -149,10 +77,6 @@ class _KlineChartState extends State<KlineChart> {
   // 添加技术指标
   void addIndicator(UiIndicator indicator, int i) {
     indicators[i].add(indicator);
-  }
-
-  List<dynamic> _getKlinesListForType(KlineType type) {
-    return type.isMinuteType ? minuteKlines : klines;
   }
 
   // 切换K线类型
@@ -256,20 +180,4 @@ class _KlineChartState extends State<KlineChart> {
   void moveCrossLine(int index) {
     // state = copyWith(crossLineIndex: index);
   }
-
-  Future<RichResult> _queryKlines(StoreKlines store, String stockCode, KlineType type) async {
-    final klines = _getKlinesListForType(type);
-
-    return switch (type) {
-      KlineType.day => store.queryDayKlines(stockCode, klines as List<UiKline>),
-      KlineType.minute => store.queryMinuteKlines(stockCode, klines as List<MinuteKline>),
-      KlineType.week => store.queryWeekKlines(stockCode, klines as List<UiKline>),
-      KlineType.month => store.queryMonthKlines(stockCode, klines as List<UiKline>),
-      KlineType.year => store.queryYearKlines(stockCode, klines as List<UiKline>),
-      KlineType.fiveDay => store.queryFiveDayMinuteKlines(stockCode, klines as List<MinuteKline>),
-      _ => error(RichStatus.shareNotExist, desc: 'Unsupported KlineType: $type'),
-    };
-  }
-
-  void _handleDragUpdate(DragUpdateDetails details) {}
 }
