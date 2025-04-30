@@ -1,73 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/components/indicators/amount_indicator.dart';
-import 'package:irich/components/indicators/minute_volume_indicator.dart';
-import 'package:irich/components/indicators/turnoverrate_indicator.dart';
-import 'package:irich/components/indicators/volume_indicator.dart';
-import 'package:irich/store/components/state_kline.dart';
 import 'package:irich/types/stock.dart';
 import 'dart:math';
 
-class KlineChart extends ConsumerStatefulWidget {
-  final String shareCode;
+class KlinePainter extends CustomPainter {
+  List<UiKline> klines; // 前复权日K线数据
+  KlineType klineType; // 当前绘制的K线类型
+  List<MinuteKline> minuteKlines; // 分时K线数据
+  List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
+  UiKlineRange klineRng; // 可视K线范围
+  List<ShareEmaCurve> emaCurves; // EMA曲线数据
+  int crossLineIndex; // 十字线位置
+  double klineWidth; // K线宽度
+  double klineInnerWidth; // K线内部宽度
 
-  const KlineChart({super.key, required this.shareCode});
-
-  @override
-  ConsumerState<KlineChart> createState() => _KlineChartState();
-}
-
-class _KlineChartState extends ConsumerState<KlineChart> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(klineProvider.notifier).loadKlines(widget.shareCode, KlineType.day);
-      ref.read(klineProvider.notifier).initIndicators();
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(klineProvider);
-    final notifier = ref.read(klineProvider.notifier);
-
-    return GestureDetector(
-      onHorizontalDragUpdate: _handleDragUpdate,
-      onTapDown: _handleTap,
-      child: Container(
-        color: const Color(0xFF1E1E1E),
-        padding: const EdgeInsets.only(left: 48, right: 48, top: 16, bottom: 16), // 背景色
-        child: CustomPaint(
-          size: Size.infinite,
-          painter: _KlinePainter(state: state, notifier: notifier),
-        ),
-      ),
-    );
-  }
-
-  void _handleDragUpdate(DragUpdateDetails details) {}
-
-  void _handleTap(TapDownDetails details) {
-    final state = ref.read(klineProvider);
-    final renderBox = context.findRenderObject() as RenderBox;
-    final localPosition = renderBox.globalToLocal(details.globalPosition);
-
-    // 计算点击的K线索引
-    final index = (localPosition.dx / state.klineWidth).floor();
-    ref.read(klineProvider.notifier).moveCrossLine(index);
-  }
-}
-
-class _KlinePainter extends CustomPainter {
-  UiKlineRange klineRng = UiKlineRange(begin: 0, end: 0); // 可视K线范围
-  List<ShareEmaCurve> emaCurves = []; // EMA曲线数据
-  String stockCode = ''; // 当前股票代码
   double minKlinePrice = 0.0; // 可视区域K线最低价
   double maxKlinePrice = 0.0; // 可视区域K线最高价
   double minRectPrice = 0.0; // 如果有EMA均线，可视区域最低价会变化
@@ -75,9 +20,17 @@ class _KlinePainter extends CustomPainter {
   int minRectPriceIndex = 0; // 可见K线中最低价K线位置
   int maxRectPriceIndex = 0; // 可见K险种最高价K线位置
 
-  final KlineState state;
-  final KlineNotifier notifier;
-  _KlinePainter({required this.state, required this.notifier});
+  KlinePainter({
+    required this.klineType,
+    required this.klines,
+    required this.minuteKlines,
+    required this.fiveDayMinuteKlines,
+    required this.klineRng,
+    required this.emaCurves,
+    required this.crossLineIndex,
+    required this.klineWidth,
+    required this.klineInnerWidth,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -85,7 +38,7 @@ class _KlinePainter extends CustomPainter {
     _drawBackground(canvas, size);
 
     // 根据不同类型绘制K线
-    switch (state.type) {
+    switch (klineType) {
       case KlineType.minute:
         _drawMinuteKlines(canvas, size);
         break;
@@ -97,7 +50,7 @@ class _KlinePainter extends CustomPainter {
     }
 
     // 绘制十字线
-    if (state.crossLineIndex != -1) {
+    if (crossLineIndex != -1) {
       _drawCrossLine(canvas, size);
     }
   }
@@ -105,6 +58,7 @@ class _KlinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 
+  // 获取可见K线范围内的最高价
   void _calcRectMaxPrice(List<UiKline> klines, int begin, int end) {
     double max = double.negativeInfinity;
     for (int i = begin; i <= end; i++) {
@@ -127,6 +81,7 @@ class _KlinePainter extends CustomPainter {
     maxRectPrice = max;
   }
 
+  // 获取可见K线范围内的最低价
   void _calcRectMinPrice(List<UiKline> klines, int begin, int end) {
     double min = double.infinity;
     for (int i = begin; i <= end; i++) {
@@ -149,6 +104,7 @@ class _KlinePainter extends CustomPainter {
     minRectPrice = min;
   }
 
+  // 绘制K线背景
   void _drawBackground(Canvas canvas, Size size) {
     final bgPaint =
         Paint()
@@ -171,7 +127,7 @@ class _KlinePainter extends CustomPainter {
       final y = i * hStep;
       canvas.drawLine(Offset(0, y), Offset(0 + size.width, y), gridPaint);
     }
-    _calcRectMaxPrice(state.klines, klineRng.begin, klineRng.end);
+    _calcRectMaxPrice(klines, klineRng.begin, klineRng.end);
     // 垂直网格线
     const verticalLines = 6;
     final vStep = size.width / verticalLines;
@@ -182,9 +138,9 @@ class _KlinePainter extends CustomPainter {
   }
 
   void _drawDayKlines(Canvas canvas, Size size) {
-    if (state.klines.isEmpty) return;
-    _calcRectMaxPrice(state.klines, klineRng.begin, klineRng.end);
-    _calcRectMinPrice(state.klines, klineRng.begin, klineRng.end);
+    if (klines.isEmpty) return;
+    _calcRectMaxPrice(klines, klineRng.begin, klineRng.end);
+    _calcRectMinPrice(klines, klineRng.begin, klineRng.end);
 
     final priceRange = maxRectPrice - minRectPrice;
     final priceRatio = size.height / priceRange;
@@ -193,9 +149,9 @@ class _KlinePainter extends CustomPainter {
 
     // 绘制K线
     for (var i = klineRng.begin; i < klineRng.end; i++) {
-      final kline = state.klines[i];
-      final x = i * state.klineWidth;
-      final centerX = x + state.klineInnerWidth / 2;
+      final kline = klines[i];
+      final x = i * klineWidth;
+      final centerX = x + klineInnerWidth / 2;
 
       // 计算坐标
       final highY = (maxPrice - kline.priceMax) * priceRatio;
@@ -229,7 +185,7 @@ class _KlinePainter extends CustomPainter {
             ..style = PaintingStyle.fill;
 
       canvas.drawRect(
-        Rect.fromLTRB(x, isUp ? closeY : openY, x + state.klineInnerWidth, isUp ? openY : closeY),
+        Rect.fromLTRB(x, isUp ? closeY : openY, x + klineInnerWidth, isUp ? openY : closeY),
         klinePaint,
       );
     }
@@ -250,7 +206,7 @@ class _KlinePainter extends CustomPainter {
     double priceRatio,
   ) {
     // 少于2条K线数据无法绘制EMA曲线
-    if (state.klines.length <= 2) return;
+    if (klines.length <= 2) return;
     final path = Path();
     final paint =
         Paint()
@@ -258,7 +214,7 @@ class _KlinePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
     for (int i = klineRng.begin; i <= klineRng.end; i++) {
-      final x = i * state.klineWidth;
+      final x = i * klineWidth;
       final y = (maxPrice - ema.emaPrice[i]) * priceRatio;
 
       if (i == klineRng.begin) {
@@ -271,13 +227,13 @@ class _KlinePainter extends CustomPainter {
   }
 
   void _drawMinuteKlines(Canvas canvas, Size size) {
-    if (state.minuteKlines.isEmpty) return;
+    if (minuteKlines.isEmpty) return;
 
     // 计算价格范围
     var minPrice = double.infinity;
     var maxPrice = -double.infinity;
 
-    for (final kline in state.minuteKlines) {
+    for (final kline in minuteKlines) {
       if (kline.price < minPrice) minPrice = kline.price;
       if (kline.price > maxPrice) maxPrice = kline.price;
     }
@@ -293,8 +249,8 @@ class _KlinePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
 
-    for (var i = 0; i < state.minuteKlines.length; i++) {
-      final kline = state.minuteKlines[i];
+    for (var i = 0; i < minuteKlines.length; i++) {
+      final kline = minuteKlines[i];
       final x = i * (size.width / 240);
       final y = (maxPrice - kline.price) * priceRatio;
 
@@ -315,8 +271,8 @@ class _KlinePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
 
-    for (var i = 0; i < state.minuteKlines.length; i++) {
-      final kline = state.minuteKlines[i];
+    for (var i = 0; i < minuteKlines.length; i++) {
+      final kline = minuteKlines[i];
       final x = i * (size.width / 240);
       final y = (maxPrice - kline.avgPrice) * priceRatio;
 
@@ -493,13 +449,12 @@ class _KlinePainter extends CustomPainter {
     double maxMinutePrice = double.negativeInfinity;
     double minMinutePrice = double.infinity;
 
-    for (final kline in state.fiveDayMinuteKlines) {
+    for (final kline in fiveDayMinuteKlines) {
       if (kline.price > maxMinutePrice) maxMinutePrice = kline.price;
       if (kline.price < minMinutePrice) minMinutePrice = kline.price;
     }
 
-    final refClosePrice =
-        state.fiveDayMinuteKlines.first.price - state.fiveDayMinuteKlines.first.changeAmount;
+    final refClosePrice = fiveDayMinuteKlines.first.price - fiveDayMinuteKlines.first.changeAmount;
 
     // 计算最大波动幅度
     double maxDelta = max(
@@ -518,8 +473,7 @@ class _KlinePainter extends CustomPainter {
     _drawFiveDayMinuteKlineBackground(canvas, size, refClosePrice, maxPrice);
 
     // 限制最大绘制数量
-    final nTotalLine =
-        state.fiveDayMinuteKlines.length > 1200 ? 1200 : state.fiveDayMinuteKlines.length;
+    final nTotalLine = fiveDayMinuteKlines.length > 1200 ? 1200 : fiveDayMinuteKlines.length;
     final w = size.width / 1200;
 
     // 准备绘制路径
@@ -530,7 +484,7 @@ class _KlinePainter extends CustomPainter {
 
     // 计算所有点
     for (var i = 0; i < nTotalLine; i++) {
-      final kline = state.fiveDayMinuteKlines[i];
+      final kline = fiveDayMinuteKlines[i];
       final x = i * w;
       final y = (kline.price - maxPrice) * hZoomRatio;
       final yAvg = (kline.avgPrice - maxPrice) * hZoomRatio;
@@ -592,8 +546,8 @@ class _KlinePainter extends CustomPainter {
           ..style = PaintingStyle.stroke;
 
     // 获取当前K线数据
-    final kline = state.klines[state.crossLineIndex];
-    final x = state.crossLineIndex * state.klineWidth + state.klineInnerWidth / 2;
+    final kline = klines[crossLineIndex];
+    final x = crossLineIndex * klineWidth + klineInnerWidth / 2;
 
     // 水平线
     canvas.drawLine(
@@ -623,113 +577,5 @@ class _KlinePainter extends CustomPainter {
     )..layout();
 
     textPainter.paint(canvas, Offset(x - textPainter.width / 2, size.height - 20));
-  }
-}
-
-class KlineCtrl extends ConsumerWidget {
-  final String shareCode;
-  const KlineCtrl({super.key, required this.shareCode});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
-      children: [
-        Column(
-          children: [
-            // K线类型切换
-            _buildTypeButton(context, ref, '分时', KlineType.minute),
-            _buildTypeButton(context, ref, '五日', KlineType.fiveDay),
-            _buildTypeButton(context, ref, '日K', KlineType.day),
-            _buildTypeButton(context, ref, '周K', KlineType.week),
-            _buildTypeButton(context, ref, '月K', KlineType.month),
-            _buildTypeButton(context, ref, '季K', KlineType.quarter),
-            _buildTypeButton(context, ref, '年K', KlineType.year),
-          ],
-        ),
-        const Spacer(),
-        Column(
-          children: [
-            // EMA控制
-            _buildEmaButton(context, ref, 'EMA5', 5),
-            _buildEmaButton(context, ref, 'EMA10', 10),
-            _buildEmaButton(context, ref, 'EMA20', 20),
-            _buildEmaButton(context, ref, 'EMA20', 60),
-            _buildEmaButton(context, ref, 'EMA255', 255),
-            _buildEmaButton(context, ref, 'EMA905', 905),
-          ],
-        ),
-        const Spacer(),
-        // K线主图
-        KlineChart(shareCode: shareCode),
-        const Spacer(),
-        // 技术指标图
-        Row(children: _buildIndicators(context, ref)),
-      ],
-    );
-  }
-
-  Widget _buildTypeButton(BuildContext context, WidgetRef ref, String text, KlineType type) {
-    final currentType = ref.watch(klineProvider.select((state) => state.type));
-    final isActive = currentType == type;
-
-    return TextButton(
-      style: TextButton.styleFrom(foregroundColor: isActive ? Colors.blue : Colors.white),
-      onPressed: () => ref.read(klineProvider.notifier).setType(type),
-      child: Text(text),
-    );
-  }
-
-  Widget _buildEmaButton(BuildContext context, WidgetRef ref, String text, int period) {
-    final hasEma = ref.watch(
-      klineProvider.select((state) => state.emaCurves.any((ema) => ema.period == period)),
-    );
-
-    return TextButton(
-      style: TextButton.styleFrom(foregroundColor: hasEma ? Colors.blue : Colors.white),
-      onPressed: () {
-        if (hasEma) {
-          ref.read(klineProvider.notifier).removeEmaCurve(period);
-        } else {
-          ref.read(klineProvider.notifier).addEmaCurve(period, _getEmaColor(period));
-        }
-      },
-      child: Text(text),
-    );
-  }
-
-  // 技术指标附图
-  List<Widget> _buildIndicators(BuildContext context, WidgetRef ref) {
-    final List<UiIndicator> indicators =
-        ref.read(klineProvider).indicators[ref.read(klineProvider).visibleIndicatorIndex];
-    List<Widget> widgets = [];
-    for (final indicator in indicators) {
-      if (indicator.type == UiIndicatorType.amount) {
-        widgets.add(AmountIndicator(height: 100));
-      } else if (indicator.type == UiIndicatorType.volume) {
-        widgets.add(VolumeIndicator(height: 100));
-      } else if (indicator.type == UiIndicatorType.turnoverRate) {
-        widgets.add(TurnoverRateIndicator(height: 100));
-      } else if (indicator.type == UiIndicatorType.minuteAmount) {
-        widgets.add(AmountIndicator(height: 100));
-      } else if (indicator.type == UiIndicatorType.minuteVolume) {
-        widgets.add(MinuteVolumeIndicator());
-      } else if (indicator.type == UiIndicatorType.fiveDayMinuteAmount) {
-        widgets.add(AmountIndicator(height: 100));
-      } else if (indicator.type == UiIndicatorType.fiveDayMinuteVolume) {
-        widgets.add(MinuteVolumeIndicator());
-      }
-    }
-    return widgets;
-  }
-
-  Color _getEmaColor(int period) {
-    return switch (period) {
-      5 => Colors.green,
-      10 => Colors.white,
-      20 => const Color(0xFFEF486F),
-      30 => const Color(0xFFFF9F1A),
-      60 => const Color(0xFFC9F3F0),
-      _ => Colors.purple,
-    };
   }
 }

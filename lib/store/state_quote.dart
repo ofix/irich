@@ -27,7 +27,6 @@ class QuoteNotifier extends StateNotifier<AsyncValue<List<Share>>> {
 }
 
 // 行情列表数据Provider
-final quoteProvider =
-    StateNotifierProvider<QuoteNotifier, AsyncValue<List<Share>>>(
-      (ref) => QuoteNotifier(),
-    );
+final quoteProvider = StateNotifierProvider<QuoteNotifier, AsyncValue<List<Share>>>(
+  (ref) => QuoteNotifier(),
+);

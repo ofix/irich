@@ -1,31 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/store/components/state_kline.dart';
 import 'package:irich/types/stock.dart';
 
-class TurnoverRateIndicator extends ConsumerWidget {
+class TurnoverRateIndicator extends StatefulWidget {
   final double height;
-
-  const TurnoverRateIndicator({super.key, this.height = 100});
+  final List<UiKline> klines;
+  final UiKlineRange klineRange;
+  final double klineWidth;
+  final double klineInnerWidth;
+  final int crossLineIndex;
+  const TurnoverRateIndicator({
+    super.key,
+    required this.klines,
+    required this.klineRange,
+    required this.klineWidth,
+    required this.klineInnerWidth,
+    required this.crossLineIndex,
+    this.height = 100,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final klineState = ref.watch(klineProvider);
+  State<TurnoverRateIndicator> createState() => _TurnoverRateIndicatorState();
+}
 
-    if (klineState.klines.isEmpty) {
-      return SizedBox(height: height);
+class _TurnoverRateIndicatorState extends State<TurnoverRateIndicator> {
+  @override
+  Widget build(BuildContext context) {
+    if (widget.klines.isEmpty) {
+      return SizedBox(height: widget.height);
     }
 
     return SizedBox(
-      height: height,
+      height: widget.height,
       child: CustomPaint(
         painter: _TurnoverRatePainter(
-          klines: klineState.klines,
-          klineRng: klineState.klineRng,
-          crossLineIndex: klineState.crossLineIndex,
-          klineWidth: klineState.klineWidth,
-          klineInnerWidth: klineState.klineInnerWidth,
-          isUpList: _getIsUpList(klineState.klines),
+          klines: widget.klines,
+          klineRng: widget.klineRange,
+          crossLineIndex: widget.crossLineIndex,
+          klineWidth: widget.klineWidth,
+          klineInnerWidth: widget.klineInnerWidth,
+          isUpList: _getIsUpList(widget.klines),
         ),
       ),
     );

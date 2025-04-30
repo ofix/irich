@@ -1,31 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/store/components/state_kline.dart';
 import 'package:irich/types/stock.dart';
 
-class AmountIndicator extends ConsumerWidget {
+class AmountIndicator extends StatefulWidget {
   final double height;
-
-  const AmountIndicator({super.key, this.height = 100});
-
+  final List<UiKline> klines;
+  final UiKlineRange klineRange;
+  final double klineWidth;
+  final double klineInnerWidth;
+  final int crossLineIndex;
+  const AmountIndicator({
+    super.key,
+    required this.klines,
+    required this.klineRange,
+    required this.klineWidth,
+    required this.klineInnerWidth,
+    required this.crossLineIndex,
+    this.height = 100,
+  });
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final klineState = ref.watch(klineProvider);
+  State<AmountIndicator> createState() => _AmountIndicatorState();
+}
 
-    if (klineState.klines.isEmpty) {
-      return SizedBox(height: height);
+class _AmountIndicatorState extends State<AmountIndicator> {
+  @override
+  Widget build(BuildContext context) {
+    // final klineState = ref.watch(klineProvider);
+
+    if (widget.klines.isEmpty) {
+      return SizedBox(height: widget.height);
     }
 
     return SizedBox(
-      height: height,
+      height: widget.height,
       child: CustomPaint(
         painter: _AmountIndicatorPainter(
-          klines: klineState.klines,
-          klineRng: klineState.klineRng,
-          crossLineIndex: klineState.crossLineIndex,
-          klineWidth: klineState.klineWidth,
-          klineInnerWidth: klineState.klineInnerWidth,
-          isUpList: _getIsUpList(klineState.klines, klineState.klineRng),
+          klines: widget.klines,
+          klineRng: widget.klineRange,
+
+          klineWidth: widget.klineWidth,
+          klineInnerWidth: widget.klineInnerWidth,
+          crossLineIndex: widget.crossLineIndex,
+          isUpList: _getIsUpList(widget.klines, widget.klineRange),
         ),
       ),
     );

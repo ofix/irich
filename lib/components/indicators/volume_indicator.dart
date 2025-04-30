@@ -1,31 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/store/components/state_kline.dart';
 import 'package:irich/types/stock.dart';
 
-class VolumeIndicator extends ConsumerWidget {
+class VolumeIndicator extends StatefulWidget {
   final double height;
+  final List<UiKline> klines;
+  final UiKlineRange klineRange;
+  final double klineWidth;
+  final double klineInnerWidth;
+  final int crossLineIndex;
 
-  const VolumeIndicator({super.key, this.height = 100});
-
+  const VolumeIndicator({
+    super.key,
+    required this.klines,
+    required this.klineRange,
+    required this.klineWidth,
+    required this.klineInnerWidth,
+    required this.crossLineIndex,
+    this.height = 100,
+  });
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final klineState = ref.watch(klineProvider);
+  State<VolumeIndicator> createState() => _VolumeIndicatorState();
+}
 
-    if (klineState.klines.isEmpty) {
-      return SizedBox(height: height);
+class _VolumeIndicatorState extends State<VolumeIndicator> {
+  @override
+  Widget build(BuildContext context) {
+    if (widget.klines.isEmpty) {
+      return SizedBox(height: widget.height);
     }
 
     return SizedBox(
-      height: height,
+      height: widget.height,
       child: CustomPaint(
         painter: _VolumeIndicatorPainter(
-          klines: klineState.klines,
-          klineRng: klineState.klineRng,
-          crossLineIndex: klineState.crossLineIndex,
-          klineWidth: klineState.klineWidth,
-          klineInnerWidth: klineState.klineInnerWidth,
-          isUpList: _getIsUpList(klineState.klines),
+          klines: widget.klines,
+          klineRng: widget.klineRange,
+          crossLineIndex: widget.crossLineIndex,
+          klineWidth: widget.klineWidth,
+          klineInnerWidth: widget.klineInnerWidth,
+          isUpList: _getIsUpList(widget.klines),
         ),
       ),
     );
