@@ -31,9 +31,7 @@ class ApiService {
   double get speed => _realTimeSpeed;
   // 获取当前请求进度
   double get progress =>
-      _requestCount == 0
-          ? 0
-          : (_successRequests + _failedRequests) / _requestCount;
+      _requestCount == 0 ? 0 : (_successRequests + _failedRequests) / _requestCount;
 
   // 取消并发请求
   void cancel() {
@@ -79,26 +77,15 @@ class ApiService {
   }
 
   // 获取文件路径和序列化方法
-  Future<({String path, String Function(Map<String, dynamic>) serializer})>
-  _getPathAndSerializer(EnumApiType enumApiType) async {
+  Future<({String path, String Function(Map<String, dynamic>) serializer})> _getPathAndSerializer(
+    EnumApiType enumApiType,
+  ) async {
     final basePath = (await getApplicationDocumentsDirectory()).path;
     return switch (enumApiType) {
-      EnumApiType.dayKline => (
-        path: '$basePath/dayKline.json',
-        serializer: _serializeToJson,
-      ),
-      EnumApiType.industry => (
-        path: '$basePath/industry.csv',
-        serializer: _serializeToCsv,
-      ),
-      EnumApiType.concept => (
-        path: '$basePath/concept.csv',
-        serializer: _serializeToCsv,
-      ),
-      EnumApiType.province => (
-        path: '$basePath/province.csv',
-        serializer: _serializeToCsv,
-      ),
+      EnumApiType.dayKline => (path: '$basePath/dayKline.json', serializer: _serializeToJson),
+      EnumApiType.industry => (path: '$basePath/industry.csv', serializer: _serializeToCsv),
+      EnumApiType.concept => (path: '$basePath/concept.csv', serializer: _serializeToCsv),
+      EnumApiType.province => (path: '$basePath/province.csv', serializer: _serializeToCsv),
       _ => throw ArgumentError('Unsupported API type'),
     };
   }
@@ -148,17 +135,12 @@ class ApiService {
   }
 
   // 完成处理
-  Future<RichResult> _onComplete(
-    EnumApiType enumApiType,
-    List<dynamic> responses,
-  ) async {
+  Future<RichResult> _onComplete(EnumApiType enumApiType, List<dynamic> responses) async {
     try {
       final result = await _getPathAndSerializer(enumApiType);
       final path = result.path;
       final serializer = result.serializer;
-      final content = responses
-          .map((r) => serializer(r as Map<String, dynamic>))
-          .join('\n');
+      final content = responses.map((r) => serializer(r as Map<String, dynamic>)).join('\n');
       return await saveToFile(path, content);
     } catch (e) {
       return error(RichStatus.fileWriteFailed, desc: e.toString());
@@ -191,14 +173,13 @@ class ApiService {
     String shareCode, [
     Map<String, dynamic>? extraParams,
   ]) async {
-    final Share share = StoreQuote.query(shareCode)!;
-    final params = {
-      "shareCode": share.code,
-      "market": share.market,
-      "shareName": share.name,
-    };
-    if (extraParams != null) {
-      params.addAll(extraParams.cast<String, Object>());
+    Map<String, dynamic> params = {};
+    if (shareCode != "") {
+      final Share share = StoreQuote.query(shareCode)!;
+      final params = {"shareCode": share.code, "market": share.market, "shareName": share.name};
+      if (extraParams != null) {
+        params.addAll(extraParams.cast<String, Object>());
+      }
     }
     final response = await _balancer.request(enumApiType, params);
     return (success(), response);

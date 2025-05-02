@@ -6,39 +6,31 @@ import 'package:irich/pages/favorite/favorite_page.dart';
 
 // 禁用GoRouter默认页面切换动画
 final appRouter = GoRouter(
-  initialLocation: '/favorite',
+  initialLocation: '/market',
   routes: [
     GoRoute(
       path: '/portfolio',
       pageBuilder:
-          (context, state) => NoTransitionPage(
-            key: state.pageKey,
-            child: const PortfolioPage(title: "决策"),
-          ),
+          (context, state) =>
+              NoTransitionPage(key: state.pageKey, child: const PortfolioPage(title: "决策")),
     ),
     GoRoute(
       path: '/market',
       pageBuilder:
-          (context, state) => NoTransitionPage(
-            key: state.pageKey,
-            child: const MarketPage(title: '行情'),
-          ),
+          (context, state) =>
+              NoTransitionPage(key: state.pageKey, child: const MarketPage(title: '行情')),
     ),
     GoRoute(
       path: '/favorite',
       pageBuilder:
-          (context, state) => NoTransitionPage(
-            key: state.pageKey,
-            child: const FavoritePage(title: '自选'),
-          ),
+          (context, state) =>
+              NoTransitionPage(key: state.pageKey, child: const FavoritePage(title: '自选')),
     ),
     GoRoute(
       path: '/discovery',
       pageBuilder:
-          (context, state) => NoTransitionPage(
-            key: state.pageKey,
-            child: const DiscoveryPage(title: '选股'),
-          ),
+          (context, state) =>
+              NoTransitionPage(key: state.pageKey, child: const DiscoveryPage(title: '选股')),
     ),
   ],
 );

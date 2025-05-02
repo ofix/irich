@@ -40,17 +40,21 @@ class StoreQuote {
 
   static Future<void> _initializePaths() async {
     final appDir = await getApplicationDocumentsDirectory();
-    _pathDataFileQuote = "${appDir.path}/quote.ida";
-    _pathIndexFileProvince = "${appDir.path}/province.idx";
-    _pathIndexFileIndustry = "${appDir.path}/industry.idx";
-    _pathIndexFileConcept = "${appDir.path}/concept.idx";
+    _pathDataFileQuote = "${appDir.path}/quote.json";
+    _pathIndexFileProvince = "${appDir.path}/province.json";
+    _pathIndexFileIndustry = "${appDir.path}/industry.json";
+    _pathIndexFileConcept = "${appDir.path}/concept.json";
   }
 
   /// 爬取当前行情/行业板块/地域板块/股票行情基本信息
   static Future<RichResult> _fetchQuoteBasicInfo() async {
-    ApiService().fetch(EnumApiType.quote,"");
-    ApiService().fetch(EnumApiType.sideMenu,"");
-    // 建立股票行情数据索引
+    // 爬取当前行情
+    final result = await ApiService().fetch(EnumApiType.quote, "");
+    // 立即显示
+
+    // 继续异步爬取 行业/地域/概念板块数据
+    await ApiService().fetch(EnumApiType.sideMenu, "");
+    // 爬取完成后建立股票行情数据索引
     if (!_indexed) {
       _indexed = true;
       _buildShareMap(shares);
@@ -77,10 +81,7 @@ class StoreQuote {
         // 这个时间段不能拉取,只加载本地过期股票行情数据
         return await _loadQuoteFile(_pathDataFileQuote, _shares);
       } else {
-        final (result, shares as List<Share>) = await ApiService().fetch(
-          EnumApiType.quote,
-          "",
-        );
+        final (result, shares as List<Share>) = await ApiService().fetch(EnumApiType.quote, "");
         if (!result.ok()) {
           return error(RichStatus.networkError);
         }
@@ -89,10 +90,7 @@ class StoreQuote {
     }
     final result = await _loadQuoteFile(_pathDataFileQuote, _shares);
     if (!result.ok()) {
-      final (result, shares as List<Share>) = await ApiService().fetch(
-        EnumApiType.quote,
-        "",
-      );
+      final (result, shares as List<Share>) = await ApiService().fetch(EnumApiType.quote, "");
       if (!result.ok()) {
         return error(RichStatus.networkError);
       }
@@ -103,10 +101,7 @@ class StoreQuote {
   }
 
   /// 加载本地行情数据文件
-  static Future<RichResult> _loadQuoteFile(
-    String path,
-    List<Share> shares,
-  ) async {
+  static Future<RichResult> _loadQuoteFile(String path, List<Share> shares) async {
     try {
       String data = await FileTool.loadFile(path);
       dynamic arr = jsonDecode(data);
@@ -119,9 +114,7 @@ class StoreQuote {
           name: item['name'], // 股票名称
           code: item['code'], // 股票代码
           market: Market.fromValue(item['market']), // 股票市场
-          priceYesterdayClose: double.parse(
-            item['price_yesterday_close'],
-          ), // 昨天收盘价
+          priceYesterdayClose: double.parse(item['price_yesterday_close']), // 昨天收盘价
           priceNow: double.parse(item['price_now']), // 当前价
           priceMin: double.parse(item['price_min']), // 最低价
           priceMax: double.parse(item['price_max']), // 最高价

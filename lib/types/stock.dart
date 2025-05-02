@@ -218,7 +218,7 @@ class Share {
   double? pe; // 市盈率
   double? pb; // 市净率
   double? roe; // 净资产收益率
-  double? turnoverRate; // 换手率
+  double turnoverRate; // 换手率
   double? revenue; // 当前营收
   double? bonus; // 当前分红
   double? historyBonus; // 历史分红总额
@@ -250,11 +250,11 @@ class Share {
     required this.priceOpen,
     this.priceClose,
     required this.priceAmplitude,
+    required this.turnoverRate,
     required this.qrr,
     this.pe,
     this.pb,
     this.roe,
-    this.turnoverRate,
     this.revenue,
     this.bonus,
     this.historyBonus,

@@ -25,10 +25,7 @@ class ApiProviderHexun extends ApiProvider {
   List<Share> marketShares = [];
 
   @override
-  Future<dynamic> doRequest(
-    EnumApiType enumApiType,
-    Map<String, dynamic> params,
-  ) async {
+  Future<dynamic> doRequest(EnumApiType enumApiType, Map<String, dynamic> params) async {
     switch (enumApiType) {
       case EnumApiType.quote:
         return fetchQuote();
@@ -39,7 +36,9 @@ class ApiProviderHexun extends ApiProvider {
 
   // 根据请求类型解析响应数据
   @override
-  void parseResponse(EnumApiType enumApiType, dynamic response) {}
+  dynamic parseResponse(EnumApiType enumApiType, dynamic response) {
+    return response;
+  }
 
   // 获取股票列表
   Future<dynamic> fetchQuote() async {
@@ -54,6 +53,7 @@ class ApiProviderHexun extends ApiProvider {
       for (var i = 0; i < results.length; i++) {
         marketShares.addAll(_parseMarketShare(results[i], markets[i]));
       }
+      return marketShares;
     } catch (e) {
       throw Exception('Failed to fetch market shares: $e');
     }
@@ -64,10 +64,8 @@ class ApiProviderHexun extends ApiProvider {
     final url = shareListUrlHexun(market);
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
-      final data = response.body
-          .replaceAll(RegExp(r'$'), '')
-          .replaceAll(RegExp(r'$;'), '');
-      return jsonDecode(data);
+      final data = response.body.replaceAll(RegExp(r'^\(|\);$'), '');
+      return data;
     } else {
       throw Exception('Failed to request market shares');
     }
@@ -91,8 +89,6 @@ class ApiProviderHexun extends ApiProvider {
   // 解析股票列表返回结果
   List<Share> _parseMarketShare(String response, int market) {
     List<Share> shares = [];
-    // 正则替换
-
     try {
       final jsonData = jsonDecode(response);
       // final count = jsonData['Total'] as int;
@@ -110,7 +106,7 @@ class ApiProviderHexun extends ApiProvider {
           priceOpen: item[5].toDouble() / factor,
           priceMax: item[6].toDouble() / factor,
           priceMin: item[7].toDouble() / factor,
-          volume: item[8].toDouble() / 100,
+          volume: ((item[8].toDouble() / 100) as double).toInt(),
           amount: item[10].toDouble(),
           turnoverRate: item[11].toDouble() / 100,
           priceAmplitude: item[12].toDouble() / 100,

@@ -14,8 +14,7 @@ import 'package:irich/service/api_provider.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 
 class LoadBalancer {
-  static final ApiProviderCapabilities _providerCapabilities =
-      ApiProviderCapabilities(); // 提供商能力
+  static final ApiProviderCapabilities _providerCapabilities = ApiProviderCapabilities(); // 提供商能力
   final _providerWeights = <EnumApiProvider, int>{}; // 供应商权重
   List<ApiProvider> providers = []; // 当前的供应商
   EnumApiType apiType = EnumApiType.quote; //  当前请求的主题
@@ -31,10 +30,12 @@ class LoadBalancer {
 
   // 根据请求的接口类型动态获取供应商
   ApiProvider _selectProvider(EnumApiType apiType) {
-    List<EnumApiProvider> enumProviders = _providerCapabilities.getProviders(
-      apiType,
-    );
+    List<EnumApiProvider> enumProviders = _providerCapabilities.getProviders(apiType);
     if (enumProviders.isEmpty) throw Exception('No available data provider');
+
+    if (enumProviders.length == 1) {
+      return _providerCapabilities.getProviderByEnum(enumProviders.first);
+    }
 
     // 按当前权重随机选择
     final totalWeight = providers.fold(0, (sum, s) => sum + 1);
@@ -50,7 +51,7 @@ class LoadBalancer {
   }
 
   // 5. 带负载均衡的请求方法
-  Future<dynamic> request(EnumApiType apiType, Map<String,dynamic> params) async {
+  Future<dynamic> request(EnumApiType apiType, Map<String, dynamic> params) async {
     final provider = _selectProvider(apiType);
     try {
       final response = await provider.doRequest(apiType, params);
@@ -59,5 +60,4 @@ class LoadBalancer {
       rethrow;
     }
   }
-
 }
