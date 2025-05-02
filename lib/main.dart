@@ -18,6 +18,7 @@ class RichApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.getLightTheme(),
       darkTheme: AppTheme.getDarkTheme(),
+      themeMode: ThemeMode.dark,
       routerConfig: router,
     );
   }
