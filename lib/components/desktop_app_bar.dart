@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class DesktopAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -11,14 +10,10 @@ class DesktopAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 48,
+      // color: Color.fromARGB(255, 24, 22, 22),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).dividerColor,
-            width: 1,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1)),
       ),
       child: Row(
         children: [
@@ -57,10 +52,7 @@ class DesktopAppBar extends StatelessWidget implements PreferredSizeWidget {
     return SizedBox(
       width: 48,
       height: 48,
-      child: IconButton(
-        icon: Icon(icon, size: 16),
-        onPressed: () {},
-      ),
+      child: IconButton(icon: Icon(icon, size: 16), onPressed: () {}),
     );
   }
 }

@@ -6,7 +6,7 @@ class DesktopMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: 120,
       // decoration: BoxDecoration(
       //   color: Theme.of(context).colorScheme.surface,
@@ -17,30 +17,10 @@ class DesktopMenu extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
-          _buildMenuItem(
-            context,
-            icon: Icons.star,
-            label: '自选股',
-            route: '/favorite',
-          ),
-          _buildMenuItem(
-            context,
-            icon: Icons.trending_up,
-            label: '行情',
-            route: '/market',
-          ),
-          _buildMenuItem(
-            context,
-            icon: Icons.search,
-            label: '选股',
-            route: '/discovery',
-          ),
-          _buildMenuItem(
-            context,
-            icon: Icons.explore,
-            label: '决策',
-            route: '/portfolio',
-          ),
+          _buildMenuItem(context, icon: Icons.star, label: '自选股', route: '/favorite'),
+          _buildMenuItem(context, icon: Icons.trending_up, label: '行情', route: '/market'),
+          _buildMenuItem(context, icon: Icons.search, label: '选股', route: '/discovery'),
+          _buildMenuItem(context, icon: Icons.explore, label: '决策', route: '/portfolio'),
         ],
       ),
     );
@@ -52,9 +32,7 @@ class DesktopMenu extends StatelessWidget {
     required String label,
     required String route,
   }) {
-    final isSelected =
-        GoRouter.of(context).routerDelegate.currentConfiguration.fullPath ==
-        route;
+    final isSelected = GoRouter.of(context).routerDelegate.currentConfiguration.fullPath == route;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
