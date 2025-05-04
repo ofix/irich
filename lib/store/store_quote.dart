@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:irich/components/progress_popup.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
 import 'package:irich/types/stock.dart';
@@ -11,17 +13,19 @@ import 'package:irich/utils/trie.dart';
 import 'package:path_provider/path_provider.dart';
 
 class StoreQuote {
-  static final List<Share> _shares = []; // 股票行情数据，交易时间需要每隔1s定时刷新，非交易时间读取本地文件
-  static final Map<String, Share> _shareMap = {}; // 股票代码映射表，App启动时映射一次即可
-  static final Map<String, List<Share>> _industryShares = {}; // 按行业名称分类的股票集合
-  static final Map<String, List<Share>> _conceptShares = {}; // 按概念分类的股票集合
-  static final Map<String, List<Share>> _provinceShares = {}; // 按省份分类的股票集合
+  static List<Share> _shares = []; // 股票行情数据，交易时间需要每隔1s定时刷新，非交易时间读取本地文件
+  static Map<String, Share> _shareMap = {}; // 股票代码映射表，App启动时映射一次即可
+  static Map<String, List<Share>> _industryShares = {}; // 按行业名称分类的股票集合
+  static Map<String, List<Share>> _conceptShares = {}; // 按概念分类的股票集合
+  static Map<String, List<Share>> _provinceShares = {}; // 按省份分类的股票集合
   static final Trie _trie = Trie(); // 股票Trie树，支持模糊查询
   static bool _indexed = false; // 是否已经建立索引文件
   static late String _pathDataFileQuote;
   static late String _pathIndexFileProvince; // 股票=>省份索引文件[东方财富]
   static late String _pathIndexFileIndustry; // 股票=>行业索引文件[东方财富]
   static late String _pathIndexFileConcept; // 股票=>概念索引文件[东方财富]
+  static final StreamController<TaskProgress> _progressController =
+      StreamController<TaskProgress>(); // 下载异步事件流
 
   /// 私有构造函数防止实例化
   StoreQuote._();
@@ -49,11 +53,58 @@ class StoreQuote {
   /// 爬取当前行情/行业板块/地域板块/股票行情基本信息
   static Future<RichResult> _fetchQuoteBasicInfo() async {
     // 爬取当前行情
-    final result = await ApiService().fetch(EnumApiType.quote, "");
-    // 立即显示
-
+    _progressController.add(TaskProgress(name: "市场行情", current: 0, total: 100, desc: "获取A股市场行情数据"));
+    final (resultQuote, responseQuote as List<Share>) = await ApiService(
+      ProviderApiType.quote,
+    ).fetch("");
+    if (resultQuote.ok()) {
+      _shares = responseQuote;
+    }
+    // 爬取板块数据
+    _progressController.add(TaskProgress(name: "板块分类", current: 1, total: 0, desc: "获取东方财富板块分类数据"));
     // 继续异步爬取 行业/地域/概念板块数据
-    await ApiService().fetch(EnumApiType.sideMenu, "");
+    final (resultMenu, responseSideMenu as List<List<String>>) = await ApiService(
+      ProviderApiType.sideMenu,
+    ).fetch("");
+    if (resultMenu.ok()) {
+      _progressController.add(TaskProgress(name: "板块分类", current: 1, total: 0, desc: "获取东方财富地域板块"));
+      // 异步并发爬爬取省份板块
+      final (statusProvince, responseRrovince) = await ApiService(
+        ProviderApiType.province,
+      ).concurrentFetch(
+        responseSideMenu[0].map((String item) {
+          return {'name': item, 'length': item.length};
+        }).toList(),
+      );
+      if (statusProvince.ok()) {
+        // 存储到缓存和文件
+      }
+      _progressController.add(TaskProgress(name: "板块分类", current: 1, total: 0, desc: "获取东方财富行业板块"));
+      // 异步并发爬取行业板块
+      final (statusIndustry, responseIndustry) = await ApiService(
+        ProviderApiType.industry,
+      ).concurrentFetch(
+        responseSideMenu[0].map((String item) {
+          return {'name': item, 'length': item.length};
+        }).toList(),
+      );
+      if (statusIndustry.ok()) {
+        // 存储到缓存和文件
+      }
+      _progressController.add(TaskProgress(name: "板块分类", current: 1, total: 0, desc: "获取东方财富概念板块"));
+      // 异步并发爬取概念板块
+      final (statusConcept, responseConcept) = await ApiService(
+        ProviderApiType.concept,
+      ).concurrentFetch(
+        responseSideMenu[0].map((String item) {
+          return {'name': item, 'length': item.length};
+        }).toList(),
+      );
+      if (statusConcept.ok()) {
+        //存储到缓存和文件
+      }
+    }
+
     // 爬取完成后建立股票行情数据索引
     if (!_indexed) {
       _indexed = true;
@@ -81,7 +132,7 @@ class StoreQuote {
         // 这个时间段不能拉取,只加载本地过期股票行情数据
         return await _loadQuoteFile(_pathDataFileQuote, _shares);
       } else {
-        final (result, shares as List<Share>) = await ApiService().fetch(EnumApiType.quote, "");
+        final (result, shares as List<Share>) = await ApiService(ProviderApiType.quote).fetch("");
         if (!result.ok()) {
           return error(RichStatus.networkError);
         }
@@ -90,7 +141,7 @@ class StoreQuote {
     }
     final result = await _loadQuoteFile(_pathDataFileQuote, _shares);
     if (!result.ok()) {
-      final (result, shares as List<Share>) = await ApiService().fetch(EnumApiType.quote, "");
+      final (result, shares as List<Share>) = await ApiService(ProviderApiType.quote).fetch("");
       if (!result.ok()) {
         return error(RichStatus.networkError);
       }

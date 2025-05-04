@@ -25,18 +25,18 @@ class ApiProviderHexun extends ApiProvider {
   List<Share> marketShares = [];
 
   @override
-  Future<dynamic> doRequest(EnumApiType enumApiType, Map<String, dynamic> params) async {
-    switch (enumApiType) {
-      case EnumApiType.quote:
+  Future<dynamic> doRequest(ProviderApiType apiType, Map<String, dynamic> params) async {
+    switch (apiType) {
+      case ProviderApiType.quote:
         return fetchQuote();
       default:
-        throw Exception('Unsupported API type: $enumApiType');
+        throw Exception('Unsupported API type: $ProviderApiType');
     }
   }
 
   // 根据请求类型解析响应数据
   @override
-  dynamic parseResponse(EnumApiType enumApiType, dynamic response) {
+  dynamic parseResponse(ProviderApiType apiType, dynamic response) {
     return response;
   }
 

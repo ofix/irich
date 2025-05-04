@@ -8,54 +8,74 @@
 ///////////////////////////////////////////////////////////////////////////////
 // ignore_for_file: dangling_library_doc_comments
 
-import 'dart:math';
-
 import 'package:irich/service/api_provider.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 
 class LoadBalancer {
   static final ApiProviderCapabilities _providerCapabilities = ApiProviderCapabilities(); // 提供商能力
-  final _providerWeights = <EnumApiProvider, int>{}; // 供应商权重
-  List<ApiProvider> providers = []; // 当前的供应商
-  EnumApiType apiType = EnumApiType.quote; //  当前请求的主题
+  Map<EnumApiProvider, int> _providerWeights = {}; // 供应商权重
+  late ProviderApiType _curApiType;
 
-  LoadBalancer();
+  // 加权轮询算法(IWWR)
+  final List<EnumApiProvider> _weightRoundRobinProviders = []; // 将加权的供应商列表转换成轮询的供应商列表
+  int _weightRoundRobinIndex = 0; // 当前选中的供应商下标
 
-  // void _initWeights(EnumApiType type) {
-  //   List<EnumApiProvider> providers = _providerCapabilities.getProviders(type);
-  //   for (var provider in providers) {
-  //     _providerWeights[provider] = 1; // 初始化权重为1
-  //   }
-  // }
+  // 初始化供应商权重
+  LoadBalancer(ProviderApiType apiType) {
+    _fastWeightRoundRobinInit(apiType);
+  }
 
-  // 根据请求的接口类型动态获取供应商
-  ApiProvider _selectProvider(EnumApiType apiType) {
-    List<EnumApiProvider> enumProviders = _providerCapabilities.getProviders(apiType);
-    if (enumProviders.isEmpty) throw Exception('No available data provider');
-
+  // 1.快速加权轮询算法（用空间换取时间）
+  // 根据当前爬取的主题初始化对应API接口供应商的权重
+  void _fastWeightRoundRobinInit(ProviderApiType apiType) {
+    _providerWeights = {
+      EnumApiProvider.eastMoney: 4,
+      EnumApiProvider.baiduFinance: 3,
+      EnumApiProvider.heXun: 1,
+    };
+    _curApiType = apiType;
+    _weightRoundRobinIndex = 0;
+    final enumProviders = _providerCapabilities.getProviders(apiType);
     if (enumProviders.length == 1) {
-      return _providerCapabilities.getProviderByEnum(enumProviders.first);
+      _weightRoundRobinProviders.add(enumProviders.first); // 只有一个供应商,无需轮询
+      return;
     }
-
-    // 按当前权重随机选择
-    final totalWeight = providers.fold(0, (sum, s) => sum + 1);
-    var random = Random().nextInt(totalWeight);
-
+    // 有多个供应商，才需要加权轮询
     for (final enumProvider in enumProviders) {
-      random -= _providerWeights[enumProvider] ?? 1;
-      if (random <= 0) {
-        return _providerCapabilities.getProviderByEnum(enumProvider);
+      int weight = _providerWeights[enumProvider]!;
+      for (int i = 0; i < weight; i++) {
+        _weightRoundRobinProviders.add(enumProvider);
       }
     }
-    return providers.last;
+    // 原地随机打乱
+    _weightRoundRobinProviders.shuffle();
+  }
+
+  // 加权轮询法-获取下一个 API 供应商
+  ApiProvider _fastWeightRoundRobinNextApiProvider() {
+    if (_weightRoundRobinProviders.length == 1) {
+      return _providerCapabilities.getProviderByEnum(_weightRoundRobinProviders.first);
+    }
+    // 按当前权重随机选择
+    if (_weightRoundRobinIndex >= _weightRoundRobinProviders.length) {
+      _weightRoundRobinIndex = 0;
+    }
+    // 获取下一个供应商
+    final enumProvider = _weightRoundRobinProviders[_weightRoundRobinIndex++];
+    return _providerCapabilities.getProviderByEnum(enumProvider);
+  }
+
+  // 根据请求的接口类型动态获取供应商
+  ApiProvider _nextApiProvider() {
+    return _fastWeightRoundRobinNextApiProvider();
   }
 
   // 5. 带负载均衡的请求方法
-  Future<dynamic> request(EnumApiType apiType, Map<String, dynamic> params) async {
-    final provider = _selectProvider(apiType);
+  Future<dynamic> request(Map<String, dynamic> params) async {
+    final provider = _nextApiProvider();
     try {
-      final response = await provider.doRequest(apiType, params);
-      return provider.parseResponse(apiType, response);
+      final response = await provider.doRequest(_curApiType, params);
+      return provider.parseResponse(_curApiType, response);
     } catch (e) {
       rethrow;
     }

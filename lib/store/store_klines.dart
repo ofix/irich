@@ -53,10 +53,7 @@ class StoreKlines {
   final MemoryKline<UiKline> _yearKlines = MemoryKline<UiKline>(300);
 
   /// 获取单个股票分时K线
-  Future<RichResult> queryMinuteKlines(
-    String shareCode,
-    List<MinuteKline> minuteKlines,
-  ) async {
+  Future<RichResult> queryMinuteKlines(String shareCode, List<MinuteKline> minuteKlines) async {
     List<MinuteKline>? minuteKlinesInMemory = _minuteKlines.query(shareCode);
     if (minuteKlinesInMemory != null) {
       minuteKlines
@@ -66,10 +63,9 @@ class StoreKlines {
     }
     // 缓存不存在
     List<MinuteKline> tempKlines = [];
-    final (result, response as List<MinuteKline>) = await ApiService().fetch(
-      EnumApiType.minuteKline,
-      shareCode,
-    );
+    final (result, response as List<MinuteKline>) = await ApiService(
+      ProviderApiType.minuteKline,
+    ).fetch(shareCode);
     if (result.ok()) {
       _minuteKlines.add(shareCode, tempKlines); // 缓存最近300条记录
     }
@@ -84,9 +80,7 @@ class StoreKlines {
     String shareCode,
     List<MinuteKline> fiveDayMinuteKlines,
   ) async {
-    List<MinuteKline>? fiveDayMinuteKlinesInMemory = _fiveDayKlines.query(
-      shareCode,
-    );
+    List<MinuteKline>? fiveDayMinuteKlinesInMemory = _fiveDayKlines.query(shareCode);
     if (fiveDayMinuteKlinesInMemory != null) {
       fiveDayMinuteKlines
         ..clear()
@@ -95,10 +89,9 @@ class StoreKlines {
     }
     // 缓存不存在
     List<MinuteKline> tempKlines = [];
-    final (result, response as List<MinuteKline>) = await ApiService().fetch(
-      EnumApiType.fiveDayKline,
-      shareCode,
-    );
+    final (result, response as List<MinuteKline>) = await ApiService(
+      ProviderApiType.fiveDayKline,
+    ).fetch(shareCode);
     if (result.ok()) {
       _fiveDayKlines.add(shareCode, tempKlines); // 缓存最近300条记录
     }
@@ -109,64 +102,29 @@ class StoreKlines {
   }
 
   /// 获取单个股票年K线
-  Future<RichResult> queryYearKlines(
-    String shareCode,
-    List<UiKline> yearKlines,
-  ) async {
-    return _queryPeriodKlines(
-      shareCode,
-      yearKlines,
-      _yearKlines,
-      _generateYearKlines,
-    );
+  Future<RichResult> queryYearKlines(String shareCode, List<UiKline> yearKlines) async {
+    return _queryPeriodKlines(shareCode, yearKlines, _yearKlines, _generateYearKlines);
   }
 
   /// 获取单个股票季度K线
-  Future<RichResult> queryQuarterKlines(
-    String shareCode,
-    List<UiKline> quarterKlines,
-  ) async {
-    return _queryPeriodKlines(
-      shareCode,
-      quarterKlines,
-      _quarterKlines,
-      _generateQuarterKlines,
-    );
+  Future<RichResult> queryQuarterKlines(String shareCode, List<UiKline> quarterKlines) async {
+    return _queryPeriodKlines(shareCode, quarterKlines, _quarterKlines, _generateQuarterKlines);
   }
 
   /// 获取单个股票月度K线
-  Future<RichResult> queryMonthKlines(
-    String shareCode,
-    List<UiKline> monthKlines,
-  ) async {
-    return _queryPeriodKlines(
-      shareCode,
-      monthKlines,
-      _monthKlines,
-      _generateMonthKlines,
-    );
+  Future<RichResult> queryMonthKlines(String shareCode, List<UiKline> monthKlines) async {
+    return _queryPeriodKlines(shareCode, monthKlines, _monthKlines, _generateMonthKlines);
   }
 
-  Future<RichResult> queryWeekKlines(
-    String shareCode,
-    List<UiKline> weekKlines,
-  ) async {
-    return _queryPeriodKlines(
-      shareCode,
-      weekKlines,
-      _weekKlines,
-      _generateWeekKLines,
-    );
+  Future<RichResult> queryWeekKlines(String shareCode, List<UiKline> weekKlines) async {
+    return _queryPeriodKlines(shareCode, weekKlines, _weekKlines, _generateWeekKLines);
   }
 
   /// 获取单个股票日K线
   /// 1. 检查内存中是否缓存
   /// 2. 检查文件中是否缓存
   /// 3. 文件中K线如果过期，刷新
-  Future<RichResult> queryDayKlines(
-    String shareCode,
-    List<UiKline> dayKlines,
-  ) async {
+  Future<RichResult> queryDayKlines(String shareCode, List<UiKline> dayKlines) async {
     // 检查内存缓存是否存在
     List<UiKline>? dayKlinesInMemory = _dayKlines.query(shareCode);
     if (dayKlinesInMemory != null) {
@@ -182,10 +140,7 @@ class StoreKlines {
     RichResult result;
     if (await FileTool.isFileExist(filePath)) {
       if (await FileTool.isDailyFileExpired(filePath)) {
-        result = await _fetchIncrementalDayKlines(
-          shareCode,
-          newestDayKlines,
-        ); // 增量爬取
+        result = await _fetchIncrementalDayKlines(shareCode, newestDayKlines); // 增量爬取
         if (!result.ok()) {
           // 爬取增量K线数据失败
           return result;
@@ -198,10 +153,9 @@ class StoreKlines {
       }
       result = await _loadLocalDayKlines(shareCode, dayKlines); // 加载全量数据
     } else {
-      (result, dayKlines as List<UiKline>) = await ApiService().fetch(
-        EnumApiType.dayKline,
-        shareCode,
-      ); // 全量爬取
+      (result, dayKlines as List<UiKline>) = await ApiService(
+        ProviderApiType.dayKline,
+      ).fetch(shareCode); // 全量爬取
       if (!result.ok()) {
         return result; // 全量爬取失败
       }
@@ -272,10 +226,7 @@ class StoreKlines {
   }
 
   /// 保存日K线数据到本地文件
-  Future<RichResult> _saveShareDayKline(
-    String shareCode,
-    List<UiKline> klines,
-  ) async {
+  Future<RichResult> _saveShareDayKline(String shareCode, List<UiKline> klines) async {
     if (klines.isEmpty) {
       return error(RichStatus.parameterError);
     }
@@ -289,10 +240,7 @@ class StoreKlines {
   }
 
   /// 保存增量日K线数据到本地文件
-  Future<RichResult> _saveIncrementalDayKlines(
-    String shareCode,
-    List<UiKline> klines,
-  ) async {
+  Future<RichResult> _saveIncrementalDayKlines(String shareCode, List<UiKline> klines) async {
     if (klines.isEmpty) {
       return error(RichStatus.parameterError);
     }
@@ -310,10 +258,7 @@ class StoreKlines {
   }
 
   /// 获取本地日K线文件缺失的K线数据
-  Future<RichResult> _fetchIncrementalDayKlines(
-    String shareCode,
-    List<UiKline> dayKlines,
-  ) async {
+  Future<RichResult> _fetchIncrementalDayKlines(String shareCode, List<UiKline> dayKlines) async {
     String endDate = getDayFromNow(1); // 请求需要明天的日期，才能下载当天的K线
     String filePath = await _getFilePathOfDayKline(shareCode);
     final (result, lastLine) = await FileTool.getLastLineOfFile(filePath);
@@ -327,11 +272,9 @@ class StoreKlines {
       return error(RichStatus.innerError);
     }
 
-    final (state, newKlines as List<UiKline>) = await ApiService().fetch(
-      EnumApiType.dayKline,
-      shareCode,
-      {"endDate": endDate, "count": 144},
-    );
+    final (state, newKlines as List<UiKline>) = await ApiService(
+      ProviderApiType.dayKline,
+    ).fetch(shareCode, {"endDate": endDate, "count": 144});
     if (!state.ok()) {
       return error(RichStatus.networkError);
     }
@@ -357,10 +300,7 @@ class StoreKlines {
   }
 
   /// 加载本地日K线数据
-  Future<RichResult> _loadLocalDayKlines(
-    String shareCode,
-    List<UiKline> dayKlines,
-  ) async {
+  Future<RichResult> _loadLocalDayKlines(String shareCode, List<UiKline> dayKlines) async {
     String filePath = await _getFilePathOfDayKline(shareCode);
     if (!await FileTool.isFileExist(filePath)) {
       return error(RichStatus.fileNotFound);
@@ -463,9 +403,7 @@ class StoreKlines {
         // 保存上一周的周K线
         kline.priceClose = dayKlines[i - 1].priceClose; // 将上一个交易日的收盘价作为周期收盘价
         kline.day = periodStartDay; // 周期开盘日是周期第一天
-        kline.changeRate =
-            (kline.priceClose - prevPeriodPriceClose) /
-            prevPeriodPriceClose; // 周涨跌幅
+        kline.changeRate = (kline.priceClose - prevPeriodPriceClose) / prevPeriodPriceClose; // 周涨跌幅
         kline.changeAmount = kline.priceClose - prevPeriodPriceClose; // 周涨跌额
         klines.add(kline);
         prevPeriodPriceClose = kline.priceClose; // 将上一个交易日的收盘价作为周收盘价
@@ -488,11 +426,8 @@ class StoreKlines {
     }
 
     ////////// 剩余未添加的记录 ////////
-    kline.priceClose =
-        dayKlines[dayKlines.length - 1].priceClose; // 周收盘价是最后一个交易日的收盘价
-    kline.changeRate =
-        (kline.priceClose - prevPeriodPriceClose) /
-        prevPeriodPriceClose; // 周涨跌幅
+    kline.priceClose = dayKlines[dayKlines.length - 1].priceClose; // 周收盘价是最后一个交易日的收盘价
+    kline.changeRate = (kline.priceClose - prevPeriodPriceClose) / prevPeriodPriceClose; // 周涨跌幅
     kline.changeAmount = kline.priceClose - prevPeriodPriceClose; // 周涨跌额
     klines.add(kline);
     return klines;

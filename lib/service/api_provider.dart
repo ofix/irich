@@ -6,12 +6,9 @@ import 'package:http/http.dart' as http;
 abstract class ApiProvider {
   EnumApiProvider get name;
   // 根据请求类型获取接口数据
-  Future<dynamic> doRequest(
-    EnumApiType enumApiType,
-    Map<String, dynamic> params,
-  );
+  Future<dynamic> doRequest(ProviderApiType apiType, Map<String, dynamic> params);
   // 根据请求类型解析响应数据
-  void parseResponse(EnumApiType enumApiType, dynamic response);
+  void parseResponse(ProviderApiType apiType, dynamic response);
 
   Future<dynamic> asyncRequest(String url) async {
     try {

@@ -9,7 +9,7 @@ enum EnumApiProvider {
   baiduFinance, // 百度财经
 }
 
-enum EnumApiType {
+enum ProviderApiType {
   quote, // 大A股票实时行情
   sideMenu, // 侧边栏数据
   industry, // 行业分类数据
@@ -21,35 +21,26 @@ enum EnumApiType {
 }
 
 class ApiProviderCapabilities {
-  final Map<EnumApiType, List<EnumApiProvider>> _capabilities = {
-    EnumApiType.quote: [EnumApiProvider.heXun],
-    EnumApiType.sideMenu: [EnumApiProvider.eastMoney],
-    EnumApiType.industry: [EnumApiProvider.eastMoney],
-    EnumApiType.concept: [EnumApiProvider.eastMoney],
-    EnumApiType.province: [EnumApiProvider.eastMoney],
-    EnumApiType.minuteKline: [
-      EnumApiProvider.eastMoney,
-      EnumApiProvider.baiduFinance,
-    ],
-    EnumApiType.dayKline: [
-      EnumApiProvider.eastMoney,
-      EnumApiProvider.baiduFinance,
-    ],
-    EnumApiType.fiveDayKline: [
-      EnumApiProvider.eastMoney,
-      EnumApiProvider.baiduFinance,
-    ],
+  final Map<ProviderApiType, List<EnumApiProvider>> _capabilities = {
+    ProviderApiType.quote: [EnumApiProvider.heXun],
+    ProviderApiType.sideMenu: [EnumApiProvider.eastMoney],
+    ProviderApiType.industry: [EnumApiProvider.eastMoney],
+    ProviderApiType.concept: [EnumApiProvider.eastMoney],
+    ProviderApiType.province: [EnumApiProvider.eastMoney],
+    ProviderApiType.minuteKline: [EnumApiProvider.eastMoney, EnumApiProvider.baiduFinance],
+    ProviderApiType.dayKline: [EnumApiProvider.eastMoney, EnumApiProvider.baiduFinance],
+    ProviderApiType.fiveDayKline: [EnumApiProvider.eastMoney, EnumApiProvider.baiduFinance],
   };
 
   ApiProviderCapabilities();
 
   // 获取支持的API类型
-  List<EnumApiProvider> getProviders(EnumApiType apiType) {
+  List<EnumApiProvider> getProviders(ProviderApiType apiType) {
     return _capabilities[apiType] ?? [];
   }
 
   // 获取所有支持的API类型
-  List<EnumApiType> getAllEnumApiTypes() {
+  List<ProviderApiType> getAllProviderApiTypes() {
     return _capabilities.keys.toList();
   }
 

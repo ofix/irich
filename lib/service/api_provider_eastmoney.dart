@@ -46,50 +46,47 @@ class ApiProviderEastMoney extends ApiProvider {
   final name = EnumApiProvider.eastMoney;
 
   @override
-  Future<dynamic> doRequest(
-    EnumApiType enumApiType,
-    Map<String, dynamic> params,
-  ) async {
-    switch (enumApiType) {
-      case EnumApiType.sideMenu:
+  Future<dynamic> doRequest(ProviderApiType apiType, Map<String, dynamic> params) async {
+    switch (apiType) {
+      case ProviderApiType.sideMenu:
         return fetchSideMenu(params);
-      case EnumApiType.industry:
+      case ProviderApiType.industry:
         return fetchIndustry(params);
-      case EnumApiType.concept:
+      case ProviderApiType.concept:
         return fetchConcept(params);
-      case EnumApiType.province:
+      case ProviderApiType.province:
         return fetchProvince(params);
-      case EnumApiType.dayKline:
+      case ProviderApiType.dayKline:
         return fetchDayKline(params);
-      case EnumApiType.fiveDayKline:
+      case ProviderApiType.fiveDayKline:
         return fetchFiveDayKline(params);
-      case EnumApiType.minuteKline:
+      case ProviderApiType.minuteKline:
         return fetchMinuteKline(params);
       default:
-        throw UnimplementedError('Unsupported API type: $enumApiType');
+        throw UnimplementedError('Unsupported API type: $ProviderApiType');
     }
   }
 
   // 根据请求类型解析响应数据
   @override
-  dynamic parseResponse(EnumApiType enumApiType, dynamic response) {
-    switch (enumApiType) {
-      case EnumApiType.sideMenu:
+  dynamic parseResponse(ProviderApiType apiType, dynamic response) {
+    switch (apiType) {
+      case ProviderApiType.sideMenu:
         return parseSideMenu(response); // 侧边栏数据
-      case EnumApiType.industry:
+      case ProviderApiType.industry:
         return parseIndustry(response); // 行业数据
-      case EnumApiType.concept:
+      case ProviderApiType.concept:
         return parseConcept(response); // 概念数据
-      case EnumApiType.province:
+      case ProviderApiType.province:
         return parseProvince(response); // 省份数据
-      case EnumApiType.dayKline:
+      case ProviderApiType.dayKline:
         return parseDayKline(response); // 日K线数据
-      case EnumApiType.fiveDayKline:
+      case ProviderApiType.fiveDayKline:
         return parseFiveDayKline(response); // 5日K线分时数据
-      case EnumApiType.minuteKline:
+      case ProviderApiType.minuteKline:
         return parseMinuteKline(response); // 分时K线数据
       default:
-        throw UnimplementedError('Unsupported API type: $enumApiType');
+        throw UnimplementedError('Unsupported API type: $ProviderApiType');
     }
   }
 

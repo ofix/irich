@@ -30,7 +30,7 @@ class _MarketPageState extends State<MarketPage> {
     super.initState();
     rows = [];
     cols = [];
-    _loadShares().then((response) {
+    _loadQuote().then((response) {
       shares = response;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         backgroundColor = Theme.of(context).primaryColor;
@@ -86,9 +86,9 @@ class _MarketPageState extends State<MarketPage> {
     );
   }
 
-  // 生成模拟数据
-  Future<List<Share>> _loadShares() async {
-    final (result, response as List<Share>) = await ApiService().fetch(EnumApiType.quote, "");
+  // 加载行情数据,初始加载还要额外加载概念/地域/行业映射数据
+  Future<List<Share>> _loadQuote() async {
+    final (result, response as List<Share>) = await ApiService(ProviderApiType.quote).fetch("");
     if (result.ok()) {
       return response;
     }
@@ -98,7 +98,7 @@ class _MarketPageState extends State<MarketPage> {
   // 定时加载行情数据
   Future<void> _startTimer() async {
     timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      shares = await _loadShares();
+      shares = await _loadQuote();
       rows = _buildRows(shares);
       // cols = _buildColumns();
       stateManager.removeAllRows();

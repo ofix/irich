@@ -45,19 +45,16 @@ class ApiProviderBaidu extends ApiProvider {
   final name = EnumApiProvider.baiduFinance;
 
   @override
-  Future<dynamic> doRequest(
-    EnumApiType enumApiType,
-    Map<String, dynamic> params,
-  ) async {
-    switch (enumApiType) {
-      case EnumApiType.dayKline:
+  Future<dynamic> doRequest(ProviderApiType apiType, Map<String, dynamic> params) async {
+    switch (apiType) {
+      case ProviderApiType.dayKline:
         return fetchDayKline(params);
-      case EnumApiType.minuteKline:
+      case ProviderApiType.minuteKline:
         return fetchMinuteKline(params);
-      case EnumApiType.fiveDayKline:
+      case ProviderApiType.fiveDayKline:
         return fetchFiveDayKline(params);
       default:
-        throw UnimplementedError('Unsupported API type: $enumApiType');
+        throw UnimplementedError('Unsupported API type: $ProviderApiType');
     }
   }
 
@@ -73,10 +70,7 @@ class ApiProviderBaidu extends ApiProvider {
 
   // 五日分时均线数据
   Future<dynamic> fetchFiveDayKline(Map<String, dynamic> params) async {
-    final url = klineUrlFinanceBaiduFiveDay(
-      params['shareCode'],
-      params['shareCode'],
-    );
+    final url = klineUrlFinanceBaiduFiveDay(params['shareCode'], params['shareCode']);
     try {
       return await asyncRequest(url);
     } catch (e) {
@@ -100,5 +94,5 @@ class ApiProviderBaidu extends ApiProvider {
 
   // 根据请求类型解析响应数据
   @override
-  void parseResponse(EnumApiType enumApiType, dynamic response) {}
+  void parseResponse(ProviderApiType apiType, dynamic response) {}
 }
