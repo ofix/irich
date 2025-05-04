@@ -15,6 +15,7 @@ class LoadBalancer {
   static final ApiProviderCapabilities _providerCapabilities = ApiProviderCapabilities(); // 提供商能力
   Map<EnumApiProvider, int> _providerWeights = {}; // 供应商权重
   late ProviderApiType _curApiType;
+  late ApiProvider _curProvider;
 
   // 加权轮询算法(IWWR)
   final List<EnumApiProvider> _weightRoundRobinProviders = []; // 将加权的供应商列表转换成轮询的供应商列表
@@ -70,14 +71,27 @@ class LoadBalancer {
     return _fastWeightRoundRobinNextApiProvider();
   }
 
-  // 5. 带负载均衡的请求方法
+  // 带负载均衡的请求方法
   Future<dynamic> request(Map<String, dynamic> params) async {
-    final provider = _nextApiProvider();
+    _curProvider = _nextApiProvider();
     try {
-      final response = await provider.doRequest(_curApiType, params);
-      return provider.parseResponse(_curApiType, response);
+      final response = await _curProvider.doRequest(_curApiType, params);
+      return _curProvider.parseResponse(_curApiType, response);
     } catch (e) {
       rethrow;
     }
   }
+
+  // 带负载均衡的请求方法
+  Future<String> rawRequest(Map<String, dynamic> params) async {
+    _curProvider = _nextApiProvider();
+    try {
+      final response = await _curProvider.doRequest(_curApiType, params);
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  ApiProvider get apiProvider => _curProvider;
 }

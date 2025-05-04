@@ -71,7 +71,7 @@ class StoreQuote {
       // 异步并发爬爬取省份板块
       final (statusProvince, responseRrovince) = await ApiService(
         ProviderApiType.province,
-      ).concurrentFetch(
+      ).batchFetch(
         responseSideMenu[0].map((String item) {
           return {'name': item, 'length': item.length};
         }).toList(),
@@ -83,7 +83,7 @@ class StoreQuote {
       // 异步并发爬取行业板块
       final (statusIndustry, responseIndustry) = await ApiService(
         ProviderApiType.industry,
-      ).concurrentFetch(
+      ).batchFetch(
         responseSideMenu[0].map((String item) {
           return {'name': item, 'length': item.length};
         }).toList(),
@@ -93,9 +93,7 @@ class StoreQuote {
       }
       _progressController.add(TaskProgress(name: "板块分类", current: 1, total: 0, desc: "获取东方财富概念板块"));
       // 异步并发爬取概念板块
-      final (statusConcept, responseConcept) = await ApiService(
-        ProviderApiType.concept,
-      ).concurrentFetch(
+      final (statusConcept, responseConcept) = await ApiService(ProviderApiType.concept).batchFetch(
         responseSideMenu[0].map((String item) {
           return {'name': item, 'length': item.length};
         }).toList(),
