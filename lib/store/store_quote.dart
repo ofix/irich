@@ -93,6 +93,32 @@ class StoreQuote {
     return true;
   }
 
+  /// 填充所有股票的地域字段
+  static void _fillShareProvince(List<Map<String, dynamic>> provinces) {
+    for (final province in provinces) {
+      final shares = province['shares'];
+      for (final shareCode in shares) {
+        Share? share = _shareMap[shareCode];
+        if (share != null) {
+          share.province = province['name'];
+        }
+      }
+    }
+  }
+
+  /// 填充所有股票的行业字段
+  static void _fillShareIndustry(List<Map<String, dynamic>> industries) {
+    for (final industry in industries) {
+      final shares = industry['shares'];
+      for (final shareCode in shares) {
+        Share? share = _shareMap[shareCode];
+        if (share != null) {
+          share.industryName = industry['name'];
+        }
+      }
+    }
+  }
+
   /// 爬取当前行情/行业板块/地域板块/股票行情基本信息
   static Future<RichResult> _fetchQuoteBasicInfo() async {
     // 爬取当前行情
@@ -102,6 +128,8 @@ class StoreQuote {
     ).fetch("");
     if (statusQuote.ok()) {
       _shares = responseQuote;
+      _buildShareMap(_shares);
+
       // 保存行情数据到文件
       await _saveQuoteFile(await Config.pathDataFileQuote, _shares);
     }
@@ -134,9 +162,9 @@ class StoreQuote {
       // 依次爬取各个板块数据(省份/行业/概念)
       for (int i = 0; i < responseSideMenu.length; i++) {
         // 异步并发爬爬取省份板块
-        final (statusBk, responseBk as List<Map<String, dynamic>>) = await ApiService(
-          bkList[i],
-        ).batchFetch(responseSideMenu[i], (Map<String, dynamic> params) {
+        final (statusBk, responseBk) = await ApiService(bkList[i]).batchFetch(responseSideMenu[i], (
+          Map<String, dynamic> params,
+        ) {
           recvBk += 1;
           _progressController.add(
             TaskProgress(
@@ -159,6 +187,12 @@ class StoreQuote {
           }
           final data = jsonEncode(bkJson);
           debugPrint("写入文件 ${bkPath[i]}");
+          // 填充所有股票行业字段
+          if (i == 0) {
+            _fillShareProvince(bkJson);
+          } else if (i == 1) {
+            _fillShareIndustry(bkJson);
+          }
           // 存储到缓存和文件
           await FileTool.saveFile(bkPath[i], data);
         }
@@ -166,12 +200,11 @@ class StoreQuote {
     }
 
     // 爬取完成后建立股票行情数据索引
-    // if (!_indexed) {
-    //   _indexed = true;
-    //   _buildShareMap(shares);
-    //   _buildShareClassfier(shares);
-    //   _buildShareTrie(shares);
-    // }
+    if (!_indexed) {
+      _indexed = true;
+      _buildShareClassfier(shares);
+      _buildShareTrie(shares);
+    }
     return success();
   }
 
@@ -226,9 +259,9 @@ class StoreQuote {
         'price_min': share.priceMin,
         'price_max': share.priceMax,
         'price_open': share.priceOpen,
-        'price_close': share.priceClose,
+        'price_close': share.priceClose ?? share.priceNow,
         'price_amplitude': share.priceAmplitude,
-        'change_amount': share.changeAmount,
+        // 'change_amount': share.changeAmount,
         'change_rate': share.changeRate,
         'volume': share.volume,
         'amount': share.amount,
@@ -306,6 +339,7 @@ class StoreQuote {
     // 如果收盘后，检查本地文件是否已刷新最新行情数据，如果没有，则刷新本地文件，需要考虑非交易日
   }
 
+  /// share_code => Share 内存映射，方便后续快速查找
   static void _buildShareMap(List<Share> shares) {
     for (final share in shares) {
       _shareMap[share.code] = share;

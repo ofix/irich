@@ -53,7 +53,7 @@ class ApiService {
 
   /// [apiType] 请求类别
   /// [maxConn] 最大请求并发数
-  ApiService(ProviderApiType apiType, [int maxConn = 8, ApiConfig apiConfig = const ApiConfig()])
+  ApiService(ProviderApiType apiType, [int maxConn = 2, ApiConfig apiConfig = const ApiConfig()])
     : _maxConn = maxConn.clamp(1, 64),
       _curApiType = apiType,
       _apiConfig = apiConfig,
