@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:irich/components/progress_popup.dart';
+import 'package:irich/global/config.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
-import 'package:irich/types/stock.dart';
+import 'package:irich/global/stock.dart';
 import 'package:irich/utils/chinese_pin_yin.dart';
 import 'package:irich/utils/date_time.dart';
 import 'package:irich/utils/file_tool.dart';
@@ -20,15 +22,45 @@ class StoreQuote {
   static Map<String, List<Share>> _provinceShares = {}; // 按省份分类的股票集合
   static final Trie _trie = Trie(); // 股票Trie树，支持模糊查询
   static bool _indexed = false; // 是否已经建立索引文件
-  static late String _pathDataFileQuote;
-  static late String _pathIndexFileProvince; // 股票=>省份索引文件[东方财富]
-  static late String _pathIndexFileIndustry; // 股票=>行业索引文件[东方财富]
-  static late String _pathIndexFileConcept; // 股票=>概念索引文件[东方财富]
+  static String _pathDataFileQuote = "";
+  static String _pathIndexFileProvince = ""; // 股票=>省份索引文件[东方财富]
+  static String _pathIndexFileIndustry = ""; // 股票=>行业索引文件[东方财富]
+  static String _pathIndexFileConcept = ""; // 股票=>概念索引文件[东方财富]
   static final StreamController<TaskProgress> _progressController =
       StreamController<TaskProgress>(); // 下载异步事件流
 
   /// 私有构造函数防止实例化
   StoreQuote._();
+
+  /// 获取某个行业分类的所有股票
+  static List<Share> getByIndustry(String industry) {
+    return _industryShares[industry] ?? [];
+  }
+
+  /// 获取某个概念板块的所有股票
+  static List<Share> getByConcept(String concept) {
+    return _conceptShares[concept] ?? [];
+  }
+
+  /// 获取某个省份的所有股票
+  static List<Share> getByProvince(String province) {
+    return _provinceShares[province] ?? [];
+  }
+
+  /// 获取所有行业分类名称
+  static List<String> get industries => _industryShares.keys.toList();
+
+  /// 获取所有概念分类名称
+  static List<String> get concepts => _conceptShares.keys.toList();
+
+  /// 获取所有省份分类名称
+  static List<String> get provinces => _provinceShares.keys.toList();
+
+  /// 获取所有股票列表
+  static List<Share> get shares => _shares;
+
+  /// 获取加载进度流
+  static Stream<TaskProgress> get progressStream => _progressController.stream;
 
   /// 根据用户输入的前缀字符返回对应的股票列表
   List<Share> searchShares(String prefix) {
@@ -50,66 +82,96 @@ class StoreQuote {
     _pathIndexFileConcept = "${appDir.path}/concept.json";
   }
 
+  static Future<bool> isQuoteExtraDataReady() async {
+    _initializePaths();
+    if (!await FileTool.isFileExist(_pathDataFileQuote) ||
+        !await FileTool.isFileExist(_pathIndexFileProvince) ||
+        !await FileTool.isFileExist(_pathIndexFileIndustry) ||
+        !await FileTool.isFileExist(_pathIndexFileConcept)) {
+      return false;
+    }
+    return true;
+  }
+
   /// 爬取当前行情/行业板块/地域板块/股票行情基本信息
   static Future<RichResult> _fetchQuoteBasicInfo() async {
     // 爬取当前行情
     _progressController.add(TaskProgress(name: "市场行情", current: 0, total: 100, desc: "获取A股市场行情数据"));
-    final (resultQuote, responseQuote as List<Share>) = await ApiService(
+    final (statusQuote, responseQuote as List<Share>) = await ApiService(
       ProviderApiType.quote,
     ).fetch("");
-    if (resultQuote.ok()) {
+    if (statusQuote.ok()) {
       _shares = responseQuote;
+      // 保存行情数据到文件
+      await _saveQuoteFile(await Config.pathDataFileQuote, _shares);
     }
+
     // 爬取板块数据
-    _progressController.add(TaskProgress(name: "板块分类", current: 1, total: 0, desc: "获取东方财富板块分类数据"));
+    _progressController.add(
+      TaskProgress(name: "板块分类", current: 0, total: 100, desc: "获取东方财富板块分类数据"),
+    );
     // 继续异步爬取 行业/地域/概念板块数据
-    final (resultMenu, responseSideMenu as List<List<String>>) = await ApiService(
+    final (statusMenu, responseSideMenu as List<List<Map<String, dynamic>>>) = await ApiService(
       ProviderApiType.sideMenu,
     ).fetch("");
-    if (resultMenu.ok()) {
-      _progressController.add(TaskProgress(name: "板块分类", current: 1, total: 0, desc: "获取东方财富地域板块"));
-      // 异步并发爬爬取省份板块
-      final (statusProvince, responseRrovince) = await ApiService(
-        ProviderApiType.province,
-      ).batchFetch(
-        responseSideMenu[0].map((String item) {
-          return {'name': item, 'length': item.length};
-        }).toList(),
-      );
-      if (statusProvince.ok()) {
-        // 存储到缓存和文件
+    if (statusMenu.ok()) {
+      // 计算总共需要爬取的板块数量
+      int totalBk = 0;
+      int recvBk = 0;
+      final bkList = [ProviderApiType.province, ProviderApiType.industry, ProviderApiType.concept];
+      final bkName = ["地域板块", "行业板块", "概念板块"];
+      final bkPath = [
+        await Config.pathMapFileProvince,
+        await Config.pathMapFileIndustry,
+        await Config.pathMapFileConcept,
+      ];
+      for (final item in responseSideMenu) {
+        totalBk += item.length;
       }
-      _progressController.add(TaskProgress(name: "板块分类", current: 1, total: 0, desc: "获取东方财富行业板块"));
-      // 异步并发爬取行业板块
-      final (statusIndustry, responseIndustry) = await ApiService(
-        ProviderApiType.industry,
-      ).batchFetch(
-        responseSideMenu[0].map((String item) {
-          return {'name': item, 'length': item.length};
-        }).toList(),
+      _progressController.add(
+        TaskProgress(name: "板块分类", current: recvBk, total: totalBk, desc: "获取东方财富地域板块"),
       );
-      if (statusIndustry.ok()) {
-        // 存储到缓存和文件
-      }
-      _progressController.add(TaskProgress(name: "板块分类", current: 1, total: 0, desc: "获取东方财富概念板块"));
-      // 异步并发爬取概念板块
-      final (statusConcept, responseConcept) = await ApiService(ProviderApiType.concept).batchFetch(
-        responseSideMenu[0].map((String item) {
-          return {'name': item, 'length': item.length};
-        }).toList(),
-      );
-      if (statusConcept.ok()) {
-        //存储到缓存和文件
+      // 依次爬取各个板块数据(省份/行业/概念)
+      for (int i = 0; i < responseSideMenu.length; i++) {
+        // 异步并发爬爬取省份板块
+        final (statusBk, responseBk as List<Map<String, dynamic>>) = await ApiService(
+          bkList[i],
+        ).batchFetch(responseSideMenu[i], (Map<String, dynamic> params) {
+          recvBk += 1;
+          _progressController.add(
+            TaskProgress(
+              name: bkName[i],
+              current: recvBk,
+              total: totalBk,
+              desc: "爬取 ${params['name']}",
+            ),
+          );
+        });
+        if (statusBk.ok()) {
+          final bkJson = <Map<String, dynamic>>[];
+          for (final item in responseBk) {
+            final bkItem = <String, dynamic>{};
+            bkItem['code'] = item['param']['code']; // 板块代号
+            bkItem['name'] = item['param']['name']; // 板块名称
+            bkItem['pinyin'] = item['param']['pinyin']; // 板块拼音
+            bkItem['shares'] = item['response']; //板块成分股代码
+            bkJson.add(bkItem);
+          }
+          final data = jsonEncode(bkJson);
+          debugPrint("写入文件 ${bkPath[i]}");
+          // 存储到缓存和文件
+          await FileTool.saveFile(bkPath[i], data);
+        }
       }
     }
 
     // 爬取完成后建立股票行情数据索引
-    if (!_indexed) {
-      _indexed = true;
-      _buildShareMap(shares);
-      _buildShareClassfier(shares);
-      _buildShareTrie(shares);
-    }
+    // if (!_indexed) {
+    //   _indexed = true;
+    //   _buildShareMap(shares);
+    //   _buildShareClassfier(shares);
+    //   _buildShareTrie(shares);
+    // }
     return success();
   }
 
@@ -117,10 +179,7 @@ class StoreQuote {
   static Future<RichResult> load() async {
     await _initializePaths();
     // 用户第一次启动iRich，异步爬取当前行情/行业板块/地域板块/股票基本信息
-    if (!await FileTool.isFileExist(_pathDataFileQuote) ||
-        !await FileTool.isFileExist(_pathIndexFileProvince) ||
-        !await FileTool.isFileExist(_pathIndexFileIndustry) ||
-        !await FileTool.isFileExist(_pathIndexFileConcept)) {
+    if (!await isQuoteExtraDataReady()) {
       return _fetchQuoteBasicInfo();
     }
     // 1. 检查本地文件中是否存在股票行情数据
@@ -149,12 +208,45 @@ class StoreQuote {
     return error(RichStatus.fileDirty);
   }
 
+  static Future<bool> _saveQuoteFile(String filePath, List<Share> shares) async {
+    String data = _dumpQuote(shares);
+    return FileTool.saveFile(filePath, data);
+  }
+
+  static String _dumpQuote(List<Share> shares) {
+    final result = <Map<String, dynamic>>[];
+
+    for (final share in shares) {
+      final jsonObj = <String, dynamic>{
+        'code': share.code,
+        'name': share.name,
+        'market': share.market.market,
+        'price_yesterday_close': share.priceYesterdayClose,
+        'price_now': share.priceNow,
+        'price_min': share.priceMin,
+        'price_max': share.priceMax,
+        'price_open': share.priceOpen,
+        'price_close': share.priceClose,
+        'price_amplitude': share.priceAmplitude,
+        'change_amount': share.changeAmount,
+        'change_rate': share.changeRate,
+        'volume': share.volume,
+        'amount': share.amount,
+        'turnover_rate': share.turnoverRate,
+        'qrr': share.qrr,
+      };
+      result.add(jsonObj);
+    }
+    const encoder = JsonEncoder.withIndent('    ');
+    return encoder.convert(result);
+  }
+
   /// 加载本地行情数据文件
   static Future<RichResult> _loadQuoteFile(String path, List<Share> shares) async {
     try {
       String data = await FileTool.loadFile(path);
-      dynamic arr = jsonDecode(data);
-      if (arr == null || arr.size() < 1000) {
+      List<Map<String, dynamic>> arr = jsonDecode(data);
+      if (arr.length < 1000) {
         return error(RichStatus.fileDirty);
       }
       shares.clear();
@@ -249,31 +341,4 @@ class StoreQuote {
       }
     }
   }
-
-  /// 获取某个行业分类的所有股票
-  static List<Share> getByIndustry(String industry) {
-    return _industryShares[industry] ?? [];
-  }
-
-  /// 获取某个概念板块的所有股票
-  static List<Share> getByConcept(String concept) {
-    return _conceptShares[concept] ?? [];
-  }
-
-  /// 获取某个省份的所有股票
-  static List<Share> getByProvince(String province) {
-    return _provinceShares[province] ?? [];
-  }
-
-  /// 获取所有行业分类名称
-  static List<String> get industries => _industryShares.keys.toList();
-
-  /// 获取所有概念分类名称
-  static List<String> get concepts => _conceptShares.keys.toList();
-
-  /// 获取所有省份分类名称
-  static List<String> get provinces => _provinceShares.keys.toList();
-
-  /// 获取所有股票列表
-  static List<Share> get shares => _shares;
 }

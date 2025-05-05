@@ -1,5 +1,5 @@
 import 'package:irich/formula/formula.dart';
-import 'package:irich/types/stock.dart';
+import 'package:irich/global/stock.dart';
 
 class FormulaEma extends Formula {
   FormulaEma() : super(FormulaType.ema);

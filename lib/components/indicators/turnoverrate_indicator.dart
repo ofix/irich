@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:irich/types/stock.dart';
+import 'package:irich/global/stock.dart';
 
 class TurnoverRateIndicator extends StatefulWidget {
   final double height;

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
-import 'package:irich/types/stock.dart';
+import 'package:irich/global/stock.dart';
 import 'package:irich/utils/date_time.dart';
 import 'package:irich/utils/file_tool.dart';
 import 'package:irich/utils/rich_result.dart';

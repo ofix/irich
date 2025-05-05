@@ -1,7 +1,7 @@
 // 行情列表数据
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/store/store_quote.dart';
-import 'package:irich/types/stock.dart';
+import 'package:irich/global/stock.dart';
 
 class QuoteNotifier extends StateNotifier<AsyncValue<List<Share>>> {
   QuoteNotifier() : super(const AsyncValue.loading()) {

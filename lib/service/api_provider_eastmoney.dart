@@ -1,8 +1,9 @@
 // ignore_for_file: avoid_print
 import "dart:convert";
+import "package:flutter/material.dart";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_provider.dart";
-import "package:irich/types/stock.dart";
+import "package:irich/global/stock.dart";
 
 // 东方财富分时K线 URL 生成函数
 String klineUrlEastMoneyMinute(String shareCode, int market) {
@@ -51,11 +52,9 @@ class ApiProviderEastMoney extends ApiProvider {
       case ProviderApiType.sideMenu:
         return fetchSideMenu(params);
       case ProviderApiType.industry:
-        return fetchIndustry(params);
       case ProviderApiType.concept:
-        return fetchConcept(params);
       case ProviderApiType.province:
-        return fetchProvince(params);
+        return fetchBk(params); // 地域/行业/概念板块数据
       case ProviderApiType.dayKline:
         return fetchDayKline(params);
       case ProviderApiType.fiveDayKline:
@@ -74,11 +73,9 @@ class ApiProviderEastMoney extends ApiProvider {
       case ProviderApiType.sideMenu:
         return parseSideMenu(response); // 侧边栏数据
       case ProviderApiType.industry:
-        return parseIndustry(response); // 行业数据
       case ProviderApiType.concept:
-        return parseConcept(response); // 概念数据
       case ProviderApiType.province:
-        return parseProvince(response); // 省份数据
+        return parseBk(response); // 地域/行业/概念板块数据
       case ProviderApiType.dayKline:
         return parseDayKline(response); // 日K线数据
       case ProviderApiType.fiveDayKline:
@@ -92,7 +89,7 @@ class ApiProviderEastMoney extends ApiProvider {
 
   // 获取侧边栏数据
   Future<dynamic> fetchSideMenu(Map<String, dynamic> params) async {
-    final url = " https://quote.eastmoney.com/center/api/sidemenu_new.json";
+    final url = "https://quote.eastmoney.com/center/api/sidemenu_new.json";
     try {
       return asyncRequest(url);
     } catch (e) {
@@ -100,85 +97,63 @@ class ApiProviderEastMoney extends ApiProvider {
     }
   }
 
-  List<List<String>> parseSideMenu(String response) {
-    final List<String> concepts = [];
-    final List<String> industries = [];
-    final List<String> provinces = [];
-    final List<List<String>> menu = [];
+  List<List<Map<String, dynamic>>> parseSideMenu(Map<String, dynamic> response) {
+    final List<Map<String, dynamic>> concepts = [];
+    final List<Map<String, dynamic>> industries = [];
+    final List<Map<String, dynamic>> provinces = [];
+    final List<List<Map<String, dynamic>>> menu = [];
     // 解析JSON数据
-    final dynamic result = jsonDecode(response);
-    final List<dynamic> bklist = result["bklist"]; // 行业/概念/地域板块列表
+    final List<dynamic> bklist = response["bklist"]; // 行业/概念/地域板块列表
     for (final bk in bklist) {
       final int type = bk["type"];
       if (type == 1) {
-        provinces.add(bk["name"]); // 地域板块
+        provinces.add(bk); // 地域板块
       } else if (type == 2) {
-        industries.add(bk["name"]); // 行业板块
+        industries.add(bk); // 行业板块
       } else if (type == 3) {
-        concepts.add(bk["name"]); // 概念板块
+        concepts.add(bk); // 概念板块
       }
     }
     menu.addAll([provinces, industries, concepts]);
     return menu;
   }
 
-  Future<dynamic> fetchConcept(Map<String, dynamic> params) async {
-    return fetchBk(params);
-  }
-
-  Future<dynamic> fetchIndustry(Map<String, dynamic> params) async {
-    return fetchBk(params);
-  }
-
-  Future<dynamic> fetchProvince(Map<String, dynamic> params) async {
-    return fetchBk(params);
-  }
-
   Future<dynamic> fetchBk(Map<String, dynamic> params) async {
-    final name = params['name'];
-    final url =
-        "https://push2delay.eastmoney.com/api/qt/clist/get?pn=1&pz=10000&po=1&np=1&fltt=1&invt=2&dect=1&fid=f3&fs=b:$name&fields=f3,f12,f14";
-    try {
-      return asyncRequest(url);
-    } catch (e) {
-      rethrow;
+    final name = params['code']; // 板块代号,东方财富限制了
+    final responses = <String>[];
+
+    for (int i = 1; i <= 20; i++) {
+      // 每页100条记录，假设最多20个分页，也即2000个成分股
+      final url =
+          "https://push2.eastmoney.com/api/qt/clist/get?np=1&fltt=1&invt=2&po=1&dect=1&fid=f3&fs=b:$name&fields=f12,f14&pn=$i&pz=100";
+      try {
+        String response = await rawRequest(url);
+        debugPrint(url);
+        if (_isPageEnd(response)) break;
+        responses.add(response);
+      } catch (e) {
+        rethrow;
+      }
     }
+    return responses;
   }
 
-  List<String> parseConcept(String response) {
-    final List<String> concept = [];
-    // 解析JSON数据
-    final dynamic result = jsonDecode(response);
-    final List<dynamic> data = result["data"]['diff'];
-    for (final row in data) {
-      final String shareCode = row["f12"];
-      final String shareName = row['f14'];
-    }
-    return concept;
+  bool _isPageEnd(String data) {
+    return !data.contains('"data":{');
   }
 
-  List<String> parseProvince(String response) {
-    final List<String> province = [];
+  List<String> parseBk(List<String> responses) {
+    final List<String> shareList = [];
     // 解析JSON数据
-    final dynamic result = jsonDecode(response);
-    final List<dynamic> data = result["data"];
-    for (final row in data) {
-      final String name = row["name"];
-      province.add(name);
+    for (final response in responses) {
+      final result = jsonDecode(response);
+      final data = result["data"]['diff'];
+      for (final row in data) {
+        final String shareCode = row["f12"]; // 股票名称
+        shareList.add(shareCode);
+      }
     }
-    return province;
-  }
-
-  List<String> parseIndustry(String response) {
-    final List<String> industry = [];
-    // 解析JSON数据
-    final dynamic result = jsonDecode(response);
-    final List<dynamic> data = result["data"];
-    for (final row in data) {
-      final String name = row["name"];
-      industry.add(name);
-    }
-    return industry;
+    return shareList;
   }
 
   // 获取分时K线数据

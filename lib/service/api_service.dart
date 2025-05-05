@@ -2,11 +2,10 @@
 import 'dart:collection';
 import 'dart:async';
 import 'dart:io';
-import 'dart:nativewrappers/_internal/vm/lib/math_patch.dart';
-
+import 'dart:math';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/load_balancer.dart';
-import 'package:irich/types/stock.dart';
+import 'package:irich/global/stock.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/utils/rich_result.dart';
 
@@ -47,13 +46,16 @@ class ApiService {
   final _stopwatch = Stopwatch();
   final ApiConfig _apiConfig;
   final int _maxConn; // 最大并发数
-  bool _isCanceled = false; // 取消并发请求
   final _activeRequests = <_ActiveRequest>[];
+  final ProviderApiType _curApiType; // 当前API请求类别
+  bool _isCanceled = false; // 取消并发请求
+  bool _debugMode = true; // 调试模式开关
 
   /// [apiType] 请求类别
   /// [maxConn] 最大请求并发数
   ApiService(ProviderApiType apiType, [int maxConn = 8, ApiConfig apiConfig = const ApiConfig()])
     : _maxConn = maxConn.clamp(1, 64),
+      _curApiType = apiType,
       _apiConfig = apiConfig,
       _balancer = LoadBalancer(apiType);
 
@@ -63,7 +65,9 @@ class ApiService {
   void cancel() {
     _isCanceled = true; // 取消并发请求
     _requestQueue.clear(); // 清空待处理队列
-    _activeRequests.forEach((r) => r.completer.completeError(Exception("Canceled")));
+    for (var r in _activeRequests) {
+      r.completer.completeError(Exception("Canceled"));
+    }
   }
 
   /// 请求耗时
@@ -97,7 +101,7 @@ class ApiService {
   /// 异步并发请求
   /// [params] 异步并发请求的参数集合
   /// [onProgress] 爬取过程中的回调函数
-  Future<(RichResult, List<dynamic>)> batchFetch(
+  Future<(RichResult, List<Map<String, dynamic>>)> batchFetch(
     List<Map<String, dynamic>> params, [
     void Function(Map<String, dynamic>)? onProgress,
   ]) async {
@@ -105,7 +109,7 @@ class ApiService {
     _requestQueue.addAll(params);
     _stopwatch.start();
 
-    final responses = <dynamic>[];
+    final responses = <Map<String, dynamic>>[];
 
     while ((!_requestQueue.isEmpty || _activeRequests.isNotEmpty) && !_isCanceled) {
       // 填充活跃请求
@@ -151,8 +155,20 @@ class ApiService {
   ) async {
     try {
       final response = await _balancer.rawRequest(params).timeout(_apiConfig.timeoutPerRequest);
-      _stats.recordSuccess(response.length);
-      responses.add(response);
+      if (response is List) {
+        int size = 0;
+        for (int i = 0; i < response.length; i++) {
+          size += response.length;
+        }
+        _stats.recordSuccess(size);
+      } else {
+        _stats.recordSuccess(response.length);
+      }
+      final data = _balancer.apiProvider.parseResponse(_curApiType, response); // 解析当前返回数据
+      final result = <String, dynamic>{};
+      result["param"] = params;
+      result["response"] = data;
+      responses.add(result);
       return _RequestResult.success(params);
     } catch (e) {
       if (!_isCanceled) {

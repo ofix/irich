@@ -1,0 +1,56 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+class TaskProgress {
+  final String name; // 任务名称
+  final int current; // 当前
+  final int total; // 总进度
+  final String desc; // 描述
+  TaskProgress({
+    required this.name,
+    required this.current,
+    required this.total,
+    required this.desc,
+  });
+}
+
+// 显示下载进度弹窗
+void showProgressPopup(BuildContext context, Stream<TaskProgress> stream) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder:
+        (context) => AlertDialog(
+          title: const Text('正在加载行情数据'),
+          content: StreamBuilder<TaskProgress>(
+            stream: stream,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Text('下载失败: ${snapshot.error}');
+              }
+              if (!snapshot.hasData) {
+                return const CircularProgressIndicator();
+              }
+              final progress = snapshot.data!;
+              final textProgress =
+                  "${(progress.current * 100 / progress.total).toStringAsFixed(2)}%";
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (progress.desc != "") Text("${progress.desc}, 进度：$textProgress"),
+                  const SizedBox(height: 16),
+                  LinearProgressIndicator(
+                    value: progress.total > 0 ? progress.current / progress.total : null,
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+  );
+}
+
+void hideProgressPopup(BuildContext context) {
+  Navigator.of(context).pop(); // 关闭弹窗
+}

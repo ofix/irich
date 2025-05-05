@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:irich/components/desktop_layout.dart';
+import 'package:irich/components/progress_popup.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
-import 'package:irich/types/stock.dart';
+import 'package:irich/global/stock.dart';
+import 'package:irich/store/store_quote.dart';
 import 'package:irich/utils/helper.dart';
 import 'package:trina_grid/trina_grid.dart';
 
@@ -30,16 +32,8 @@ class _MarketPageState extends State<MarketPage> {
     super.initState();
     rows = [];
     cols = [];
-    _loadQuote().then((response) {
-      shares = response;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        backgroundColor = Theme.of(context).primaryColor;
-        rows = _buildRows(shares);
-        cols = _buildColumns();
-        setState(() {});
-        _startTimer();
-      });
-    });
+    shares = [];
+    _load();
   }
 
   @override
@@ -86,19 +80,34 @@ class _MarketPageState extends State<MarketPage> {
     );
   }
 
-  // 加载行情数据,初始加载还要额外加载概念/地域/行业映射数据
-  Future<List<Share>> _loadQuote() async {
-    final (result, response as List<Share>) = await ApiService(ProviderApiType.quote).fetch("");
-    if (result.ok()) {
-      return response;
-    }
-    return [];
+  Future<void> _load() async {
+    // 检查行业/概念/地域板块数据本地文件是否存在
+    final isReady = await StoreQuote.isQuoteExtraDataReady();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!isReady) {
+        // 不存在就显示弹窗，并显示进度条信息
+        showProgressPopup(context, StoreQuote.progressStream);
+      }
+      backgroundColor = Theme.of(context).primaryColor;
+    });
+    // 异步加载行情数据,初始加载还要额外加载概念/地域/行业映射数据
+    await StoreQuote.load();
+    shares = StoreQuote.shares;
+    rows = _buildRows(shares);
+    cols = _buildColumns();
+    setState(() {});
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      hideProgressPopup(context);
+    });
+    // _startTimer();
   }
 
   // 定时加载行情数据
   Future<void> _startTimer() async {
     timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      shares = await _loadQuote();
+      await _load();
+      shares = StoreQuote.shares;
       rows = _buildRows(shares);
       // cols = _buildColumns();
       stateManager.removeAllRows();
