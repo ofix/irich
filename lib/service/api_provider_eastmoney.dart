@@ -44,13 +44,13 @@ String klineUrlEastMoney(String shareCode, int market, int klineType) {
 // 2. 实现具体数据源（示例：东方财富）
 class ApiProviderEastMoney extends ApiProvider {
   @override
-  final name = EnumApiProvider.eastMoney;
+  final provider = EnumApiProvider.eastMoney;
 
   @override
   Future<dynamic> doRequest(ProviderApiType apiType, Map<String, dynamic> params) async {
     switch (apiType) {
-      case ProviderApiType.sideMenu:
-        return fetchSideMenu(params);
+      case ProviderApiType.quoteExtra:
+        return fetchQuoteExtra(params);
       case ProviderApiType.industry:
       case ProviderApiType.concept:
       case ProviderApiType.province:
@@ -70,8 +70,8 @@ class ApiProviderEastMoney extends ApiProvider {
   @override
   dynamic parseResponse(ProviderApiType apiType, dynamic response) {
     switch (apiType) {
-      case ProviderApiType.sideMenu:
-        return parseSideMenu(response); // 侧边栏数据
+      case ProviderApiType.quoteExtra:
+        return parseQuoteExtra(response); // 侧边栏数据
       case ProviderApiType.industry:
       case ProviderApiType.concept:
       case ProviderApiType.province:
@@ -88,16 +88,16 @@ class ApiProviderEastMoney extends ApiProvider {
   }
 
   // 获取侧边栏数据
-  Future<dynamic> fetchSideMenu(Map<String, dynamic> params) async {
+  Future<dynamic> fetchQuoteExtra(Map<String, dynamic> params) async {
     final url = "https://quote.eastmoney.com/center/api/sidemenu_new.json";
     try {
-      return asyncRequest(url);
+      return getJson(url);
     } catch (e) {
       rethrow;
     }
   }
 
-  List<List<Map<String, dynamic>>> parseSideMenu(Map<String, dynamic> response) {
+  List<List<Map<String, dynamic>>> parseQuoteExtra(Map<String, dynamic> response) {
     final List<Map<String, dynamic>> concepts = [];
     final List<Map<String, dynamic>> industries = [];
     final List<Map<String, dynamic>> provinces = [];
@@ -127,7 +127,7 @@ class ApiProviderEastMoney extends ApiProvider {
       final url =
           "https://push2.eastmoney.com/api/qt/clist/get?np=1&fltt=1&invt=2&po=1&dect=1&fid=f3&fs=b:$name&fields=f12,f14&pn=$i&pz=100";
       try {
-        String response = await rawRequest(url);
+        String response = await getRawJson(url);
         debugPrint(url);
         if (_isPageEnd(response)) break;
         responses.add(response);
@@ -160,7 +160,7 @@ class ApiProviderEastMoney extends ApiProvider {
   Future<dynamic> fetchMinuteKline(Map<String, dynamic> params) async {
     final url = klineUrlEastMoneyMinute(params['shareCode'], 3);
     try {
-      return asyncRequest(url);
+      return getJson(url);
     } catch (e) {
       rethrow;
     }
@@ -171,7 +171,7 @@ class ApiProviderEastMoney extends ApiProvider {
     // 日K线
     final url = klineUrlEastMoneyFiveDay(params['shareCode'], 0);
     try {
-      return asyncRequest(url);
+      return getJson(url);
     } catch (e) {
       rethrow;
     }
@@ -182,7 +182,7 @@ class ApiProviderEastMoney extends ApiProvider {
     // 日K线
     final url = klineUrlEastMoney(params['shareCode'], 0, 1);
     try {
-      return asyncRequest(url);
+      return getJson(url);
     } catch (e) {
       rethrow;
     }

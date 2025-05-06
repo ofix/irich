@@ -83,7 +83,7 @@ class LoadBalancer {
   }
 
   // 带负载均衡的请求方法
-  Future<dynamic> rawRequest(Map<String, dynamic> params) async {
+  Future<dynamic> httpRequest(Map<String, dynamic> params) async {
     _curProvider = _nextApiProvider();
     try {
       final response = await _curProvider.doRequest(_curApiType, params);

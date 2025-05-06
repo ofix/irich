@@ -139,8 +139,8 @@ class StoreQuote {
       TaskProgress(name: "板块分类", current: 0, total: 100, desc: "获取东方财富板块分类数据"),
     );
     // 继续异步爬取 行业/地域/概念板块数据
-    final (statusMenu, responseSideMenu as List<List<Map<String, dynamic>>>) = await ApiService(
-      ProviderApiType.sideMenu,
+    final (statusMenu, responseQuoteExtra as List<List<Map<String, dynamic>>>) = await ApiService(
+      ProviderApiType.quoteExtra,
     ).fetch("");
     if (statusMenu.ok()) {
       // 计算总共需要爬取的板块数量
@@ -153,28 +153,29 @@ class StoreQuote {
         await Config.pathMapFileIndustry,
         await Config.pathMapFileConcept,
       ];
-      for (final item in responseSideMenu) {
+      for (final item in responseQuoteExtra) {
         totalBk += item.length;
       }
       _progressController.add(
-        TaskProgress(name: "板块分类", current: recvBk, total: totalBk, desc: "获取东方财富地域板块"),
+        TaskProgress(name: "板块分类", current: recvBk, total: totalBk, desc: "获取板块分类数据"),
       );
       // 依次爬取各个板块数据(省份/行业/概念)
-      for (int i = 0; i < responseSideMenu.length; i++) {
+      for (int i = 0; i < responseQuoteExtra.length; i++) {
         // 异步并发爬爬取省份板块
-        final (statusBk, responseBk) = await ApiService(bkList[i]).batchFetch(responseSideMenu[i], (
-          Map<String, dynamic> params,
-        ) {
-          recvBk += 1;
-          _progressController.add(
-            TaskProgress(
-              name: bkName[i],
-              current: recvBk,
-              total: totalBk,
-              desc: "爬取 ${params['name']}",
-            ),
-          );
-        });
+        final (statusBk, responseBk) = await ApiService(bkList[i]).batchFetch(
+          responseQuoteExtra[i],
+          (Map<String, dynamic> params, String providerName) {
+            recvBk += 1;
+            _progressController.add(
+              TaskProgress(
+                name: bkName[i],
+                current: recvBk,
+                total: totalBk,
+                desc: "$providerName : ${params['name']}",
+              ),
+            );
+          },
+        );
         if (statusBk.ok()) {
           final bkJson = <Map<String, dynamic>>[];
           for (final item in responseBk) {

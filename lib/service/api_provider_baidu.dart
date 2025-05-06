@@ -42,7 +42,7 @@ String klineUrlFinanceBaiduFiveDay(String shareCode, String shareName) {
 // 3. 实现百度财经数据源（支持分页）
 class ApiProviderBaidu extends ApiProvider {
   @override
-  final name = EnumApiProvider.baiduFinance;
+  final provider = EnumApiProvider.baiduFinance;
 
   @override
   Future<dynamic> doRequest(ProviderApiType apiType, Map<String, dynamic> params) async {
@@ -62,7 +62,7 @@ class ApiProviderBaidu extends ApiProvider {
   Future<dynamic> fetchMinuteKline(Map<String, dynamic> params) async {
     final url = klineUrlFinanceBaiduMinute(params['shareCode']);
     try {
-      return await asyncRequest(url);
+      return await getJson(url);
     } catch (e) {
       rethrow;
     }
@@ -72,7 +72,7 @@ class ApiProviderBaidu extends ApiProvider {
   Future<dynamic> fetchFiveDayKline(Map<String, dynamic> params) async {
     final url = klineUrlFinanceBaiduFiveDay(params['shareCode'], params['shareCode']);
     try {
-      return await asyncRequest(url);
+      return await getJson(url);
     } catch (e) {
       rethrow;
     }
@@ -86,7 +86,7 @@ class ApiProviderBaidu extends ApiProvider {
       "",
     );
     try {
-      return await asyncRequest(url);
+      return await getJson(url);
     } catch (e) {
       rethrow;
     }

@@ -21,7 +21,7 @@ class ApiConfig {
   final bool abortOnCriticalError;
   final Duration timeoutPerRequest;
 
-  static const Duration defaultTimeout = Duration(seconds: 30);
+  static const Duration defaultTimeout = Duration(seconds: 10);
 
   const ApiConfig({
     this.maxRetries = 2,
@@ -54,7 +54,7 @@ class ApiService {
   /// [apiType] 请求类别
   /// [maxConn] 最大请求并发数
   ApiService(ProviderApiType apiType, [int maxConn = 2, ApiConfig apiConfig = const ApiConfig()])
-    : _maxConn = maxConn.clamp(1, 64),
+    : _maxConn = maxConn.clamp(1, 4),
       _curApiType = apiType,
       _apiConfig = apiConfig,
       _balancer = LoadBalancer(apiType);
@@ -103,7 +103,7 @@ class ApiService {
   /// [onProgress] 爬取过程中的回调函数
   Future<(RichResult, List<Map<String, dynamic>>)> batchFetch(
     List<Map<String, dynamic>> params, [
-    void Function(Map<String, dynamic>)? onProgress,
+    void Function(Map<String, dynamic>, String)? onProgress,
   ]) async {
     _resetState();
     _requestQueue.addAll(params);
@@ -134,7 +134,7 @@ class ApiService {
 
       // 处理结果
       if (completed.isSuccess) {
-        onProgress?.call(completed.params);
+        onProgress?.call(completed.params, _balancer.apiProvider.provider.name);
       } else if (completed.isRetryable) {
         _requestQueue.scheduleRetry(completed.params, _apiConfig.maxRetries);
       }
@@ -154,7 +154,7 @@ class ApiService {
     List<dynamic> responses,
   ) async {
     try {
-      final response = await _balancer.rawRequest(params).timeout(_apiConfig.timeoutPerRequest);
+      final response = await _balancer.httpRequest(params).timeout(_apiConfig.timeoutPerRequest);
       if (response is List) {
         int size = 0;
         for (int i = 0; i < response.length; i++) {
