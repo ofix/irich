@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:irich/components/progress_popup.dart';
@@ -135,9 +136,7 @@ class StoreQuote {
     }
 
     // 爬取板块数据
-    _progressController.add(
-      TaskProgress(name: "板块分类", current: 0, total: 100, desc: "获取东方财富板块分类数据"),
-    );
+    _progressController.add(TaskProgress(name: "板块分类", current: 0, total: 100, desc: "获取板块分类数据"));
     // 继续异步爬取 行业/地域/概念板块数据
     final (statusMenu, responseQuoteExtra as List<List<Map<String, dynamic>>>) = await ApiService(
       ProviderApiType.quoteExtra,
@@ -156,6 +155,7 @@ class StoreQuote {
       for (final item in responseQuoteExtra) {
         totalBk += item.length;
       }
+      debugPrint("请求的板块总数: $totalBk");
       _progressController.add(
         TaskProgress(name: "板块分类", current: recvBk, total: totalBk, desc: "获取板块分类数据"),
       );
@@ -204,7 +204,7 @@ class StoreQuote {
     if (!_indexed) {
       _indexed = true;
       _buildShareClassfier(shares);
-      _buildShareTrie(shares);
+      // _buildShareTrie(shares);
     }
     return success();
   }

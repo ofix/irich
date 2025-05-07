@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
+import 'package:charset/charset.dart';
 import 'package:flutter/material.dart';
-import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart';
+import 'package:http/http.dart' as http;
 import 'package:irich/service/api_provider.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
-import 'package:irich/utils/chinese_pin_yin.dart';
 
 // 同花顺数据中心
 class ApiProviderIfind extends ApiProvider {
@@ -47,7 +48,7 @@ class ApiProviderIfind extends ApiProvider {
     final bkList = ["dy", "thshy", "gn"]; // 地域｜概念｜同花顺行业
     try {
       for (final bk in bkList) {
-        String html = await getHtml("https://q.10jqka.com.cn/$bk/"); // 地域板块
+        String html = await getGbkHtml("https://q.10jqka.com.cn/$bk/"); // 地域板块
         responses.add(html);
       }
       return responses;
@@ -58,17 +59,20 @@ class ApiProviderIfind extends ApiProvider {
 
   List<List<Map<String, dynamic>>> parseQuoteExtra(List<String> responses) {
     final List<List<Map<String, dynamic>>> result = [];
+    final bkList = ["dy", "thshy", "gn"]; // 地域｜概念｜同花顺行业
     // 解析Html数据
-    for (final response in responses) {
-      final doc = parse(response);
+    for (int i = 0; i < responses.length; i++) {
+      final doc = parse(responses[i]);
       final elements = doc.querySelectorAll('.category .cate_items a');
       final bk = <Map<String, dynamic>>[];
       for (final ele in elements) {
         String? url = ele.attributes['href'];
         String? code = _getBkCode(url!);
-        String pinyin = ChinesePinYin.getFirstLetters(ele.text)[0];
-        debugPrint("url: $url, name: ${ele.text}, code:$code, pinyin;$pinyin ");
-        bk.add({"url": url, "name": ele.text, "code": code, pinyin: pinyin});
+        String pinyin = ""; // ChinesePinYin.getFirstLetters(ele.text)[0];
+        debugPrint(
+          "url: $url, name: ${ele.text}, code:$code, category:${bkList[i]}, pinyin;$pinyin ",
+        );
+        bk.add({"url": url, "name": ele.text, "code": code, "category": bkList[i], pinyin: pinyin});
       }
       result.add(bk);
     }
@@ -77,10 +81,17 @@ class ApiProviderIfind extends ApiProvider {
 
   // 构造同花顺板块分页异步请求URL
   /// [pageIndex] 分页序号
+  /// [bkCategory] 板块分类缩写，["dy", "thshy", "gn"] 地域｜概念｜同花顺行业
   /// [hiddenParam] 分页隐藏参数
   /// [bkCode] 板块代号
-  String _buildBkPageUrl(int pageIndex, String baseUrl, String hiddenParam, String bkCode) {
-    return "https://q.10jqka.com.cn/gn/detail/field/199112/order/desc/page/$pageIndex/ajax/1/code/$bkCode";
+  String _buildBkPageUrl(
+    int pageIndex,
+    String bkCategory,
+    String baseUrl,
+    String hiddenParam,
+    String bkCode,
+  ) {
+    return "https://q.10jqka.com.cn/$bkCategory/detail/field/199112/order/desc/page/$pageIndex/ajax/1/code/$bkCode";
   }
 
   String _getBkCode(String url) {
@@ -93,7 +104,7 @@ class ApiProviderIfind extends ApiProvider {
   }
 
   Future<dynamic> fetchBk(Map<String, dynamic> params) async {
-    final html = await getHtml(params['url']);
+    final html = await getGbkHtml(params['url']);
     debugPrint("请求分页 ${params['url']}");
     final doc = parse(html);
     List<String> pageUrls = [];
@@ -104,35 +115,115 @@ class ApiProviderIfind extends ApiProvider {
       shares.add(pageOneElements[i].text);
     }
     // 最大页码
-    final pageSizeElement = doc.querySelector(".body .m-pager .changePage:last");
+    final pages = doc.querySelectorAll(".body .m-pager .changePage");
+    if (pages.isEmpty) {
+      debugPrint("${params['name']}: ${shares.toString()}");
+      return shares; // 没有分页,比如贵州省
+    }
+    final pageSizeElement = pages[pages.length - 1];
     // 请求路径
     final hiddenParamBaseUrl = doc.querySelector(".m-pager-box #baseUrl");
     // 请求隐藏参数
     final hiddenParamQuery = doc.querySelector(".m-pager-box #requestQuery");
-    int pageSize = int.parse(pageSizeElement!.attributes['page']!);
+    int pageSize = int.parse(pageSizeElement.attributes['page']!);
     String? hiddenParam = hiddenParamQuery?.attributes['value'];
     String? baseUrl = hiddenParamBaseUrl?.attributes['value'];
     debugPrint("pageSize: $pageSize, baseUrl:$baseUrl, hiddenParam: $hiddenParam");
     for (int i = 2; i <= pageSize; i++) {
-      String pageUrl = _buildBkPageUrl(i, baseUrl!, hiddenParam!, params['code']);
+      String pageUrl = _buildBkPageUrl(
+        i,
+        params['category'],
+        baseUrl!,
+        hiddenParam!,
+        params['code'],
+      );
       pageUrls.add(pageUrl);
     }
+    String cookie = _genCookie();
     // 继续请求剩下的分页数据
     for (int i = 0; i < pageUrls.length; i++) {
-      final htmlPage = await getHtml(pageUrls[i]);
-      debugPrint("请求分页 ${pageUrls[i]}");
+      final htmlPage = await _getGbkHtml(pageUrls[i], cookie);
+      debugPrint("请求分页${params['name']} => ${pageUrls[i]}");
+      debugPrint("响应数据大小: ${htmlPage.length}");
       final docPage = parse(htmlPage);
       // 分页数据
-      final pageElements = docPage.querySelectorAll(".m-pager-box tbody tr a");
+      final pageElements = docPage.querySelectorAll(".m-pager-table tbody tr a");
+      debugPrint("size: ${pageElements.length}");
       for (int i = 0; i < pageElements.length; i += 2) {
         shares.add(pageElements[i].text);
       }
       // 随机延时
       final random = Random();
-      int delaySeconds = 1 + random.nextInt(2); // 随机 1~2 秒
+      int delaySeconds = 2 + random.nextInt(3); // 随机 1~2 秒
       await Future.delayed(Duration(seconds: delaySeconds));
     }
+    debugPrint("${params['name']}: ${shares.toString()}");
     return shares;
+  }
+
+  String _genCookie() {
+    // 创建一个 Cookie 列表
+    List<Cookie> cookies = [
+      Cookie('escapename', 'mo_385333244')..path = '/',
+      Cookie('ticket', '25ff6603695fce7724700deeee4ec32b')..path = '/',
+      Cookie('ttype', 'WEB')..path = '/',
+      Cookie('u_did', 'BCD46556DD6347FC897B0966104B9858')..path = '/',
+      Cookie(
+        'u_dpass',
+        'zELfEXADsfBmbTguaYgNEsg%2FGel1PDOq8yoq8xTJ5FIRAPdOVVSaAoX7HxtuaoM%2BHi80LrSsTFH9a%2B6rtRvqGg%3D%3D',
+      )..path = '/',
+      Cookie('u_name', 'mo_385333244')..path = '/',
+      Cookie('u_ttype', 'WEB')..path = '/',
+      Cookie('u_ukey', 'A10702B8689642C6BE607730E11E6E4A')..path = '/',
+      Cookie('u_uver', '1.0.0')..path = '/',
+      Cookie(
+        'user',
+        'MDptb18zODUzMzMyNDQ6Ok5vbmU6NTAwOjM5NTMzMzI0NDo3LDExMTExMTExMTExLDQwOzQ0LDExLDQwOzYsMSw0MDs1LDEsNDA7MSwxMDEsNDA7MiwxLDQwOzMsMSw0MDs1LDEsNDA7OCwwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMSw0MDsxMDIsMSw0MDoyNDo6OjM4NTMzMzI0NDoxNzQ2NTI3ODA0Ojo6MTQ4OTk5ODY2MDo2MDQ4MDA6MDoxNDRjY2Y0MDQwOWUzYWUwYTVmMDc4YjYxM2FlNDQ0YjI6ZGVmYXVsdF80OjE%3D',
+      )..path = '/',
+      Cookie('user_status', '0')..path = '/',
+      Cookie('userid', '385333244')..path = '/',
+      Cookie('utk', '04a42e9ef0f5b58e52e5a0f778a713af')..path = '/',
+      Cookie('v', 'A_G_7_aBPZmd35GNpcc_iCWMBn-O3mRRD1YJdtMF7grXTB_oGy51IJ-iGTJg')..path = '/',
+    ];
+
+    // 设置 Cookie 的公共属性
+    for (var cookie in cookies) {
+      cookie
+        ..domain =
+            '.10jqka.com.cn' // 替换为你的域名
+        ..httpOnly = true
+        ..secure = true
+        ..maxAge = 8640000; // 1天有效期（单位：秒）
+    }
+
+    return cookies.map((c) => c.toString()).join(', ');
+  }
+
+  Future<String> _getGbkHtml(String url, cookie) async {
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Safari/605.1.15',
+          "Sec-Fetch-Dest": "empty",
+          "Sec-Fetch-Mode": "cors",
+          "Sec-Fetch-Site": "same-origin",
+          "X-Requested-With": "XMLHttpRequest",
+          "Cookie": cookie,
+        },
+      );
+      if (response.statusCode == 200) {
+        // 将 GBK 字节流转换为 UTF-8 字符串
+        final gbkBytes = response.bodyBytes;
+        final data = gbk.decode(gbkBytes); // 使用 charset 库解码
+        return data;
+      }
+      return "";
+    } catch (e) {
+      debugPrint(e.toString());
+      rethrow;
+    }
   }
 
   // 随机延时

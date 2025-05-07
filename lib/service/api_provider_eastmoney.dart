@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print
 import "dart:convert";
+import "dart:math";
 import "package:flutter/material.dart";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_provider.dart";
@@ -131,6 +132,10 @@ class ApiProviderEastMoney extends ApiProvider {
         debugPrint(url);
         if (_isPageEnd(response)) break;
         responses.add(response);
+        // 随机延时
+        final random = Random();
+        int delaySeconds = 1 + random.nextInt(1); // 随机 1~2 秒
+        await Future.delayed(Duration(seconds: delaySeconds));
       } catch (e) {
         rethrow;
       }

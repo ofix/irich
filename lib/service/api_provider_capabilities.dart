@@ -41,7 +41,7 @@ enum ProviderApiType {
 class ApiProviderCapabilities {
   final Map<ProviderApiType, List<EnumApiProvider>> _capabilities = {
     ProviderApiType.quote: [EnumApiProvider.heXun],
-    ProviderApiType.quoteExtra: [EnumApiProvider.iFind],
+    ProviderApiType.quoteExtra: [EnumApiProvider.eastMoney],
     ProviderApiType.industry: [EnumApiProvider.eastMoney],
     ProviderApiType.concept: [EnumApiProvider.eastMoney],
     ProviderApiType.province: [EnumApiProvider.eastMoney],

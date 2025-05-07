@@ -21,7 +21,7 @@ class ApiConfig {
   final bool abortOnCriticalError;
   final Duration timeoutPerRequest;
 
-  static const Duration defaultTimeout = Duration(seconds: 10);
+  static const Duration defaultTimeout = Duration(seconds: 3000);
 
   const ApiConfig({
     this.maxRetries = 2,
@@ -49,7 +49,6 @@ class ApiService {
   final _activeRequests = <_ActiveRequest>[];
   final ProviderApiType _curApiType; // 当前API请求类别
   bool _isCanceled = false; // 取消并发请求
-  bool _debugMode = true; // 调试模式开关
 
   /// [apiType] 请求类别
   /// [maxConn] 最大请求并发数
@@ -61,6 +60,12 @@ class ApiService {
 
   double get speed => _stats.realTimeSpeed; // 请求速度
   double get progress => _stats.progress; // 请求进度
+
+  /// [providers] 指定供应商列表，覆盖默认的供应商列表，
+  /// 相当于剔除无法使用的供应商
+  void providers(List<EnumApiProvider> providers) {
+    _balancer.replaceDefaultProviders(providers);
+  }
 
   void cancel() {
     _isCanceled = true; // 取消并发请求

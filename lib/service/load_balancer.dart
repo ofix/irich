@@ -26,17 +26,28 @@ class LoadBalancer {
     _fastWeightRoundRobinInit(apiType);
   }
 
+  /// [providers] 用户指定的供应商列表，剔除不可用的供应商，或者只指定单个供应商，测试供应商的能力
+  void replaceDefaultProviders(List<EnumApiProvider> providers) {
+    _fastWeightRoundRobinInit(_curApiType, providers);
+  }
+
   // 1.快速加权轮询算法（用空间换取时间）
   // 根据当前爬取的主题初始化对应API接口供应商的权重
-  void _fastWeightRoundRobinInit(ProviderApiType apiType) {
+  void _fastWeightRoundRobinInit(ProviderApiType apiType, [List<EnumApiProvider>? providers]) {
     _providerWeights = {
       EnumApiProvider.eastMoney: 4,
+      EnumApiProvider.iFind: 4,
       EnumApiProvider.baiduFinance: 3,
       EnumApiProvider.heXun: 1,
     };
     _curApiType = apiType;
     _weightRoundRobinIndex = 0;
-    final enumProviders = _providerCapabilities.getProviders(apiType);
+    List<EnumApiProvider> enumProviders = [];
+    if (providers != null && providers.isNotEmpty) {
+      enumProviders = providers;
+    } else {
+      enumProviders = _providerCapabilities.getProviders(apiType);
+    }
     if (enumProviders.length == 1) {
       _weightRoundRobinProviders.add(enumProviders.first); // 只有一个供应商,无需轮询
       return;

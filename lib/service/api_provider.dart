@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:charset/charset.dart';
 import 'package:flutter/material.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:http/http.dart' as http;
@@ -52,7 +53,7 @@ abstract class ApiProvider {
     }
   }
 
-  Future<String> getHtml(String url) async {
+  Future<String> getGbkHtml(String url) async {
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -61,7 +62,13 @@ abstract class ApiProvider {
               'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Safari/605.1.15',
         },
       );
-      return response.body;
+      if (response.statusCode == 200) {
+        // 将 GBK 字节流转换为 UTF-8 字符串
+        final gbkBytes = response.bodyBytes;
+        final data = gbk.decode(gbkBytes); // 使用 charset 库解码
+        return data;
+      }
+      return "";
     } catch (e) {
       debugPrint(e.toString());
       rethrow;
