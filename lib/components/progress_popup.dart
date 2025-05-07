@@ -22,6 +22,9 @@ void showProgressPopup(BuildContext context, Stream<TaskProgress> stream) {
     barrierDismissible: false,
     builder:
         (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4.0), // 调整圆角大小（默认是16.0）
+          ),
           title: const Text('正在加载行情数据'),
           content: StreamBuilder<TaskProgress>(
             stream: stream,
@@ -42,6 +45,9 @@ void showProgressPopup(BuildContext context, Stream<TaskProgress> stream) {
                   const SizedBox(height: 16),
                   LinearProgressIndicator(
                     value: progress.total > 0 ? progress.current / progress.total : null,
+                    backgroundColor: Color(0xFFE8E8E8),
+                    color: Color(0xFF1AA6FF),
+                    minHeight: 8, // 进度条高度（默认4）
                   ),
                 ],
               );

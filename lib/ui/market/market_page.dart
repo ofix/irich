@@ -2,8 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:irich/components/desktop_layout.dart';
 import 'package:irich/components/progress_popup.dart';
-import 'package:irich/service/api_provider_capabilities.dart';
-import 'package:irich/service/api_service.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/utils/helper.dart';
