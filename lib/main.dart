@@ -1,10 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/router/router_provider.dart';
+import 'package:irich/service/sql_service.dart';
 import 'package:irich/theme/app_theme.dart';
 
-void main() {
+void main() async {
+  await initDatabase();
   runApp(const ProviderScope(child: RichApp()));
+}
+
+Future<void> initDatabase() async {
+  // 确保WidgetsBinding已初始化
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 初始化数据库
+  try {
+    await SqlService.instance.database;
+    debugPrint('Database initialized successfully');
+  } catch (e) {
+    debugPrint('Failed to initialize database: $e');
+  }
 }
 
 class RichApp extends ConsumerWidget {

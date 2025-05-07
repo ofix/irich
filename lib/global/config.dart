@@ -24,4 +24,7 @@ class Config {
     final appDir = await getApplicationDocumentsDirectory();
     return "${appDir.path}/quote.json";
   }
+
+  // SQLite数据库文件
+  static String pathDb = "/assets/irich.sql";
 }

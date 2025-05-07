@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:irich/utils/date_time.dart';
 import 'package:path_provider/path_provider.dart';
@@ -108,8 +109,7 @@ class FileTool {
       // Process buffer to find last line
       int endPos = buffer.length - 1;
       while (endPos >= 0 &&
-          (buffer[endPos] == '\n'.codeUnitAt(0) ||
-              buffer[endPos] == '\r'.codeUnitAt(0))) {
+          (buffer[endPos] == '\n'.codeUnitAt(0) || buffer[endPos] == '\r'.codeUnitAt(0))) {
         endPos--;
       }
 
@@ -121,9 +121,7 @@ class FileTool {
         }
       }
 
-      final lastLine = String.fromCharCodes(
-        buffer.sublist(startPosInBuffer, endPos + 1),
-      );
+      final lastLine = String.fromCharCodes(buffer.sublist(startPosInBuffer, endPos + 1));
 
       return (true, lastLine);
     } catch (e) {
@@ -134,9 +132,7 @@ class FileTool {
   /// 检查每日需要更新的本地数据文件是否过期
   static Future<bool> isDailyFileExpired(String filePath) async {
     // 获取本地行情数据文件修改时间
-    String localQuoteFileModifiedTime = await FileTool.getFileModifiedTime(
-      filePath,
-    );
+    String localQuoteFileModifiedTime = await FileTool.getFileModifiedTime(filePath);
     String today = now("%Y-%m-%d");
     String nowTime = now("%Y-%m-%d %H:%M:%S");
     if (isTradeDay(today)) {
@@ -146,8 +142,7 @@ class FileTool {
       String currentTradeDay = getNearestTradeDay();
       String currentTradeOpenTime = "$currentTradeDay 09:30:00"; // 当天开盘时间
       String currentTradeCloseTime = "$currentTradeDay 15:00:00"; // 当天收盘时间
-      if (compareTime(localQuoteFileModifiedTime, currentTradeCloseTime) >
-              0 && // 文件时间大于昨天收盘时间
+      if (compareTime(localQuoteFileModifiedTime, currentTradeCloseTime) > 0 && // 文件时间大于昨天收盘时间
           compareTime(nowTime, currentTradeOpenTime) < 0 && // 当前时间未开盘
           compareTime(localQuoteFileModifiedTime, currentTradeOpenTime) <
               0 // 文件时间小于今天开盘时间
@@ -170,5 +165,24 @@ class FileTool {
       }
       return true;
     }
+  }
+
+  Future<String> getRuntimeDir() async {
+    final dir = await getApplicationDocumentsDirectory(); // 或 getApplicationSupportDirectory()
+    return dir.path;
+  }
+
+  static Future<File> copyFileToAppDir(String assetPath) async {
+    // 获取应用可写目录（不同平台路径不同）
+    final appDir = await getApplicationDocumentsDirectory();
+    final targetFile = File('${appDir.path}/${assetPath.split('/').last}');
+
+    // 如果文件已存在，直接返回
+    if (await targetFile.exists()) return targetFile;
+
+    // 从 assets 复制到可写目录
+    final byteData = await rootBundle.load(assetPath);
+    await targetFile.writeAsBytes(byteData.buffer.asUint8List());
+    return targetFile;
   }
 }
