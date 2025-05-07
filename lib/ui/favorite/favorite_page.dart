@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:irich/components/desktop_layout.dart';
-import 'package:irich/pages/favorite/favorite_view.dart';
+import 'package:irich/ui/favorite/favorite_view.dart';
 
 class FavoritePage extends StatefulWidget {
   const FavoritePage({super.key, required this.title});
@@ -11,14 +11,10 @@ class FavoritePage extends StatefulWidget {
 }
 
 class _FavoritePageState extends State<FavoritePage> {
-
   @override
   Widget build(BuildContext context) {
     return DesktopLayout(
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        child: FavoriteView(title: "自选页面"),
-      ),
+      child: Container(padding: const EdgeInsets.all(24), child: FavoriteView(title: "自选页面")),
     );
   }
 }

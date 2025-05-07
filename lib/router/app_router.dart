@@ -1,8 +1,8 @@
 import 'package:go_router/go_router.dart';
-import 'package:irich/pages/discovery/discovery_page.dart';
-import 'package:irich/pages/market/market_page.dart';
-import 'package:irich/pages/portfolio/portfolio_page.dart';
-import 'package:irich/pages/favorite/favorite_page.dart';
+import 'package:irich/ui/discovery/discovery_page.dart';
+import 'package:irich/ui/market/market_page.dart';
+import 'package:irich/ui/portfolio/portfolio_page.dart';
+import 'package:irich/ui/favorite/favorite_page.dart';
 
 // 禁用GoRouter默认页面切换动画
 final appRouter = GoRouter(
