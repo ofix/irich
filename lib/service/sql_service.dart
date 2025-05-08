@@ -157,6 +157,14 @@ class SqlService {
     );
   }
 
+  /// 原始更新SQL语句
+  /// [sql] 更新SQL语句
+  /// [arguments] 更新SQL语句参数值
+  Future<int> rawUpdate(String sql, [List<Object?>? arguments]) async {
+    Database db = await database;
+    return await db.rawUpdate(sql, arguments);
+  }
+
   /// 删除数据
   /// [table] 表名
   /// [where] 条件语句
