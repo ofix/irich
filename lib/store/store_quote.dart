@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:irich/components/progress_popup.dart';
@@ -12,7 +13,6 @@ import 'package:irich/utils/date_time.dart';
 import 'package:irich/utils/file_tool.dart';
 import 'package:irich/utils/rich_result.dart';
 import 'package:irich/utils/trie.dart';
-import 'package:path_provider/path_provider.dart';
 
 class StoreQuote {
   static List<Share> _shares = []; // 股票行情数据，交易时间需要每隔1s定时刷新，非交易时间读取本地文件
@@ -75,11 +75,14 @@ class StoreQuote {
   }
 
   static Future<void> _initializePaths() async {
-    final appDir = await getApplicationDocumentsDirectory();
-    _pathDataFileQuote = "${appDir.path}/quote.json";
-    _pathIndexFileProvince = "${appDir.path}/province.json";
-    _pathIndexFileIndustry = "${appDir.path}/industry.json";
-    _pathIndexFileConcept = "${appDir.path}/concept.json";
+    try {
+      _pathDataFileQuote = await Config.pathDataFileQuote;
+      _pathIndexFileProvince = await Config.pathMapFileProvince;
+      _pathIndexFileIndustry = await Config.pathMapFileIndustry;
+      _pathIndexFileConcept = await Config.pathMapFileConcept;
+    } catch (e) {
+      debugPrint(e.toString());
+    }
   }
 
   static Future<bool> isQuoteExtraDataReady() async {
