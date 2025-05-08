@@ -1,51 +1,29 @@
-import 'dart:io';
-
-import 'package:path_provider/path_provider.dart';
+import 'package:irich/utils/file_tool.dart';
 import 'package:path/path.dart' as p;
 
 class Config {
   // 地域板块=>个股映射文件路径
   static Future<String> get pathMapFileProvince async {
-    String appDir = "";
-    if (Platform.isWindows) {
-      appDir = Platform.resolvedExecutable;
-    } else {
-      appDir = (await getApplicationDocumentsDirectory()).path;
-    }
-    return p.join(appDir, 'data', 'province.json');
+    String appRootDir = await FileTool.getAppRootDir();
+    return p.join(appRootDir, 'data', 'province.json');
   }
 
   // 行业板块=>个股映射文件路径
   static Future<String> get pathMapFileIndustry async {
-    String appDir = "";
-    if (Platform.isWindows) {
-      appDir = Platform.resolvedExecutable;
-    } else {
-      appDir = (await getApplicationDocumentsDirectory()).path;
-    }
-    return p.join(appDir, 'data', 'industry.json');
+    String appRootDir = await FileTool.getAppRootDir();
+    return p.join(appRootDir, 'data', 'industry.json');
   }
 
   // 概念板块=>个股映射文件路径
   static Future<String> get pathMapFileConcept async {
-    String appDir = "";
-    if (Platform.isWindows) {
-      appDir = Platform.resolvedExecutable;
-    } else {
-      appDir = (await getApplicationDocumentsDirectory()).path;
-    }
-    return p.join(appDir, 'data', 'concept.json');
+    String appRootDir = await FileTool.getAppRootDir();
+    return p.join(appRootDir, 'data', 'concept.json');
   }
 
   // 行情数据文件路径
   static Future<String> get pathDataFileQuote async {
-    String appDir = "";
-    if (Platform.isWindows) {
-      appDir = Platform.resolvedExecutable;
-    } else {
-      appDir = (await getApplicationDocumentsDirectory()).path;
-    }
-    return p.join(appDir, 'data', 'quote.json');
+    String appRootDir = await FileTool.getAppRootDir();
+    return p.join(appRootDir, 'data', 'quote.json');
   }
 
   // SQLite数据库文件

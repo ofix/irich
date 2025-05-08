@@ -24,8 +24,13 @@ class SqlService {
 
   Future<Database> _initDatabase() async {
     // 获取应用文档目录
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, _dbName);
+    String appDir = "";
+    if (Platform.isWindows) {
+      appDir = Platform.resolvedExecutable;
+    } else {
+      appDir = (await getApplicationDocumentsDirectory()).path;
+    }
+    String path = join(appDir, _dbName);
 
     // 检查数据库是否已存在
     bool dbExists = await File(path).exists();

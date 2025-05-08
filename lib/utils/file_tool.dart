@@ -188,12 +188,21 @@ class FileTool {
     return targetFile;
   }
 
+  static Future<String> getAppRootDir() async {
+    String appRootDir = "";
+    if (Platform.isWindows) {
+      appRootDir = Platform.resolvedExecutable;
+    } else {
+      appRootDir = (await getApplicationDocumentsDirectory()).path;
+    }
+    return appRootDir;
+  }
+
   // 拷贝文件到目录
   static Future<void> installDir(String srcDir) async {
     try {
       // 1. 获取应用文档目录
-      final Directory appDocDir = await getApplicationDocumentsDirectory();
-      final String targetRoot = appDocDir.path;
+      final String targetRoot = await getAppRootDir();
 
       // 2. 获取AssetManifest.json内容
       final manifestContent = await rootBundle.loadString('AssetManifest.json');
