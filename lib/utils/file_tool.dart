@@ -191,7 +191,8 @@ class FileTool {
   static Future<String> getAppRootDir() async {
     String appRootDir = "";
     if (Platform.isWindows) {
-      appRootDir = Platform.resolvedExecutable;
+      String binPath = Platform.resolvedExecutable;
+      appRootDir = File(binPath).parent.path;
     } else {
       appRootDir = (await getApplicationDocumentsDirectory()).path;
     }

@@ -2,9 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:irich/utils/file_tool.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class SqlService {
   static const _dbName = 'data/irich.db';
@@ -24,17 +25,16 @@ class SqlService {
 
   Future<Database> _initDatabase() async {
     // 获取应用文档目录
-    String appDir = "";
-    if (Platform.isWindows) {
-      appDir = Platform.resolvedExecutable;
-    } else {
-      appDir = (await getApplicationDocumentsDirectory()).path;
-    }
+    String appDir = await FileTool.getAppRootDir();
     String path = join(appDir, _dbName);
 
     // 检查数据库是否已存在
     bool dbExists = await File(path).exists();
 
+    // 如果是桌面端（非Web、非移动端），初始化 FFI
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      databaseFactory = databaseFactoryFfi;
+    }
     // 打开或创建数据库
     Database db = await openDatabase(
       path,
