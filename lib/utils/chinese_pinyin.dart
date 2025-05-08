@@ -1,22 +1,17 @@
-
-// ignore_for_file: avoid_print
-
-import 'dart:io';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 class ChinesePinYin {
   static Map<String, List<String>> pinyinDict = {};
 
-  static List<String> getLetters(String chinese) {
+  static Future<List<String>> getLetters(String chinese) async {
     List<String> letters = [];
     if (pinyinDict.isEmpty) {
-      loadPinYinDictionary('${Directory.current.path}/chinese_pin_yin.dic');
+      await loadPinYinDictionary();
     }
 
-    int i = 0;
-    while (i < chinese.length) {
-      String letter = _nextUtf8Char(chinese, i);
-      i += letter.length;
-
+    var words = chinese.characters;
+    for (var letter in words) {
       if (pinyinDict.containsKey(letter)) {
         List<String> multiPinyin = pinyinDict[letter]!;
         if (letters.isEmpty) {
@@ -41,17 +36,14 @@ class ChinesePinYin {
     return _removeRepeats(letters);
   }
 
-  static List<String> getFirstLetters(String chinese) {
+  static Future<List<String>> getFirstLetters(String chinese) async {
     List<String> letters = [];
     if (pinyinDict.isEmpty) {
-      loadPinYinDictionary('${Directory.current.path}/chinese_pin_yin.dic');
+      await loadPinYinDictionary();
     }
 
-    int i = 0;
-    while (i < chinese.length) {
-      String letter = _nextUtf8Char(chinese, i);
-      i += letter.length;
-
+    var words = chinese.characters;
+    for (var letter in words) {
       if (pinyinDict.containsKey(letter)) {
         List<String> multiPinyin = pinyinDict[letter]!;
         if (letters.isEmpty) {
@@ -76,15 +68,10 @@ class ChinesePinYin {
     return _removeRepeats(letters);
   }
 
-  static bool loadPinYinDictionary(String dictPath) {
+  static Future<bool> loadPinYinDictionary() async {
     try {
-      final file = File(dictPath);
-      if (!file.existsSync()) {
-        print('$dictPath file not found');
-        return false;
-      }
-
-      final lines = file.readAsLinesSync();
+      String dic = await rootBundle.loadString('lib/runtime/data/chinese_pinyin.dic');
+      List<String> lines = dic.split('\n');
       for (String line in lines) {
         line = line.trim();
         if (line.isEmpty) continue;
@@ -97,35 +84,13 @@ class ChinesePinYin {
         pinyinDict[hanzi] = pinyin;
       }
       return true;
-    } on FileSystemException catch (e) {
-      if (e.osError?.errorCode == 13) {
-        print('$dictPath file no access permission');
-      } else {
-        print('$dictPath open failed: ${e.message}');
-      }
-      return false;
     } catch (e) {
-      print('$dictPath open failed: $e');
+      debugPrint('加载拼音字典失败: $e');
       return false;
     }
   }
 
   static List<String> _removeRepeats(List<String> letters) {
     return letters.toSet().toList();
-  }
-
-  static String _nextUtf8Char(String str, int start) {
-    if (start >= str.length) return '';
-    
-    int charCode = str.codeUnitAt(start);
-    if (charCode < 0x80) {
-      return str[start];
-    } else if (charCode < 0xE0) {
-      return str.substring(start, start + 2);
-    } else if (charCode < 0xF0) {
-      return str.substring(start, start + 3);
-    } else {
-      return str.substring(start, start + 4);
-    }
   }
 }

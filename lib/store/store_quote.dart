@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:irich/components/progress_popup.dart';
@@ -8,7 +7,7 @@ import 'package:irich/global/config.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
 import 'package:irich/global/stock.dart';
-import 'package:irich/utils/chinese_pin_yin.dart';
+import 'package:irich/utils/chinese_pinyin.dart';
 import 'package:irich/utils/date_time.dart';
 import 'package:irich/utils/file_tool.dart';
 import 'package:irich/utils/rich_result.dart';
@@ -130,9 +129,7 @@ class StoreQuote {
     if (statusQuote.ok()) {
       _shares = responseQuote;
       _buildShareMap(_shares);
-
-      // 保存行情数据到文件
-      await _saveQuoteFile(await Config.pathDataFileQuote, _shares);
+      await _saveQuoteFile(await Config.pathDataFileQuote, _shares); // 保存行情数据到文件
     }
 
     // 爬取板块数据
@@ -204,7 +201,7 @@ class StoreQuote {
     if (!_indexed) {
       _indexed = true;
       _buildShareClassfier(shares);
-      // _buildShareTrie(shares);
+      await _buildShareTrie(shares);
     }
     return success();
   }
@@ -365,12 +362,12 @@ class StoreQuote {
   }
 
   /// 构建股票Trie树
-  static void _buildShareTrie(List<Share> shares) {
+  static Future<void> _buildShareTrie(List<Share> shares) async {
     for (final share in shares) {
       _trie.insert(share.name, share.code);
       _trie.insert(share.code, share.code);
       // 插入拼音
-      List<String> pinyin = ChinesePinYin.getFirstLetters(share.name);
+      List<String> pinyin = await ChinesePinYin.getFirstLetters(share.name);
       for (final char in pinyin) {
         _trie.insert(char.toLowerCase(), share.code);
       }
