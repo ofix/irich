@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 class TrieNode {
   int depth = 0;
   bool isWord = false;
@@ -17,63 +19,52 @@ class Trie {
   }
 
   // 支持中英文混合
-  void insert(String word, String shareCode) {
+  void insert(String chinese, String shareCode) {
     TrieNode node = root;
-    int i = 0;
-    while (i < word.length) {
-      final character = _nextUtf8Char(word, i);
-      i += character.length;
-
-      if (!node.children.containsKey(character)) {
-        node.children[character] = TrieNode(node.depth + 1);
+    var words = chinese.characters;
+    for (var letter in words) {
+      if (!node.children.containsKey(letter)) {
+        node.children[letter] = TrieNode(node.depth + 1);
       }
-      node = node.children[character]!;
+      node = node.children[letter]!;
     }
     node.isWord = true;
     node.shareCodeList.add(shareCode);
   }
 
-  bool search(String word) {
+  bool search(String chinese) {
     TrieNode? node = root;
-    int i = 0;
-    while (i < word.length) {
-      final character = _nextUtf8Char(word, i);
-      i += character.length;
 
-      if (!node!.children.containsKey(character)) {
+    var words = chinese.characters;
+    for (var letter in words) {
+      if (!node!.children.containsKey(letter)) {
         return false;
       }
-      node = node.children[character]!;
+      node = node.children[letter]!;
     }
     return node?.isWord ?? false;
   }
 
-  void remove(String word) {
+  void remove(String chinese) {
     TrieNode? node = root;
-    int i = 0;
-    while (i < word.length) {
-      final character = _nextUtf8Char(word, i);
-      i += character.length;
-
-      if (!node!.children.containsKey(character)) {
+    var words = chinese.characters;
+    for (var letter in words) {
+      if (!node!.children.containsKey(letter)) {
         return;
       }
-      node = node.children[character]!;
+      node = node.children[letter]!;
     }
     node?.isWord = false;
   }
 
-  void removePrefixWith(String word) {
+  void removePrefixWith(String chinese) {
     TrieNode? node = root;
-    int i = 0;
-    while (i < word.length) {
-      final character = _nextUtf8Char(word, i);
-      i += character.length;
-
-      if (!node!.children.containsKey(character)) {
+    var words = chinese.characters;
+    for (var letter in words) {
+      if (!node!.children.containsKey(letter)) {
         return;
       }
-      node = node.children[character];
+      node = node.children[letter];
     }
 
     node?.children.clear();
@@ -81,22 +72,18 @@ class Trie {
     node?.isWord = false;
   }
 
-  List<String> listPrefixWith(String word) {
+  List<String> listPrefixWith(String chinese) {
     final List<String> result = [];
     TrieNode node = root;
-    int i = 0;
-
-    while (i < word.length) {
-      final character = _nextUtf8Char(word, i);
-      i += character.length;
-
-      if (!node.children.containsKey(character)) {
+    var words = chinese.characters;
+    for (var letter in words) {
+      if (!node.children.containsKey(letter)) {
         return result;
       }
-      node = node.children[character]!;
+      node = node.children[letter]!;
     }
 
-    _insertWord(node, word, result);
+    _insertWord(node, chinese, result);
     return result.toSet().toList(); // 去重
   }
 
@@ -126,11 +113,7 @@ class Trie {
     }
   }
 
-  void _insertWordToMap(
-    TrieNode node,
-    String word,
-    Map<String, List<String>> map,
-  ) {
+  void _insertWordToMap(TrieNode node, String word, Map<String, List<String>> map) {
     if (node.isWord) {
       for (final shareCode in node.shareCodeList) {
         map.putIfAbsent(shareCode, () => []).add(word);
@@ -161,20 +144,5 @@ class Trie {
       wordCount = _calculateWordCount(child, wordCount);
     }
     return wordCount;
-  }
-
-  String _nextUtf8Char(String str, int start) {
-    if (start >= str.length) return '';
-
-    final codeUnit = str.codeUnitAt(start);
-    if (codeUnit < 0x80) {
-      return str[start];
-    } else if (codeUnit < 0xE0) {
-      return str.substring(start, start + 2);
-    } else if (codeUnit < 0xF0) {
-      return str.substring(start, start + 3);
-    } else {
-      return str.substring(start, start + 4);
-    }
   }
 }
