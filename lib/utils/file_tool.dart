@@ -1,11 +1,13 @@
 // ignore_for_file: avoid_print
 
+import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:irich/utils/date_time.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:typed_data';
+import 'package:path/path.dart' as p;
 
 class FileTool {
   /// Gets the modified time of a file in 'YYYY-MM-DD HH:mm:ss' format
@@ -167,7 +169,7 @@ class FileTool {
     }
   }
 
-  Future<String> getRuntimeDir() async {
+  static Future<String> getRuntimeDir() async {
     final dir = await getApplicationDocumentsDirectory(); // 或 getApplicationSupportDirectory()
     return dir.path;
   }
@@ -184,5 +186,54 @@ class FileTool {
     final byteData = await rootBundle.load(assetPath);
     await targetFile.writeAsBytes(byteData.buffer.asUint8List());
     return targetFile;
+  }
+
+  // 拷贝文件到目录
+  static Future<void> installDir(String srcDir) async {
+    try {
+      // 1. 获取应用文档目录
+      final Directory appDocDir = await getApplicationDocumentsDirectory();
+      final String targetRoot = appDocDir.path;
+
+      // 2. 获取AssetManifest.json内容
+      final manifestContent = await rootBundle.loadString('AssetManifest.json');
+      final Map<String, dynamic> manifestMap = jsonDecode(manifestContent);
+
+      // 3. 筛选出lib/runtime目录下的所有文件
+      final runtimeFiles = manifestMap.keys.where((String key) => key.startsWith(srcDir)).toList();
+
+      if (runtimeFiles.isEmpty) {
+        debugPrint('No files found in $srcDir');
+        return;
+      }
+
+      // 4. 遍历并拷贝每个文件
+      for (String assetPath in runtimeFiles) {
+        // 计算相对路径（移除前面的"lib/runtime/"部分）
+        final relativePath = assetPath.substring(srcDir.length + 1);
+
+        // 构建目标文件路径
+        final String destinationPath = p.join(targetRoot, relativePath);
+        final File destinationFile = File(destinationPath);
+
+        if (await destinationFile.exists()) {
+          debugPrint("目录文件已经存在，${destinationFile.path}");
+          continue;
+        }
+
+        // 确保目标目录存在
+        await destinationFile.parent.create(recursive: true);
+
+        // 读取asset文件内容
+        final ByteData data = await rootBundle.load(assetPath);
+        final Uint8List bytes = data.buffer.asUint8List();
+
+        // 写入目标文件
+        await destinationFile.writeAsBytes(bytes);
+      }
+    } catch (e) {
+      debugPrint('Error copying runtime files: $e');
+      rethrow;
+    }
   }
 }

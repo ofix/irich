@@ -7,9 +7,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class SqlService {
-  static const _dbName = 'db/irich.db';
+  static const _dbName = 'data/irich.db';
   static const _dbVersion = 1;
-  static const _sqlFile = 'lib/runtime/db/irich.sql';
+  static const _sqlFile = 'lib/runtime/data/irich.sql';
 
   static Database? _database;
 
