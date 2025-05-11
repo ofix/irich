@@ -26,6 +26,12 @@ class Config {
     return p.join(appRootDir, 'data', 'quote.json');
   }
 
+  // 节假日数据文件路径
+  static Future<String> get pathDataFileHoliday async {
+    String appRootDir = await FileTool.getAppRootDir();
+    return p.join(appRootDir, 'data', 'holidays.json');
+  }
+
   // SQLite数据库文件
   static String pathSql = "data/irich.sql";
 }

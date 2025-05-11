@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/router/router_provider.dart';
 import 'package:irich/service/sql_service.dart';
+import 'package:irich/service/trading_calendar.dart';
 import 'package:irich/theme/app_theme.dart';
 import 'package:irich/utils/file_tool.dart';
 
 void main() async {
   // 确保WidgetsBinding已初始化
   WidgetsFlutterBinding.ensureInitialized();
+  // 拷贝文件到可执行文件目录
   await FileTool.installDir("lib/runtime");
+  // 加载交易日期数据文件并初始化
+  await TradingCalendar().initialize();
+  // 初始化数据库SQLite
   await initDatabase();
   runApp(const ProviderScope(child: RichApp()));
 }

@@ -1,0 +1,103 @@
+// 交易日历，判断是否是交易日
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:irich/global/config.dart';
+import 'package:irich/utils/file_tool.dart';
+
+class TradingCalendar {
+  // 静态单例实例
+  static final TradingCalendar _instance = TradingCalendar._internal();
+  late final Map<DateTime, String> _specialDays; // 特殊日期，比如临时休市
+  late final Map<int, Set<DateTime>> _yearlyHolidays; // 按年排列的节假日
+  bool _initialized = false;
+
+  factory TradingCalendar() {
+    return _instance;
+  }
+
+  // 私有构造函数
+  TradingCalendar._internal();
+
+  Future<void> initialize({String? timeZone, Set<DateTime>? holidays}) async {
+    if (!_initialized) {
+      _specialDays = {};
+      _yearlyHolidays = await _loadYearlyHolidays();
+      _initialized = true;
+    }
+  }
+
+  // 加载日期
+  Future<Map<int, Set<DateTime>>> _loadYearlyHolidays() async {
+    Map<int, Set<DateTime>> yearlyHolidays = {};
+    final data = await FileTool.loadFile(await Config.pathDataFileHoliday);
+    final jsonData = json.decode(data);
+    final holidaysList = jsonData['holidays'];
+
+    for (final yearData in holidaysList) {
+      final year = yearData['year'] as int;
+      final holidays = yearData['holidays'];
+      final dateSet = <DateTime>{};
+      for (final holiday in holidays) {
+        for (final dateStr in (holiday['dates'])) {
+          final dateParts = dateStr.split('-');
+          final date = DateTime(
+            int.parse(dateParts[0]),
+            int.parse(dateParts[1]),
+            int.parse(dateParts[2]),
+          );
+          dateSet.add(date);
+        }
+      }
+      yearlyHolidays[year] = dateSet;
+    }
+    return yearlyHolidays;
+  }
+
+  // 判断是否是交易日
+  bool isTradingDay([DateTime? date]) {
+    date ??= DateTime.now();
+    // 检查是否是周末
+    if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
+      return false;
+    }
+    // 检查是否是特殊日期（如临时休市）
+    if (_specialDays.containsKey(date)) return false;
+    // 检查是否是年度假日
+    if (_yearlyHolidays[date.year]?.contains(date) ?? false) return false;
+
+    return true;
+  }
+
+  // 判断当前时间是否是交易时间
+  bool isTradingTime() {
+    final now = DateTime.now();
+    if (!isTradingDay(now)) {
+      return false;
+    }
+    // 检查时间是否在交易时段内（例如美股交易时间：09:30-16:00 ET）
+    final time = TimeOfDay.fromDateTime(now);
+    final marketOpen = TimeOfDay(hour: 9, minute: 30);
+    final marketClose = TimeOfDay(hour: 15, minute: 0);
+    return time.hour > marketOpen.hour ||
+        (time.hour == marketOpen.hour && time.minute >= marketOpen.minute) &&
+            time.hour < marketClose.hour ||
+        (time.hour == marketClose.hour && time.minute < marketClose.minute);
+  }
+
+  /// 判断过去第N天是否为交易日 (n=1表示昨天，n=2表示前天...)
+  bool isTradingDayAgo(int daysAgo) {
+    assert(daysAgo > 0, 'daysAgo必须为正整数');
+    final targetDate = DateTime.now().subtract(Duration(days: daysAgo));
+    return isTradingDay(targetDate);
+  }
+
+  // 获取下一个交易日
+  DateTime nextTradingDay(DateTime date, {int lookAhead = 30}) {
+    for (int i = 1; i <= lookAhead; i++) {
+      final nextDay = date.add(Duration(days: i));
+      if (isTradingDay(nextDay)) return nextDay;
+    }
+    throw Exception('No trading day found in next $lookAhead days');
+  }
+}
