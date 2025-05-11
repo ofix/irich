@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/service/api_provider_ifind.dart
+// Purpose:     ifind api provider
+// Author:      songhuabiao
+// Created:     2025-04-26 20:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';

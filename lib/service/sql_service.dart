@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/service/sql_service.dart
+// Purpose:     sql service for access SQLite database
+// Author:      songhuabiao
+// Created:     2025-04-26 20:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';

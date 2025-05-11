@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/ui/discovery_view.dart
+// Purpose:     discovery view
+// Author:      songhuabiao
+// Created:     2025-04-26 20:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/store/state_favorite.dart';
@@ -19,9 +28,7 @@ class FavoriteView extends ConsumerWidget {
             color: Theme.of(context).colorScheme.primary,
             textColor: Theme.of(context).colorScheme.onPrimary,
             padding: const EdgeInsets.all(16.0),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.0),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
             child: const Text('增加'),
           ),
         ],

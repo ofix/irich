@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/store/store_klines.dart
+// Purpose:     klines memory cache
+// Author:      songhuabiao
+// Created:     2025-04-26 20:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 import 'dart:convert';
 
 import 'package:irich/service/api_provider_capabilities.dart';

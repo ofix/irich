@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/utils/rich_result.dart
+// Purpose:     rich result for api request
+// Author:      songhuabiao
+// Created:     2025-04-26 20:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 // ignore_for_file: constant_identifier_names
 
 enum RichStatus {

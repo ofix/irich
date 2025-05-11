@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/store/state_quote.dart
+// Purpose:     quote page state
+// Author:      songhuabiao
+// Created:     2025-04-26 20:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 // 行情列表数据
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/store/store_quote.dart';

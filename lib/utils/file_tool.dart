@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/utils/file_tool.dart
+// Purpose:     file tool util class
+// Author:      songhuabiao
+// Created:     2025-04-26 20:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 // ignore_for_file: avoid_print
 
 import 'dart:convert';
@@ -5,6 +14,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:irich/service/trading_calendar.dart';
 import 'package:irich/utils/date_time.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -137,11 +147,12 @@ class FileTool {
     String localQuoteFileModifiedTime = await FileTool.getFileModifiedTime(filePath);
     String today = now("%Y-%m-%d");
     String nowTime = now("%Y-%m-%d %H:%M:%S");
-    if (isTradeDay(today)) {
+    final calendar = TradingCalendar();
+    if (calendar.isTradingDay(DateTime.now())) {
       // 如果当天是交易日
       // String lastTradeDay = getNearestTradeDay(-1);
       // 上一个交易日的收盘时间
-      String currentTradeDay = getNearestTradeDay();
+      String currentTradeDay = calendar.lastTradingDay();
       String currentTradeOpenTime = "$currentTradeDay 09:30:00"; // 当天开盘时间
       String currentTradeCloseTime = "$currentTradeDay 15:00:00"; // 当天收盘时间
       if (compareTime(localQuoteFileModifiedTime, currentTradeCloseTime) > 0 && // 文件时间大于昨天收盘时间
@@ -159,7 +170,7 @@ class FileTool {
 
       return true;
     } else {
-      String lastTradeDay = getNearestTradeDay();
+      String lastTradeDay = calendar.lastTradingDay();
       String lastTradeCloseTime = "$lastTradeDay 15:00:00";
       // 检查文件修改时间是否 > 最近交易日收盘时间
       if (compareTime(localQuoteFileModifiedTime, lastTradeCloseTime) > 0) {

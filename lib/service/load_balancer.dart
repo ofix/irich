@@ -1,12 +1,11 @@
-////////////////////////////////////////////////////////////////////////////////
-// Name:        irich/spider/spider_router.dart
-// Purpose:     爬虫路由器,以负载均衡的方式抓取财经数据
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/service/load_balancer.dart
+// Purpose:     api request load balancer (爬虫路由器,以负载均衡的方式抓取财经数据)
 // Author:      songhuabiao
-// Created:     2025-04-16 10:58
+// Created:     2025-04-26 20:30
 // Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
-///////////////////////////////////////////////////////////////////////////////
-// ignore_for_file: dangling_library_doc_comments
+// ///////////////////////////////////////////////////////////////////////////
 
 import 'package:irich/service/api_provider.dart';
 import 'package:irich/service/api_provider_capabilities.dart';

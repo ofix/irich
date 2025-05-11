@@ -1,7 +1,16 @@
-// 交易日历，判断是否是交易日
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/service/trading_calendar.dart
+// Purpose:     trading calendar
+// Author:      songhuabiao
+// Created:     2025-04-26 20:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:irich/global/config.dart';
 import 'package:irich/utils/file_tool.dart';
 
@@ -90,6 +99,45 @@ class TradingCalendar {
     assert(daysAgo > 0, 'daysAgo必须为正整数');
     final targetDate = DateTime.now().subtract(Duration(days: daysAgo));
     return isTradingDay(targetDate);
+  }
+
+  String lastTradingDay([DateTime? currentDate]) {
+    final date = currentDate ?? DateTime.now();
+    DateTime lastTradingDay = _getPreviousWorkday(date);
+
+    // 这里可以添加节假日判断逻辑
+    lastTradingDay = _skipHolidays(lastTradingDay);
+
+    return _formatDate(lastTradingDay);
+  }
+
+  /// 获取前一个工作日（跳过周末）
+  DateTime _getPreviousWorkday(DateTime date) {
+    DateTime previousDay = date.subtract(const Duration(days: 1));
+
+    // 循环直到找到工作日（周一到周五）
+    while (previousDay.weekday == DateTime.saturday || previousDay.weekday == DateTime.sunday) {
+      previousDay = previousDay.subtract(const Duration(days: 1));
+    }
+
+    return previousDay;
+  }
+
+  /// 跳过节假日（需要维护节假日列表）
+  DateTime _skipHolidays(DateTime date) {
+    // 示例节假日列表 - 实际应用中应该从数据库或API获取
+    DateTime result = date;
+    while ((_yearlyHolidays[date.year]?.contains(date) ?? false) ||
+        result.weekday == DateTime.saturday ||
+        result.weekday == DateTime.sunday) {
+      result = result.subtract(const Duration(days: 1));
+    }
+
+    return result;
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('yyyy-MM-dd').format(date);
   }
 
   // 获取下一个交易日
