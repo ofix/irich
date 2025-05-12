@@ -1,6 +1,6 @@
 // ///////////////////////////////////////////////////////////////////////////
 // Name:        irich/lib/service/api_provider_capabilities.dart
-// Purpose:     api providers' capabilities
+// Purpose:     map api providers and their capabilities
 // Author:      songhuabiao
 // Created:     2025-04-26 20:30
 // Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
