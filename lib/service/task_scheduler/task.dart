@@ -28,12 +28,18 @@ enum TaskPriority implements Comparable<TaskPriority> {
 }
 
 enum TaskStatus {
-  completed, // 任务完成
-  failed, // 任务完全失败
-  running, // 任务进行中
-  pending, // 任务等待中
-  cancelled, // 任务取消了
-  paused, // 任务暂停中
+  pending(0), // 任务等待中
+  running(1), // 任务进行中
+  paused(2), // 任务暂停
+  completed(3), // 任务完成（成功）
+  cancelled(4), // 任务取消
+  failed(5); // 任务失败
+
+  final int status;
+  const TaskStatus(this.status);
+
+  bool get isActive => this == running || this == paused;
+  bool get canCancel => isActive;
 }
 
 // 爬取任务类型
