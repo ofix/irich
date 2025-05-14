@@ -8,21 +8,30 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:collection/collection.dart';
 import 'package:irich/service/task_scheduler/task.dart';
 import 'package:irich/service/task_scheduler/isolate_worker.dart';
+import 'package:irich/service/task_scheduler/task_events.dart';
 
 class IsolatePool {
   final int _minIsolates;
   final int _maxIsolates;
   final Duration _idleTimeout;
+  ReceivePort? _poolRecvPort;
+  int _nextThreadId = 0;
 
-  final List<IsolateWorker> _idleWorkers = [];
   final PriorityQueue<Task> _pendingTasks = PriorityQueue(
     (a, b) => a.priority.compareTo(b.priority),
-  );
-  final List<IsolateWorker> _activeWorkers = [];
+  ); // 优先级任务队列
+
+  SendPort get poolSendPort => _poolRecvPort!.sendPort;
+
+  final List<IsolateWorker> _idleWorkers = []; // 空闲子线程
+  final List<IsolateWorker> _activeWorkers = []; // 工作子线程
+  final Map<int, IsolateWorker> _workersMap = {}; // 线程ID => 线程映射表
 
   IsolatePool({
     int minIsolates = 2,
@@ -35,12 +44,32 @@ class IsolatePool {
   }
 
   Future<void> _initialize() async {
+    _poolRecvPort = ReceivePort("irich_pool");
     for (int i = 0; i < _minIsolates; i++) {
-      await _spawnWorker();
+      await _spawnWorker(_nextThreadId++);
     }
+    listenIsolateEvents();
   }
 
-  Future<void> execute<R>(Task<R> task) {
+  // 处理子线程发送过来的UiEvent
+  void listenIsolateEvents() {
+    _poolRecvPort?.listen((dynamic message) {
+      final event = jsonDecode(message);
+      if (event is TaskStartedIsolateEvent) {
+      } else if (event is TaskProgressIsolateEvent) {
+      } else if (event is TaskPausedIsolateEvent) {
+      } else if (event is TaskErrorIsolateEvent) {
+      } else if (event is TaskCompletedIsolateEvent) {
+        _onWorkerIdle(getIsolateWorker(event.threadId)!);
+      } else if (event is TaskRecoveredIsolateEvent) {}
+    });
+  }
+
+  IsolateWorker? getIsolateWorker(int threadId) {
+    return _workersMap[threadId];
+  }
+
+  Future<void> run<R>(Task<R> task) {
     _pendingTasks.add(task);
     _checkPendingTasks();
     return Future.value();
@@ -50,12 +79,13 @@ class IsolatePool {
     while (_pendingTasks.isNotEmpty && _idleWorkers.isNotEmpty) {
       final task = _pendingTasks.removeFirst();
       final worker = _idleWorkers.removeLast();
-      worker.execute(task);
+      final newTaskEvent = NewTaskEvent(task: task);
+      worker.notify(newTaskEvent);
       _activeWorkers.add(worker);
     }
 
     if (_shouldSpawnMoreWorkers) {
-      _spawnWorker();
+      _spawnWorker(_nextThreadId++);
     }
   }
 
@@ -64,8 +94,8 @@ class IsolatePool {
       _pendingTasks.length > _idleWorkers.length &&
       _activeWorkers.length + _idleWorkers.length < _maxIsolates;
 
-  Future<void> _spawnWorker() async {
-    final worker = await IsolateWorker.create(_onWorkerIdle);
+  Future<void> _spawnWorker(int threadId) async {
+    final worker = await IsolateWorker.create(this, threadId);
     _idleWorkers.add(worker);
     _checkPendingTasks();
   }
@@ -91,5 +121,6 @@ class IsolatePool {
     ]);
     _idleWorkers.clear();
     _activeWorkers.clear();
+    _workersMap.clear();
   }
 }

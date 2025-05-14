@@ -23,15 +23,7 @@ class TaskScheduler {
   final _streamControllers = <TaskType, StreamController<IsolateEvent>>{};
   final TradingCalendar _calendar = TradingCalendar();
 
-  void init() {
-    // UI线程（主Isolate）
-    final receivePort = ReceivePort();
-    // isolate.send(receivePort.sendPort);
-    receivePort.listen((event) {
-      // 处理来自子Isolate的消息
-      // 不需要同步锁，因为这是单线程事件循环
-    });
-  }
+  void init() {}
 
   // 任务队列
   final PriorityQueue<Task> _taskQueue = PriorityQueue<Task>(

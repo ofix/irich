@@ -8,7 +8,9 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'dart:async';
+import 'dart:isolate';
 
+import 'package:irich/service/task_scheduler/task_events.dart';
 import 'package:uuid/uuid.dart';
 
 enum TaskPriority implements Comparable<TaskPriority> {
@@ -73,6 +75,7 @@ abstract class Task<R> {
   DateTime? endTime; // 任务结束时间
   int? timeConsumeInSeconds; // 任务耗时(单位：秒)
   TaskStatus status; // 任务状态
+  SendPort? mainThread; // 向主线程发送消息
 
   /// 基类构造函数 - 子类必须调用
   Task({
@@ -85,6 +88,8 @@ abstract class Task<R> {
   }) : taskId = taskId ?? const Uuid().v4(),
        submitTime = submitTime ?? DateTime.now();
 
+  Map<String, dynamic> serialize() => {"type": "task"};
+
   FutureOr<R> run(); // 任务主体函数
   void onProgress(Map<String, dynamic> params, String providerName) {} // 任务进度回调函数
   void onError(Object error, StackTrace stackTrace) {} // 任务执行失败回调函数
@@ -93,6 +98,10 @@ abstract class Task<R> {
   void onStarted(String taskId) {} // 任务已开始回调函数
   void onDeleted(String taskId) {} // 任务被删除回调函数
   void onFinally() {}
+  void notifyUiThread(IsolateEvent isolateEvent) {
+    final message = isolateEvent.serialize();
+    mainThread?.send(message);
+  }
 }
 
 class TaskSyncShareRegionPartial<R> extends Task<R> {
