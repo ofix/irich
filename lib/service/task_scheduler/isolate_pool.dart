@@ -17,11 +17,11 @@ import 'package:irich/service/task_scheduler/isolate_worker.dart';
 import 'package:irich/service/task_scheduler/task_events.dart';
 
 class IsolatePool {
-  final int _minIsolates;
-  final int _maxIsolates;
-  final Duration _idleTimeout;
-  ReceivePort? _poolRecvPort;
-  int _nextThreadId = 0;
+  final int _minIsolates; // 最小线程数
+  final int _maxIsolates; // 最大线程数
+  final Duration _idleTimeout; // 线程空闲超时时间，超过后将回收空闲线程
+  ReceivePort? _poolRecvPort; // 线程池通信端口（ui主线程）
+  int _nextThreadId = 0; // 子线程ID
 
   final PriorityQueue<Task> _pendingTasks = PriorityQueue(
     (a, b) => a.priority.compareTo(b.priority),
@@ -29,9 +29,11 @@ class IsolatePool {
 
   SendPort get poolSendPort => _poolRecvPort!.sendPort;
 
-  final List<IsolateWorker> _idleWorkers = []; // 空闲子线程
-  final List<IsolateWorker> _activeWorkers = []; // 工作子线程
+  final List<IsolateWorker> _idleWorkers = []; // 空闲子线程列表
+  final List<IsolateWorker> _activeWorkers = []; // 活动子线程列表
   final Map<int, IsolateWorker> _workersMap = {}; // 线程ID => 线程映射表
+  final Map<String, int> _taskWorkermap = {}; // 任务ID => 线程ID映射表
+  final Map<String, Task> _allTasks = {}; // 任务ID => 任务映射表(全量任务)
 
   IsolatePool({
     int minIsolates = 2,
@@ -69,10 +71,91 @@ class IsolatePool {
     return _workersMap[threadId];
   }
 
-  Future<void> run<R>(Task<R> task) {
+  // 发送新任务到空闲线程
+  Future<void> run(Task task) {
     _pendingTasks.add(task);
     _checkPendingTasks();
     return Future.value();
+  }
+
+  // 恢复所有暂停的任务
+  void resumePausedTasks() {
+    _checkPendingTasks();
+  }
+
+  List<Task> allTasks() {
+    return _allTasks.values.toList();
+  }
+
+  // 根据任务ID找到对应的任务
+  Task? getTaskById(String taskId) {
+    return _allTasks[taskId];
+  }
+
+  // 暂停任务
+  bool pauseTask(String taskId) {
+    final task = getTaskById(taskId);
+    if (task == null) {
+      // 任务不存在
+      return false;
+    }
+    task.status = TaskStatus.paused;
+    final threadId = _taskWorkermap[taskId];
+    if (threadId == null) {
+      // 任务没有在子线程执行
+      return false;
+    }
+    final isolateWorker = _workersMap[threadId]; // 找到任务所在子线程
+    if (isolateWorker == null) {
+      return false;
+    }
+    final pauseTaskEvent = PauseTaskUiEvent(taskId: taskId); // 通知子线程暂停任务
+    isolateWorker.notify(pauseTaskEvent);
+    return true;
+  }
+
+  // 恢复任务
+  bool resumeTask(String taskId) {
+    final task = getTaskById(taskId);
+    if (task == null) {
+      // 任务不存在
+      return false;
+    }
+    task.status = TaskStatus.paused;
+    final threadId = _taskWorkermap[taskId];
+    if (threadId == null) {
+      // 任务没有在子线程执行
+      return false;
+    }
+    final isolateWorker = _workersMap[threadId]; // 找到任务所在子线程
+    if (isolateWorker == null) {
+      return false;
+    }
+    final cancelTaskEvent = ResumeTaskUiEvent(taskId: taskId); // 通知子线程暂停任务
+    isolateWorker.notify(cancelTaskEvent);
+    return true;
+  }
+
+  // 取消任务
+  bool cancelTask(String taskId) {
+    final task = getTaskById(taskId);
+    if (task == null) {
+      // 任务不存在
+      return false;
+    }
+    task.status = TaskStatus.paused;
+    final threadId = _taskWorkermap[taskId];
+    if (threadId == null) {
+      // 任务没有在子线程执行
+      return false;
+    }
+    final isolateWorker = _workersMap[threadId]; // 找到任务所在子线程
+    if (isolateWorker == null) {
+      return false;
+    }
+    final cancelTaskEvent = CancelTaskUiEvent(taskId: taskId); // 通知子线程暂停任务
+    isolateWorker.notify(cancelTaskEvent);
+    return true;
   }
 
   void _checkPendingTasks() {
@@ -122,5 +205,7 @@ class IsolatePool {
     _idleWorkers.clear();
     _activeWorkers.clear();
     _workersMap.clear();
+    _allTasks.clear();
+    _taskWorkermap.clear();
   }
 }

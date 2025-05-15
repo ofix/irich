@@ -9,16 +9,21 @@
 
 import 'package:irich/service/task_scheduler/task.dart';
 
-class TaskSyncShareRegion<R> extends Task<R> {
-  TaskSyncShareRegion({
-    required super.type,
-    required super.params,
-    super.priority,
-    super.submitTime,
-    super.status,
-  });
+class TaskSyncShareRegion extends Task {
   @override
-  Future<R> run() {
+  TaskType type = TaskType.syncShareRegion;
+  TaskSyncShareRegion({required super.params, super.priority, super.submitTime, super.status});
+
+  factory TaskSyncShareRegion.deserialize(Map<String, dynamic> json) {
+    return TaskSyncShareRegion(
+      params: json['params'] as Map<String, dynamic>,
+      priority: TaskPriority.fromVal(json['priority'] as int),
+      submitTime: DateTime.fromMillisecondsSinceEpoch(json['submitTime'] as int),
+      status: TaskStatus.fromVal(json['status'] as int),
+    );
+  }
+  @override
+  Future<dynamic> run() {
     throw UnimplementedError("TaskSyncShareRegion must implement run()");
   }
 }

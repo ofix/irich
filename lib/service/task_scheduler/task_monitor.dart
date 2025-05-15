@@ -49,9 +49,4 @@ class TaskMonitor with ChangeNotifier {
     _scheduler.resumeTask(taskId);
     notifyListeners();
   }
-
-  void retryTask(String taskId) {
-    _scheduler.retryTask(taskId);
-    notifyListeners();
-  }
 }

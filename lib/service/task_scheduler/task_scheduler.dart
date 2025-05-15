@@ -9,52 +9,44 @@
 
 import 'dart:async';
 import 'package:collection/collection.dart';
-import 'dart:isolate';
+import 'dart:io';
 
 import 'package:irich/service/task_scheduler/isolate_pool.dart';
-import 'package:irich/service/task_scheduler/isolate_worker.dart';
 import 'package:irich/service/task_scheduler/task.dart';
-import 'package:irich/service/task_scheduler/task_events.dart';
 import 'package:irich/service/trading_calendar.dart';
 
 class TaskScheduler {
-  final Map<TaskType, IsolateWorker> _dedicatedWorkers = {};
-  final IsolatePool _isolatePool = IsolatePool(); // 计算密集型子线程
-  final _streamControllers = <TaskType, StreamController<IsolateEvent>>{};
-  final TradingCalendar _calendar = TradingCalendar();
-
-  void init() {}
-
-  // 任务队列
+  IsolatePool? _isolatePool; // 计算密集型子线程
+  final TradingCalendar _calendar = TradingCalendar(); // 交易日历
+  final Map<String, Task> _allTasks = {}; // 所有在UI线程中的任务
   final PriorityQueue<Task> _taskQueue = PriorityQueue<Task>(
+    // 任务队列
     (a, b) => b.priority.index.compareTo(a.priority.index),
   );
+  int runningTaskCount = 0; // 运行中任务计数
+  int? maxRunningTasks; // 支持最大同时运行的任务数（UI任务数+线程池任务数总和）
 
-  final Map<String, Task> _runningTasks = {}; // 运行中的任务
   // 单例模式
   static final TaskScheduler _instance = TaskScheduler._internal();
-  factory TaskScheduler() => _instance;
+  static bool _initialized = false;
+
+  factory TaskScheduler({int? maxRunningTasks}) {
+    if (!_initialized) {
+      final maxTasks = maxRunningTasks ?? Platform.numberOfProcessors;
+      _instance.maxRunningTasks = maxTasks;
+      _instance._isolatePool = IsolatePool(
+        minIsolates: maxTasks > 2 ? maxTasks - 2 : 2, // 确保至少2个isolate，一个用于IO，一个用于本地计算
+        maxIsolates: maxTasks > 2 ? maxTasks - 2 : 2,
+      );
+      _initialized = true;
+    }
+    return _instance;
+  }
+
   TaskScheduler._internal();
-  // 监听子线程消息
-  final ReceivePort _mainReceivePort = ReceivePort();
-
-  Stream<IsolateEvent> getStream(TaskType type) {
-    return _streamControllers.putIfAbsent(type, () => StreamController.broadcast()).stream;
-  }
-
-  void notify(IsolateEvent event) {
-    final controller = _streamControllers[event];
-    controller?.add(event);
-  }
 
   // 初始化专用isolate
-  Future<void> initialize() async {
-    // // 为高优先级任务创建专用isolate
-    // _dedicatedWorkers[TaskType.smartShareAnalysis] = await _isolatePool.create();
-
-    // // ...其他专用worker
-    // _mainReceivePort.listen(_handleWorkerMessage);
-  }
+  Future<void> initialize() async {}
 
   // 提交任务
   Future<void> addTask(Task task) async {
@@ -64,26 +56,72 @@ class TaskScheduler {
 
   // 任务调度
   void _scheduleTasks() {
-    while (_runningTasks.length < 3 && _taskQueue.isNotEmpty) {
+    while (runningTaskCount < 3 && _taskQueue.isNotEmpty) {
       final task = _taskQueue.removeFirst();
+      runningTaskCount += 1;
       if (task.status == TaskStatus.pending || task.status == TaskStatus.paused) {}
     }
+    // 调度线程池中的任务
   }
 
+  // 获取所有中的任务（UI中所有异步任务+线程池中的所有异步任务）
   List<Task> allTasks() {
-    List<Task> tasks = [];
-    return tasks;
+    final tasksInIsolatePool = _isolatePool!.allTasks();
+    final tasksInScheduler = _allTasks.values.toList();
+    List<Task> mergedTasks =
+        (tasksInIsolatePool + tasksInScheduler)
+          ..sort((a, b) => a.submitTime.compareTo(b.submitTime));
+    return mergedTasks;
+  }
+
+  // 根据任务ID获取任务
+  Task? getTaskById(String taskId) {
+    final taskInUi = _allTasks[taskId];
+    if (taskInUi != null) {
+      return taskInUi;
+    }
+    final taskInIsolatePool = _isolatePool!.getTaskById(taskId);
+    return taskInIsolatePool;
   }
 
   // 暂停任务
-  void pauseTask(String taskId) {}
-
-  // 取消任务
-  void cancelTask(String taskId) {}
+  bool pauseTask(String taskId) {
+    Task? task = _allTasks[taskId];
+    if (task != null) {
+      task.status = TaskStatus.paused;
+      return true;
+    }
+    task = _isolatePool!.getTaskById(taskId);
+    return _isolatePool?.pauseTask(taskId) ?? false;
+  }
 
   // 恢复暂停的任务
-  void resumeTask(String taskId) {}
+  bool resumeTask(String taskId) {
+    // 检查当前任务数是否已经超过最大任务数了，如果是先暂停一个
 
-  // 重试失败的任务
-  void retryTask(String taskId) {}
+    // 检查任务在线程池还是UI线程
+    Task? task = _allTasks[taskId];
+    if (task != null) {
+      task.status = TaskStatus.running;
+      return true;
+    }
+    task = _isolatePool!.getTaskById(taskId);
+    return _isolatePool?.resumeTask(taskId) ?? false;
+  }
+
+  // 取消任务
+  bool cancelTask(String taskId) {
+    Task? task = _allTasks[taskId];
+    if (task != null) {
+      task.status = TaskStatus.cancelled;
+      return true;
+    }
+    task = _isolatePool!.getTaskById(taskId);
+    return _isolatePool?.cancelTask(taskId) ?? false;
+  }
+
+  // 恢复所有暂停的任务
+  void resumeAllPausedTask() {
+    _isolatePool?.resumePausedTasks();
+  }
 }

@@ -225,13 +225,13 @@ abstract class UiEvent {
 
   static UiEvent? deserialize(Map<String, dynamic> json) {
     switch (json['type']) {
-      case 'pause':
+      case 'pauseTask':
         return PauseTaskUiEvent.deserialize(json);
-      case 'recover':
-        return RecoverTaskUiEvent.deserialize(json);
-      case 'cancel':
+      case 'resumeTask':
+        return ResumeTaskUiEvent.deserialize(json);
+      case 'cancelTask':
         return CancelTaskUiEvent.deserialize(json);
-      case 'delete':
+      case 'deleteTask':
         return DeleteTaskUiEvent.deserialize(json);
       default:
         return null;
@@ -300,29 +300,28 @@ class CancelTaskUiEvent extends UiEvent {
 }
 
 // 恢复任务事件消息
-class RecoverTaskUiEvent extends UiEvent {
+class ResumeTaskUiEvent extends UiEvent {
   @override
-  final String type = "recoverTask";
-  final Task task;
-
-  RecoverTaskUiEvent({required this.task});
+  final String type = "resumeTask";
+  final String taskId;
+  ResumeTaskUiEvent({required this.taskId});
 
   @override
   Map<String, dynamic> serialize() => {
     'type': type,
-    'task': task,
+    'taskId': taskId,
     'timestamp': timestamp.toIso8601String(),
   };
 
-  factory RecoverTaskUiEvent.deserialize(Map<String, dynamic> json) {
-    return RecoverTaskUiEvent(task: json['task'] as Task);
+  factory ResumeTaskUiEvent.deserialize(Map<String, dynamic> json) {
+    return ResumeTaskUiEvent(taskId: json['taskId'] as String);
   }
 }
 
 // 删除任务事件
 class DeleteTaskUiEvent extends UiEvent {
   @override
-  final String type = "delete";
+  final String type = "deleteTask";
   final String taskId;
 
   DeleteTaskUiEvent({required this.taskId});

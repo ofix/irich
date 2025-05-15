@@ -88,13 +88,10 @@ class IsolateWorker {
           IsolateEvent cancelledEvent = TaskCancelledIsolateEvent(_threadId, runningTask!.taskId);
           runningTask!.notifyUiThread(cancelledEvent);
         }
-      } else if (event is RecoverTaskUiEvent) {
+      } else if (event is ResumeTaskUiEvent) {
         // 任务恢复
-        runningTask = event.task;
-        IsolateEvent resumedEvent = TaskRecoveredIsolateEvent(
-          _threadId,
-          taskId: runningTask!.taskId,
-        );
+        final taskId = event.taskId;
+        IsolateEvent resumedEvent = TaskRecoveredIsolateEvent(_threadId, taskId: taskId);
         runningTask!.notifyUiThread(resumedEvent);
         try {
           await runningTask?.run();

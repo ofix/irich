@@ -8,16 +8,22 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:isolate';
 
 import 'package:irich/service/task_scheduler/task_events.dart';
+import 'package:irich/service/task_scheduler/task_sync_share_concept.dart';
+import 'package:irich/service/task_scheduler/task_sync_share_industry.dart';
+import 'package:irich/service/task_scheduler/task_sync_share_quote.dart';
+import 'package:irich/service/task_scheduler/task_sync_share_region.dart';
 import 'package:uuid/uuid.dart';
 
 enum TaskPriority implements Comparable<TaskPriority> {
   immediate(4), // 最高优先级(如实时行情)
   high(3), // 高优先级(如板块数据)
   normal(2), // 普通优先级(如历史数据)
-  low(1); // 低优先级(后台批量任务)
+  low(1), // 低优先级(后台批量任务)
+  unknown(0);
 
   final int priority;
 
@@ -27,46 +33,75 @@ enum TaskPriority implements Comparable<TaskPriority> {
   int compareTo(TaskPriority other) {
     return priority.compareTo(other.priority);
   }
+
+  int get val => priority;
+
+  static TaskPriority fromVal(int value) {
+    return TaskPriority.values.firstWhere(
+      (e) => e.priority == value,
+      orElse: () => TaskPriority.unknown,
+    );
+  }
 }
 
 enum TaskStatus {
-  pending(0), // 任务等待中
-  running(1), // 任务进行中
-  paused(2), // 任务暂停
-  completed(3), // 任务完成（成功）
-  cancelled(4), // 任务取消
-  failed(5); // 任务失败
+  pending(1), // 任务等待中
+  running(2), // 任务进行中
+  paused(3), // 任务暂停
+  completed(4), // 任务完成（成功）
+  cancelled(5), // 任务取消
+  failed(6), // 任务失败
+  unknown(0);
 
   final int status;
   const TaskStatus(this.status);
 
   bool get isActive => this == running || this == paused;
   bool get canCancel => isActive;
+  int get val => status;
+
+  static TaskStatus fromVal(int value) {
+    return TaskStatus.values.firstWhere((e) => e.status == value, orElse: () => TaskStatus.unknown);
+  }
 }
 
 // 爬取任务类型
-enum TaskType {
-  syncShareQuote, // 同步最新行情数据
-  syncShareRegion, // 同步最新全量股票地域数据
-  syncShareRegionPartial, // 增量同步最新股票地域数据
-  syncShareIndustry, // 同步最新全量股票行业数据
-  syncShareIndustryPartial, // 增量同步最新股票行业数据
-  syncShareConcept, // 同步最新全量股票概念数据
-  syncShareConceptPartial, // 增量同步最新股票概念数据
-  syncShareDailyKline, // 同步最新全量股票前复权日K线数据
-  syncShareDailyKlinePartial, // 增量同步最新股票前复权日K线数据
-  syncShareBasicInfo, // 同步全量股票基本信息
-  syncShareBasicInfoPartial, // 增量同步股票基本信息
-  syncIndexDailyKline, // 同步最新全量指数前复权日K线数据
-  syncIndexDailyKlinePartial, // 增量同步最新指数前复权日K线数据
-  syncIndexMinuteKline, // 同步最新全量指数分时图数据
+enum TaskType implements Comparable<TaskType> {
+  syncShareQuote(1), // 同步最新行情数据
+  syncShareRegion(2), // 同步最新全量股票地域数据
+  syncShareRegionPartial(3), // 增量同步最新股票地域数据
+  syncShareIndustry(4), // 同步最新全量股票行业数据
+  syncShareIndustryPartial(5), // 增量同步最新股票行业数据
+  syncShareConcept(6), // 同步最新全量股票概念数据
+  syncShareConceptPartial(7), // 增量同步最新股票概念数据
+  syncShareDailyKline(8), // 同步最新全量股票前复权日K线数据
+  syncShareDailyKlinePartial(9), // 增量同步最新股票前复权日K线数据
+  syncShareBasicInfo(10), // 同步全量股票基本信息
+  syncShareBasicInfoPartial(11), // 增量同步股票基本信息
+  syncIndexDailyKline(12), // 同步最新全量指数前复权日K线数据
+  syncIndexDailyKlinePartial(13), // 增量同步最新指数前复权日K线数据
+  syncIndexMinuteKline(14), // 同步最新全量指数分时图数据
   // 耗时任务
-  smartShareAnalysis, // 股票智选
-  unknown,
+  smartShareAnalysis(100), // 股票智选
+  unknown(255);
+
+  final int type;
+  const TaskType(this.type);
+
+  @override
+  int compareTo(TaskType other) {
+    return type.compareTo(other.type);
+  }
+
+  int get val => type;
+
+  static TaskType fromVal(int value) {
+    return TaskType.values.firstWhere((e) => e.type == value, orElse: () => TaskType.unknown);
+  }
 }
 
-abstract class Task<R> {
-  final TaskType type; // 任务类型
+abstract class Task {
+  TaskType get type; // 任务类型
   final Map<String, dynamic>? params; // 任务参数
   final String taskId;
   TaskPriority priority; // 任务优先级
@@ -79,7 +114,6 @@ abstract class Task<R> {
 
   /// 基类构造函数 - 子类必须调用
   Task({
-    required this.type,
     required this.params,
     String? taskId, // 可选参数，允许自定义taskId
     this.priority = TaskPriority.normal,
@@ -88,9 +122,33 @@ abstract class Task<R> {
   }) : taskId = taskId ?? const Uuid().v4(),
        submitTime = submitTime ?? DateTime.now();
 
-  Map<String, dynamic> serialize() => {"type": "task"};
+  Map<String, dynamic> serialize() => {
+    "type": type.val,
+    "params": jsonEncode(params),
+    "taskId": taskId,
+    "priority": priority.val,
+    "status": status.val,
+    "startTime": startTime?.toIso8601String(),
+  };
 
-  FutureOr<R> run(); // 任务主体函数
+  static Task deserialize(Map<String, dynamic> json) {
+    TaskType type = TaskType.fromVal(json['type'] as int);
+    // 根据类型创建具体任务实例
+    switch (type) {
+      case TaskType.syncShareQuote:
+        return TaskSyncShareQuote.deserialize(json);
+      case TaskType.syncShareIndustry:
+        return TaskSyncShareIndustry.deserialize(json);
+      case TaskType.syncShareRegion:
+        return TaskSyncShareRegion.deserialize(json);
+      case TaskType.syncShareConcept:
+        return TaskSyncShareConcept.deserialize(json);
+      default:
+        throw UnsupportedError('Unknown task type: ${json['type']}');
+    }
+  }
+
+  Future<dynamic> run(); // 任务主体函数
   void onProgress(Map<String, dynamic> params, String providerName) {} // 任务进度回调函数
   void onError(Object error, StackTrace stackTrace) {} // 任务执行失败回调函数
   void onCanceled(String taskId) {} // 任务取消回调函数
@@ -104,166 +162,188 @@ abstract class Task<R> {
   }
 }
 
-class TaskSyncShareRegionPartial<R> extends Task<R> {
+class TaskSyncShareRegionPartial<R> extends Task {
+  @override
+  TaskType type = TaskType.syncShareRegionPartial;
   TaskSyncShareRegionPartial({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncShareRegionPartial);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现增量同步最新股票地域数据
     throw UnimplementedError("TaskSyncShareRegionPartial must implement run()");
   }
 }
 
-class TaskSyncShareIndustryPartial<R> extends Task<R> {
+class TaskSyncShareIndustryPartial<R> extends Task {
+  @override
+  TaskType type = TaskType.syncShareIndustryPartial;
   TaskSyncShareIndustryPartial({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncShareIndustryPartial);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现增量同步最新股票行业数据
     throw UnimplementedError("TaskSyncShareIndustryPartial must implement run()");
   }
 }
 
-class TaskSyncShareConceptPartial<R> extends Task<R> {
+class TaskSyncShareConceptPartial<R> extends Task {
+  @override
+  TaskType type = TaskType.syncShareConceptPartial;
   TaskSyncShareConceptPartial({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncShareConceptPartial);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现增量同步最新股票概念数据
     throw UnimplementedError("TaskSyncShareConceptPartial must implement run()");
   }
 }
 
-class TaskSyncShareDailyKline<R> extends Task<R> {
+class TaskSyncShareDailyKline<R> extends Task {
+  @override
+  TaskType type = TaskType.syncShareDailyKline;
   TaskSyncShareDailyKline({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncShareDailyKline);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现同步最新全量股票前复权日K线数据
     throw UnimplementedError("TaskSyncShareDailyKline must implement run()");
   }
 }
 
-class TaskSyncShareDailyKlinePartial<R> extends Task<R> {
+class TaskSyncShareDailyKlinePartial<R> extends Task {
+  @override
+  TaskType type = TaskType.syncShareDailyKlinePartial;
   TaskSyncShareDailyKlinePartial({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncShareDailyKlinePartial);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现增量同步最新股票前复权日K线数据
     throw UnimplementedError("TaskSyncShareDailyKlinePartial must implement run()");
   }
 }
 
-class TaskSyncShareBasicInfo<R> extends Task<R> {
+class TaskSyncShareBasicInfo<R> extends Task {
+  @override
+  TaskType type = TaskType.syncShareBasicInfo;
   TaskSyncShareBasicInfo({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncShareBasicInfo);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现同步全量股票基本信息
     throw UnimplementedError("TaskSyncShareBasicInfo must implement run()");
   }
 }
 
-class TaskSyncShareBasicInfoPartial<R> extends Task<R> {
+class TaskSyncShareBasicInfoPartial<R> extends Task {
+  @override
+  TaskType type = TaskType.syncShareBasicInfoPartial;
   TaskSyncShareBasicInfoPartial({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncShareBasicInfoPartial);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现增量同步股票基本信息
     throw UnimplementedError("TaskSyncShareBasicInfoPartial must implement run()");
   }
 }
 
-class TaskSyncIndexDailyKline<R> extends Task<R> {
+class TaskSyncIndexDailyKline<R> extends Task {
+  @override
+  TaskType type = TaskType.syncIndexDailyKline;
   TaskSyncIndexDailyKline({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncIndexDailyKline);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现同步最新全量指数前复权日K线数据
     throw UnimplementedError("TaskSyncIndexDailyKline must implement run()");
   }
 }
 
-class TaskSyncIndexDailyKlinePartial<R> extends Task<R> {
+class TaskSyncIndexDailyKlinePartial<R> extends Task {
+  @override
+  TaskType type = TaskType.syncIndexDailyKlinePartial;
   TaskSyncIndexDailyKlinePartial({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncIndexDailyKlinePartial);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现增量同步最新指数前复权日K线数据
     throw UnimplementedError("TaskSyncIndexDailyKlinePartial must implement run()");
   }
 }
 
-class TaskSyncIndexMinuteKline<R> extends Task<R> {
+class TaskSyncIndexMinuteKline<R> extends Task {
+  @override
+  TaskType type = TaskType.syncIndexMinuteKline;
   TaskSyncIndexMinuteKline({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncIndexMinuteKline);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现同步最新全量指数分时图数据
     throw UnimplementedError("TaskSyncIndexMinuteKline must implement run()");
   }
 }
 
-class TaskSmartShareAnalysis<R> extends Task<R> {
+class TaskSmartShareAnalysis<R> extends Task {
+  @override
+  TaskType type = TaskType.smartShareAnalysis;
   TaskSmartShareAnalysis({
     required super.params,
     super.priority = TaskPriority.high,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.smartShareAnalysis);
+  });
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现股票智选分析
     throw UnimplementedError("TaskSmartShareAnalysis must implement run()");
   }

@@ -18,13 +18,24 @@ import 'package:irich/service/task_scheduler/task.dart';
 import 'package:irich/utils/file_tool.dart';
 
 class TaskSyncShareQuote extends Task {
+  @override
+  TaskType type = TaskType.syncShareQuote;
   TaskSyncShareQuote({
-    required super.type,
     required super.params,
     super.priority = TaskPriority.immediate,
     super.submitTime,
     super.status,
   });
+
+  factory TaskSyncShareQuote.deserialize(Map<String, dynamic> json) {
+    return TaskSyncShareQuote(
+      params: json['params'] as Map<String, dynamic>,
+      priority: TaskPriority.fromVal(json['priority'] as int),
+      submitTime: DateTime.fromMicrosecondsSinceEpoch(json['submitTime']),
+      status: TaskStatus.fromVal(json['status'] as int),
+    );
+  }
+
   @override
   Future<List<Share>> run() async {
     final (statusQuote, resultQuote as List<Share>) = await ApiService(

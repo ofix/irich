@@ -11,16 +11,27 @@ import 'dart:async';
 
 import 'package:irich/service/task_scheduler/task.dart';
 
-class TaskSyncShareConcept<R> extends Task<R> {
+class TaskSyncShareConcept extends Task {
+  @override
+  TaskType type = TaskType.syncShareConcept;
   TaskSyncShareConcept({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
-  }) : super(type: TaskType.syncShareConcept);
+  });
+
+  factory TaskSyncShareConcept.deserialize(Map<String, dynamic> json) {
+    return TaskSyncShareConcept(
+      params: json['params'] as Map<String, dynamic>,
+      priority: TaskPriority.fromVal(json['priority'] as int),
+      submitTime: DateTime.fromMillisecondsSinceEpoch(json['submitTime'] as int),
+      status: TaskStatus.fromVal(json['status'] as int),
+    );
+  }
 
   @override
-  FutureOr<R> run() {
+  Future<dynamic> run() {
     // 实现同步最新全量股票概念数据
     throw UnimplementedError("TaskSyncShareConcept must implement run()");
   }
