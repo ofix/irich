@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:irich/components/indicators/amount_indicator.dart';
 import 'package:irich/components/indicators/minute_amount_indicator.dart';
-import 'package:irich/components/indicators/minute_volume_indicator%20copy.dart';
+import 'package:irich/components/indicators/minute_volume_indicator.dart';
 import 'package:irich/components/indicators/turnoverrate_indicator.dart';
 import 'package:irich/components/indicators/volume_indicator.dart';
 import 'package:irich/components/kline_ctrl/kline_chart.dart';
 import 'package:irich/components/text_radio_button_group.dart';
 import 'package:irich/store/store_klines.dart';
-import 'package:irich/types/stock.dart';
+import 'package:irich/global/stock.dart';
 import 'package:irich/utils/rich_result.dart';
 
 class KlineState {

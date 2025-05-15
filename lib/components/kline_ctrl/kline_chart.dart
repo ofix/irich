@@ -1,11 +1,7 @@
-import 'package:flutter/gestures.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_painter.dart';
 import 'package:irich/formula/formula_ema.dart';
-import 'package:irich/store/store_klines.dart';
-import 'package:irich/types/stock.dart';
-import 'package:irich/utils/rich_result.dart';
+import 'package:irich/global/stock.dart';
 
 class KlineChart extends StatefulWidget {
   final String shareCode;
