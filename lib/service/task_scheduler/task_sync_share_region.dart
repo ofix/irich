@@ -14,6 +14,7 @@ import 'package:irich/global/config.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/task_scheduler/batch_api_task.dart';
 import 'package:irich/service/task_scheduler/task.dart';
+import 'package:irich/service/task_scheduler/task_events.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/utils/file_tool.dart';
 
@@ -52,7 +53,7 @@ class TaskSyncShareRegion extends BatchApiTask {
   }
 
   @override
-  Future<dynamic> onCompleted() async {
+  Future<dynamic> onCompletedUi(TaskCompletedIsolateEvent event) async {
     // 加载股票地域信息
     String filePath = await Config.pathMapFileProvince;
     String data = await FileTool.loadFile(filePath);
