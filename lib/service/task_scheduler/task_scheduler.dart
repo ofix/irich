@@ -45,13 +45,17 @@ class TaskScheduler {
 
   TaskScheduler._internal();
 
-  // 初始化专用isolate
-  Future<void> initialize() async {}
-
   // 提交任务
   Future<void> addTask(Task task) async {
-    _taskQueue.add(task);
-    _scheduleTasks();
+    // 检查任务类型
+    _allTasks[task.taskId] = task;
+    if (task.type == TaskType.syncShareQuote || task.type == TaskType.syncShareBk) {
+      // UI线程中异步完成
+      _taskQueue.add(task);
+      _scheduleTasks();
+    } else {
+      _isolatePool?.addTask(task); // 添加任务到线程池，由线程池完成任务分派和运行
+    }
   }
 
   // 任务调度
@@ -61,7 +65,6 @@ class TaskScheduler {
       runningTaskCount += 1;
       if (task.status == TaskStatus.pending || task.status == TaskStatus.paused) {}
     }
-    // 调度线程池中的任务
   }
 
   // 获取所有中的任务（UI中所有异步任务+线程池中的所有异步任务）

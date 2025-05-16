@@ -68,19 +68,20 @@ enum TaskStatus {
 // 爬取任务类型
 enum TaskType implements Comparable<TaskType> {
   syncShareQuote(1), // 同步最新行情数据
-  syncShareRegion(2), // 同步最新全量股票地域数据
-  syncShareRegionPartial(3), // 增量同步最新股票地域数据
-  syncShareIndustry(4), // 同步最新全量股票行业数据
-  syncShareIndustryPartial(5), // 增量同步最新股票行业数据
-  syncShareConcept(6), // 同步最新全量股票概念数据
-  syncShareConceptPartial(7), // 增量同步最新股票概念数据
-  syncShareDailyKline(8), // 同步最新全量股票前复权日K线数据
-  syncShareDailyKlinePartial(9), // 增量同步最新股票前复权日K线数据
-  syncShareBasicInfo(10), // 同步全量股票基本信息
-  syncShareBasicInfoPartial(11), // 增量同步股票基本信息
-  syncIndexDailyKline(12), // 同步最新全量指数前复权日K线数据
-  syncIndexDailyKlinePartial(13), // 增量同步最新指数前复权日K线数据
-  syncIndexMinuteKline(14), // 同步最新全量指数分时图数据
+  syncShareBk(2), // 同步最新板块数据
+  syncShareRegion(3), // 同步最新全量股票地域数据
+  syncShareRegionPartial(4), // 增量同步最新股票地域数据
+  syncShareIndustry(5), // 同步最新全量股票行业数据
+  syncShareIndustryPartial(6), // 增量同步最新股票行业数据
+  syncShareConcept(7), // 同步最新全量股票概念数据
+  syncShareConceptPartial(8), // 增量同步最新股票概念数据
+  syncShareDailyKline(9), // 同步最新全量股票前复权日K线数据
+  syncShareDailyKlinePartial(10), // 增量同步最新股票前复权日K线数据
+  syncShareBasicInfo(11), // 同步全量股票基本信息
+  syncShareBasicInfoPartial(12), // 增量同步股票基本信息
+  syncIndexDailyKline(13), // 同步最新全量指数前复权日K线数据
+  syncIndexDailyKlinePartial(14), // 增量同步最新指数前复权日K线数据
+  syncIndexMinuteKline(15), // 同步最新全量指数分时图数据
   // 耗时任务
   smartShareAnalysis(100), // 股票智选
   unknown(255);
@@ -152,21 +153,15 @@ abstract class Task {
   }
 
   Future<dynamic> run(); // 任务主体函数
-  void onProgress(Map<String, dynamic> params, String providerName) {} // 任务进度回调函数
-  void onError(Object error, StackTrace stackTrace) {} // 任务执行失败回调函数
-  void onCanceledUi(String taskId) {} // 任务取消回调函数
-  void onPausedUi(String taskId) {} // 任务被取消
-  void onResumedUi(String taskId) {} // 任务恢复回调函数
-  void onStartedUi(String taskId) {} // 任务已开始回调函数
-  void onDeletedUi(String taskId) {} // 任务被删除回调函数
+  void onProgressUi(Map<String, dynamic> params, String providerName) {} // 任务进度回调函数，UI层
+  void onErrorUi(Object error, StackTrace stackTrace) {} // 任务执行失败回调函数
   Future<void> onCompleted() async {} // 任务完成后在UI线程继续需要完成的事情
-  void onCanceledIsolate(String taskId) {} // 任务取消回调函数
-  void onPausedIsolate(String taskId) {} // 任务被取消
-  void onResumedIsolate(String taskId) {} // 任务恢复回调函数
-  void onStartedIsolate(String taskId) {} // 任务已开始回调函数
-  void onDeletedIsolate(String taskId) {} // 任务被删除回调函数
-  void onFinally() {}
-  void notifyUiThread(IsolateEvent isolateEvent) {
+  void onCancelledIsolate(String taskId) {} // 任务取消回调函数
+  void onPausedIsolate() {} // 任务暂停回调函数
+  void onResumedIsolate(String taskId) {} // 任务恢复回调，子线程中完成
+  void onStartedUi() {} // 任务已开始回调函数，UI层
+  void onCompletedUi() {} // 任务完成的回调
+  void notifyUi(IsolateEvent isolateEvent) {
     final message = isolateEvent.serialize();
     mainThread?.send(message);
   }

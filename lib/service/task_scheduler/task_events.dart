@@ -17,7 +17,7 @@ abstract class IsolateEvent {
   String get type; // 事件类型
   final DateTime timestamp; // 增加时间戳
 
-  IsolateEvent(this.threadId) : timestamp = DateTime.now();
+  IsolateEvent({required this.threadId}) : timestamp = DateTime.now();
   Map<String, dynamic> serialize(); // 序列化
 
   static IsolateEvent? deserialize(Map<String, dynamic> json) {
@@ -41,7 +41,7 @@ class SendPortIsolateEvent extends IsolateEvent {
   @override
   final String type = "isolateSendPort";
   SendPort isolateSendPort;
-  SendPortIsolateEvent(super.threadId, this.isolateSendPort);
+  SendPortIsolateEvent({required super.threadId, required this.isolateSendPort});
   @override
   Map<String, dynamic> serialize() {
     return {};
@@ -53,7 +53,7 @@ class TaskCancelledIsolateEvent extends IsolateEvent {
   @override
   final String type = "taskCancelled";
   String taskId;
-  TaskCancelledIsolateEvent(super.threadId, this.taskId);
+  TaskCancelledIsolateEvent({required super.threadId, required this.taskId});
   @override
   Map<String, dynamic> serialize() => {
     'type': 'taskCancelled',
@@ -62,7 +62,10 @@ class TaskCancelledIsolateEvent extends IsolateEvent {
     'timestamp': timestamp.toIso8601String(),
   };
   factory TaskCancelledIsolateEvent.deserialize(Map<String, dynamic> json) {
-    return TaskCancelledIsolateEvent(json['threadId'] as int, json['taskId'] as String);
+    return TaskCancelledIsolateEvent(
+      threadId: json['threadId'] as int,
+      taskId: json['taskId'] as String,
+    );
   }
 }
 
@@ -72,7 +75,7 @@ class TaskStartedIsolateEvent extends IsolateEvent {
   final String type = "taskStarted";
   String taskId;
 
-  TaskStartedIsolateEvent(super.threadId, this.taskId);
+  TaskStartedIsolateEvent({required super.threadId, required this.taskId});
 
   @override
   Map<String, dynamic> serialize() => {
@@ -83,7 +86,10 @@ class TaskStartedIsolateEvent extends IsolateEvent {
   };
 
   factory TaskStartedIsolateEvent.deserialize(Map<String, dynamic> json) {
-    return TaskStartedIsolateEvent(json['threadId'] as int, json['taskId'] as String);
+    return TaskStartedIsolateEvent(
+      threadId: json['threadId'] as int,
+      taskId: json['taskId'] as String,
+    );
   }
 }
 
@@ -94,7 +100,7 @@ class TaskProgressIsolateEvent extends IsolateEvent {
   final String taskId;
   final double progress; // 0.0 ~ 1.0
 
-  TaskProgressIsolateEvent(super.threadId, {required this.taskId, required this.progress});
+  TaskProgressIsolateEvent({required super.threadId, required this.taskId, required this.progress});
 
   @override
   Map<String, dynamic> serialize() => {
@@ -106,7 +112,7 @@ class TaskProgressIsolateEvent extends IsolateEvent {
 
   factory TaskProgressIsolateEvent.deserialize(Map<String, dynamic> json) {
     return TaskProgressIsolateEvent(
-      json['threadId'] as int,
+      threadId: json['threadId'] as int,
       taskId: json['taskId'] as String,
       progress: (json['progress'] as num).toDouble(),
     );
@@ -120,7 +126,7 @@ class TaskCompletedIsolateEvent extends IsolateEvent {
   final String taskId;
   final dynamic result; // 使用泛型更佳
 
-  TaskCompletedIsolateEvent(super.threadId, {required this.taskId, this.result});
+  TaskCompletedIsolateEvent({required super.threadId, required this.taskId, this.result});
 
   @override
   Map<String, dynamic> serialize() => {
@@ -133,7 +139,7 @@ class TaskCompletedIsolateEvent extends IsolateEvent {
 
   factory TaskCompletedIsolateEvent.deserialize(Map<String, dynamic> json) {
     return TaskCompletedIsolateEvent(
-      json['threadId'] as int,
+      threadId: json['threadId'] as int,
       taskId: json['taskId'] as String,
       result: json['result'],
     );
@@ -148,8 +154,8 @@ class TaskErrorIsolateEvent extends IsolateEvent {
   final String error;
   final StackTrace stackTrace;
 
-  TaskErrorIsolateEvent(
-    super.threadId, {
+  TaskErrorIsolateEvent({
+    required super.threadId,
     required this.taskId,
     required this.error,
     required this.stackTrace,
@@ -167,7 +173,7 @@ class TaskErrorIsolateEvent extends IsolateEvent {
 
   factory TaskErrorIsolateEvent.deserialize(Map<String, dynamic> json) {
     return TaskErrorIsolateEvent(
-      json['threadId'] as int,
+      threadId: json['threadId'] as int,
       taskId: json['taskId'] as String,
       error: json['error'] as String,
       stackTrace: StackTrace.fromString(json['stackTrace'] as String),
@@ -181,7 +187,7 @@ class TaskPausedIsolateEvent extends IsolateEvent {
   final String type = "taskPaused";
   final String taskId;
 
-  TaskPausedIsolateEvent(super.threadId, {required this.taskId});
+  TaskPausedIsolateEvent({required super.threadId, required this.taskId});
 
   @override
   Map<String, dynamic> serialize() => {
@@ -192,17 +198,20 @@ class TaskPausedIsolateEvent extends IsolateEvent {
   };
 
   factory TaskPausedIsolateEvent.deserialize(Map<String, dynamic> json) {
-    return TaskPausedIsolateEvent(json['threadId'] as int, taskId: json['taskId'] as String);
+    return TaskPausedIsolateEvent(
+      threadId: json['threadId'] as int,
+      taskId: json['taskId'] as String,
+    );
   }
 }
 
 // 任务恢复
-class TaskRecoveredIsolateEvent extends IsolateEvent {
+class TaskResumedIsolateEvent extends IsolateEvent {
   @override
   final String type = 'taskRecovered';
   final String taskId;
 
-  TaskRecoveredIsolateEvent(super.threadId, {required this.taskId});
+  TaskResumedIsolateEvent({required super.threadId, required this.taskId});
   @override
   Map<String, dynamic> serialize() => {
     'type': type,
@@ -211,8 +220,8 @@ class TaskRecoveredIsolateEvent extends IsolateEvent {
     'timestamp': timestamp.toIso8601String(),
   };
 
-  factory TaskRecoveredIsolateEvent.deserialize(Map<String, dynamic> json) {
-    return TaskRecoveredIsolateEvent(json['threadId'], taskId: json['taskId'] as String);
+  factory TaskResumedIsolateEvent.deserialize(Map<String, dynamic> json) {
+    return TaskResumedIsolateEvent(threadId: json['threadId'], taskId: json['taskId'] as String);
   }
 }
 

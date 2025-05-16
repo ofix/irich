@@ -89,7 +89,10 @@ class IsolatePool {
   void listenIsolateEvents() {
     _poolRecvPort?.listen((dynamic message) async {
       final event = jsonDecode(message);
-      if (event is TaskStartedIsolateEvent) {
+      if (event is SendPortIsolateEvent) {
+        final isolateWorker = _workersMap[event.threadId]; // 找到对应子线程的 worker
+        isolateWorker?.isolateSendPort = event.isolateSendPort; // 子线程的消息发送端口
+      } else if (event is TaskStartedIsolateEvent) {
         String taskId = event.taskId;
         Task? task = _allTasks[taskId];
         task?.status = TaskStatus.running;
@@ -116,7 +119,7 @@ class IsolatePool {
         task?.endTime = event.timestamp;
         await task?.onCompleted();
         _onWorkerIdle(getIsolateWorker(task!.threadId)!);
-      } else if (event is TaskRecoveredIsolateEvent) {}
+      } else if (event is TaskResumedIsolateEvent) {}
     });
   }
 
@@ -125,10 +128,9 @@ class IsolatePool {
   }
 
   // 发送新任务到空闲线程
-  Future<void> run(Task task) {
+  void addTask(Task task) {
     _pendingTasks.add(task);
     _checkPendingTasks();
-    return Future.value();
   }
 
   // 恢复所有暂停的任务

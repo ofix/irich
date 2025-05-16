@@ -17,7 +17,7 @@ import 'package:irich/service/task_scheduler/task_events.dart';
 class IsolateWorker {
   static int _threadId = 0; // 线程ID
   Isolate? _isolate; // 子线程
-  SendPort? _isolateSendPort; // 子线程的发送端口，可以通过这个端口给子线程发送事件消息
+  SendPort? isolateSendPort; // 子线程的发送端口，可以通过这个端口给子线程发送事件消息
 
   final IsolatePool? _pool; // 线程池引用
   IsolateWorker(this._pool);
@@ -36,18 +36,21 @@ class IsolateWorker {
   }
 
   void notify(UiEvent event) {
-    _isolateSendPort?.send(event);
+    isolateSendPort?.send(event);
   }
 
   Future<void> dispose() async {
     _isolate?.kill();
     _isolate = null;
-    _isolateSendPort = null;
+    isolateSendPort = null;
   }
 
   static void _isolateEntry(SendPort mainSendPort) {
     final receivePort = ReceivePort();
-    final sendPortEvent = SendPortIsolateEvent(_threadId, receivePort.sendPort);
+    final sendPortEvent = SendPortIsolateEvent(
+      threadId: _threadId,
+      isolateSendPort: receivePort.sendPort,
+    );
     mainSendPort.send(sendPortEvent);
 
     Task? runningTask;
@@ -57,55 +60,67 @@ class IsolateWorker {
         // 新任务
         runningTask = event.task;
         // 任务开始事件
-        IsolateEvent startedEvent = TaskStartedIsolateEvent(_threadId, runningTask!.taskId);
-        runningTask!.notifyUiThread(startedEvent);
+        IsolateEvent startedEvent = TaskStartedIsolateEvent(
+          threadId: _threadId,
+          taskId: runningTask!.taskId,
+        );
+        runningTask!.notifyUi(startedEvent);
         try {
           await runningTask?.run();
         } catch (e, stackTrace) {
           // 发送任务出错事件
           final errorEvent = TaskErrorIsolateEvent(
-            _threadId,
+            threadId: _threadId,
             taskId: runningTask!.taskId,
             error: e.toString(),
             stackTrace: stackTrace,
           );
-          runningTask!.notifyUiThread(errorEvent);
+          runningTask!.notifyUi(errorEvent);
         }
         // 发送任务完成事件
-        final completedEvent = TaskCompletedIsolateEvent(_threadId, taskId: runningTask!.taskId);
-        runningTask!.notifyUiThread(completedEvent);
+        final completedEvent = TaskCompletedIsolateEvent(
+          threadId: _threadId,
+          taskId: runningTask!.taskId,
+        );
+        runningTask!.notifyUi(completedEvent);
       } else if (event is PauseTaskUiEvent) {
         // 任务暂停
         if (runningTask != null) {
-          runningTask!.onPausedIsolate(runningTask!.taskId);
+          runningTask!.onPausedIsolate();
         }
       } else if (event is CancelTaskUiEvent) {
         // 任务取消
         if (runningTask != null) {
           runningTask!.status = TaskStatus.cancelled;
-          IsolateEvent cancelledEvent = TaskCancelledIsolateEvent(_threadId, runningTask!.taskId);
-          runningTask!.notifyUiThread(cancelledEvent);
+          IsolateEvent cancelledEvent = TaskCancelledIsolateEvent(
+            threadId: _threadId,
+            taskId: runningTask!.taskId,
+          );
+          runningTask!.notifyUi(cancelledEvent);
         }
       } else if (event is ResumeTaskUiEvent) {
         // 任务恢复
         final taskId = event.taskId;
-        IsolateEvent resumedEvent = TaskRecoveredIsolateEvent(_threadId, taskId: taskId);
-        runningTask!.notifyUiThread(resumedEvent);
+        IsolateEvent resumedEvent = TaskResumedIsolateEvent(threadId: _threadId, taskId: taskId);
+        runningTask!.notifyUi(resumedEvent);
         try {
           await runningTask?.run();
         } catch (e, stackTrace) {
           // 发送任务出错事件
           final errorEvent = TaskErrorIsolateEvent(
-            _threadId,
+            threadId: _threadId,
             taskId: runningTask!.taskId,
             error: e.toString(),
             stackTrace: stackTrace,
           );
-          runningTask!.notifyUiThread(errorEvent);
+          runningTask!.notifyUi(errorEvent);
         }
         // 发送任务完成事件
-        final completedEvent = TaskCompletedIsolateEvent(_threadId, taskId: runningTask!.taskId);
-        runningTask!.notifyUiThread(completedEvent);
+        final completedEvent = TaskCompletedIsolateEvent(
+          threadId: _threadId,
+          taskId: runningTask!.taskId,
+        );
+        runningTask!.notifyUi(completedEvent);
       }
     });
   }

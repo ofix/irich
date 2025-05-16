@@ -23,65 +23,86 @@ abstract class BatchApiTask extends Task {
   ProviderApiType get apiType;
   String pausedFilePath;
   List<Map<String, dynamic>> responses;
+  int totalRequests; // 任务请求总数
+  int recvRequests; // 已完成任务请求数
   BatchApiTask({super.params, super.priority, super.submitTime, super.status})
     : apiService = ApiService(ProviderApiType.unknown),
       pausedFilePath = '',
-      responses = [];
+      responses = [],
+      totalRequests = (params as List<Map<String, dynamic>>).length,
+      recvRequests = 0;
 
+  /// 在子线程中运行
   Future<dynamic> doJob() async {
     apiService = ApiService(apiType);
     final result = await apiService.batchFetch(params, (
       Map<String, dynamic> params,
       String providerName,
     ) {
-      onProgress(params, providerName);
+      recvRequests += 1;
+      progress = recvRequests / totalRequests; // 计算进度
+      final progressEvent = TaskProgressIsolateEvent(
+        threadId: threadId,
+        taskId: taskId,
+        progress: progress,
+      );
+      notifyUi(progressEvent);
     });
     String taskPath = await Config.pathTask;
     pausedFilePath = p.join(taskPath, taskId, ".json");
     final (status, response) = result;
     if (status.status == RichStatus.taskPaused) {
       // 任务真的暂停成功
-      _savePausedTask(response);
-      IsolateEvent pausedEvent = TaskPausedIsolateEvent(threadId, taskId: taskId);
-      notifyUiThread(pausedEvent);
+      _savePausedTask(params, response);
+      final pausedEvent = TaskPausedIsolateEvent(threadId: threadId, taskId: taskId);
+      notifyUi(pausedEvent);
     }
     if (status.status == RichStatus.taskCancelled) {
       // 任务取消
-      IsolateEvent cancelledEvent = TaskCancelledIsolateEvent(threadId, taskId);
-      notifyUiThread(cancelledEvent);
+      final cancelledEvent = TaskCancelledIsolateEvent(threadId: threadId, taskId: taskId);
+      notifyUi(cancelledEvent);
     }
     if (status.status == RichStatus.ok) {
       responses = [...responses, ...response];
     }
   }
 
-  void _savePausedTask(dynamic) {
-    final data = jsonEncode(dynamic);
+  /// [originParams] 原始的批量任务参数
+  /// [response] 已完成的任务响应数据，
+  void _savePausedTask(
+    List<Map<String, dynamic>> originParams,
+    List<Map<String, dynamic>> response,
+  ) {
+    final params = originParams.sublist(response.length);
+    Map<String, dynamic> result = {};
+    result['params'] = params; // 还未完成的参数列表
+    result['responses'] = response; // 已经完成的响应列表
+    final data = jsonEncode(result);
     FileTool.saveFile(pausedFilePath, data);
   }
 
   @override
-  void onCanceledIsolate(String taskId) {}
+  void onCancelledIsolate(String taskId) {
+    status = TaskStatus.cancelled;
+    apiService.cancel();
+  }
+
   @override
-  void onPausedIsolate(String taskId) {
-    // 任务被取消
-    if (taskId != this.taskId) {
-      return;
-    }
+  void onPausedIsolate() {
     status = TaskStatus.paused;
     apiService.pause(); // 任务暂停
   }
 
   @override
-  void onResumedIsolate(String taskId) async {
+  void onResume(String taskId) async {
     final data = await FileTool.loadFile(pausedFilePath);
     final json = jsonDecode(data);
-    params = json['params']; // 用参数覆盖原有的参数
+    params = json['params']; // 用参数覆盖原有的参数列表，继续未完成的请求
     responses = json['responses'];
     status = TaskStatus.running;
     await doJob();
-    TaskRecoveredIsolateEvent resumeEvent = TaskRecoveredIsolateEvent(threadId, taskId: taskId);
-    notifyUiThread(resumeEvent);
+    final resumeEvent = TaskResumedIsolateEvent(threadId: threadId, taskId: taskId);
+    notifyUi(resumeEvent);
   }
 
   @override
