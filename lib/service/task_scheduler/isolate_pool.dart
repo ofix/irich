@@ -85,6 +85,13 @@ class IsolatePool {
     }
   }
 
+  // 工具函数，根据任务ID找到对应的任务
+  Task? _searchTask(IsolateEvent event) {
+    String taskId = event.taskId;
+    Task? task = _allTasks[taskId];
+    return task;
+  }
+
   // 处理子线程发送过来的UiEvent
   void listenIsolateEvents() {
     _poolRecvPort?.listen((dynamic message) async {
@@ -93,31 +100,22 @@ class IsolatePool {
         final isolateWorker = _workersMap[event.threadId]; // 找到对应子线程的 worker
         isolateWorker?.isolateSendPort = event.isolateSendPort; // 子线程的消息发送端口
       } else if (event is TaskStartedIsolateEvent) {
-        String taskId = event.taskId;
-        Task? task = _allTasks[taskId];
-        task?.status = TaskStatus.running;
-        task?.startTime = event.timestamp;
+        Task? task = _searchTask(event);
+        task?.onStartedUi(event);
       } else if (event is TaskProgressIsolateEvent) {
-        double progress = event.progress;
-        String taskId = event.taskId;
-        Task? task = _allTasks[taskId];
-        task?.progress = progress;
+        Task? task = _searchTask(event);
+        task?.onProgressUi(event);
       } else if (event is TaskPausedIsolateEvent) {
-        String taskId = event.taskId;
-        Task? task = _allTasks[taskId];
+        Task? task = _searchTask(event);
         task?.status = TaskStatus.paused;
         _onWorkerIdle(getIsolateWorker(task!.threadId)!);
       } else if (event is TaskErrorIsolateEvent) {
-        String taskId = event.taskId;
-        Task? task = _allTasks[taskId];
+        Task? task = _searchTask(event);
         task?.status = TaskStatus.failed;
         _onWorkerIdle(getIsolateWorker(task!.threadId)!);
       } else if (event is TaskCompletedIsolateEvent) {
-        String taskId = event.taskId;
-        Task? task = _allTasks[taskId];
-        task?.status = TaskStatus.completed;
-        task?.endTime = event.timestamp;
-        await task?.onCompleted();
+        Task? task = _searchTask(event);
+        task?.onCompletedUi(event);
         _onWorkerIdle(getIsolateWorker(task!.threadId)!);
       } else if (event is TaskResumedIsolateEvent) {}
     });

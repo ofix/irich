@@ -13,11 +13,12 @@ import 'dart:isolate';
 import 'package:irich/service/task_scheduler/task.dart';
 
 abstract class IsolateEvent {
-  int threadId; // 线程ID;
+  int threadId; // 线程ID
+  String taskId; // 任务ID
   String get type; // 事件类型
   final DateTime timestamp; // 增加时间戳
 
-  IsolateEvent({required this.threadId}) : timestamp = DateTime.now();
+  IsolateEvent({required this.threadId, required this.taskId}) : timestamp = DateTime.now();
   Map<String, dynamic> serialize(); // 序列化
 
   static IsolateEvent? deserialize(Map<String, dynamic> json) {
@@ -41,7 +42,11 @@ class SendPortIsolateEvent extends IsolateEvent {
   @override
   final String type = "isolateSendPort";
   SendPort isolateSendPort;
-  SendPortIsolateEvent({required super.threadId, required this.isolateSendPort});
+  SendPortIsolateEvent({
+    required super.threadId,
+    required super.taskId,
+    required this.isolateSendPort,
+  });
   @override
   Map<String, dynamic> serialize() {
     return {};
@@ -52,8 +57,7 @@ class SendPortIsolateEvent extends IsolateEvent {
 class TaskCancelledIsolateEvent extends IsolateEvent {
   @override
   final String type = "taskCancelled";
-  String taskId;
-  TaskCancelledIsolateEvent({required super.threadId, required this.taskId});
+  TaskCancelledIsolateEvent({required super.threadId, required super.taskId});
   @override
   Map<String, dynamic> serialize() => {
     'type': 'taskCancelled',
@@ -73,9 +77,8 @@ class TaskCancelledIsolateEvent extends IsolateEvent {
 class TaskStartedIsolateEvent extends IsolateEvent {
   @override
   final String type = "taskStarted";
-  String taskId;
 
-  TaskStartedIsolateEvent({required super.threadId, required this.taskId});
+  TaskStartedIsolateEvent({required super.threadId, required super.taskId});
 
   @override
   Map<String, dynamic> serialize() => {
@@ -97,10 +100,13 @@ class TaskStartedIsolateEvent extends IsolateEvent {
 class TaskProgressIsolateEvent extends IsolateEvent {
   @override
   final String type = "progress";
-  final String taskId;
   final double progress; // 0.0 ~ 1.0
 
-  TaskProgressIsolateEvent({required super.threadId, required this.taskId, required this.progress});
+  TaskProgressIsolateEvent({
+    required super.threadId,
+    required super.taskId,
+    required this.progress,
+  });
 
   @override
   Map<String, dynamic> serialize() => {
@@ -123,10 +129,9 @@ class TaskProgressIsolateEvent extends IsolateEvent {
 class TaskCompletedIsolateEvent extends IsolateEvent {
   @override
   final String type = "completed";
-  final String taskId;
   final dynamic result; // 使用泛型更佳
 
-  TaskCompletedIsolateEvent({required super.threadId, required this.taskId, this.result});
+  TaskCompletedIsolateEvent({required super.threadId, required super.taskId, this.result});
 
   @override
   Map<String, dynamic> serialize() => {
@@ -150,13 +155,12 @@ class TaskCompletedIsolateEvent extends IsolateEvent {
 class TaskErrorIsolateEvent extends IsolateEvent {
   @override
   final String type = "error";
-  final String taskId;
   final String error;
   final StackTrace stackTrace;
 
   TaskErrorIsolateEvent({
     required super.threadId,
-    required this.taskId,
+    required super.taskId,
     required this.error,
     required this.stackTrace,
   });
@@ -185,9 +189,8 @@ class TaskErrorIsolateEvent extends IsolateEvent {
 class TaskPausedIsolateEvent extends IsolateEvent {
   @override
   final String type = "taskPaused";
-  final String taskId;
 
-  TaskPausedIsolateEvent({required super.threadId, required this.taskId});
+  TaskPausedIsolateEvent({required super.threadId, required super.taskId});
 
   @override
   Map<String, dynamic> serialize() => {
@@ -209,9 +212,8 @@ class TaskPausedIsolateEvent extends IsolateEvent {
 class TaskResumedIsolateEvent extends IsolateEvent {
   @override
   final String type = 'taskRecovered';
-  final String taskId;
 
-  TaskResumedIsolateEvent({required super.threadId, required this.taskId});
+  TaskResumedIsolateEvent({required super.threadId, required super.taskId});
   @override
   Map<String, dynamic> serialize() => {
     'type': type,

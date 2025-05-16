@@ -153,14 +153,26 @@ abstract class Task {
   }
 
   Future<dynamic> run(); // 任务主体函数
-  void onProgressUi(Map<String, dynamic> params, String providerName) {} // 任务进度回调函数，UI层
+
   void onErrorUi(Object error, StackTrace stackTrace) {} // 任务执行失败回调函数
-  Future<void> onCompleted() async {} // 任务完成后在UI线程继续需要完成的事情
-  void onCancelledIsolate(String taskId) {} // 任务取消回调函数
+  void onCancelledIsolate() {} // 任务取消回调函数
   void onPausedIsolate() {} // 任务暂停回调函数
-  void onResumedIsolate(String taskId) {} // 任务恢复回调，子线程中完成
-  void onStartedUi() {} // 任务已开始回调函数，UI层
-  void onCompletedUi() {} // 任务完成的回调
+  void onResumedIsolate() {} // 任务恢复回调，子线程中完成
+
+  void onStartedUi(TaskStartedIsolateEvent event) {
+    status = TaskStatus.running;
+    startTime = event.timestamp;
+  } // 任务已开始回调函数，UI层
+
+  void onProgressUi(TaskProgressIsolateEvent event) {
+    progress = event.progress;
+  } // 任务进度回调函数，UI层
+
+  void onCompletedUi(TaskCompletedIsolateEvent event) {
+    status = TaskStatus.completed;
+    endTime = event.timestamp;
+  } // 任务完成的回调
+
   void notifyUi(IsolateEvent isolateEvent) {
     final message = isolateEvent.serialize();
     mainThread?.send(message);

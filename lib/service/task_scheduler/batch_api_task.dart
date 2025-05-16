@@ -82,7 +82,7 @@ abstract class BatchApiTask extends Task {
   }
 
   @override
-  void onCancelledIsolate(String taskId) {
+  void onCancelledIsolate() {
     status = TaskStatus.cancelled;
     apiService.cancel();
   }
@@ -94,7 +94,7 @@ abstract class BatchApiTask extends Task {
   }
 
   @override
-  void onResume(String taskId) async {
+  void onResumedIsolate() async {
     final data = await FileTool.loadFile(pausedFilePath);
     final json = jsonDecode(data);
     params = json['params']; // 用参数覆盖原有的参数列表，继续未完成的请求
@@ -104,9 +104,4 @@ abstract class BatchApiTask extends Task {
     final resumeEvent = TaskResumedIsolateEvent(threadId: threadId, taskId: taskId);
     notifyUi(resumeEvent);
   }
-
-  @override
-  void onStartedIsolate(String taskId) {}
-  @override
-  void onDeletedIsolate(String taskId) {}
 }

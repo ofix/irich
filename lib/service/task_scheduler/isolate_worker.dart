@@ -49,6 +49,7 @@ class IsolateWorker {
     final receivePort = ReceivePort();
     final sendPortEvent = SendPortIsolateEvent(
       threadId: _threadId,
+      taskId: "", // 未使用
       isolateSendPort: receivePort.sendPort,
     );
     mainSendPort.send(sendPortEvent);
