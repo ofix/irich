@@ -37,6 +37,7 @@ extension EnumApiProviderExtension on EnumApiProvider {
 }
 
 enum ProviderApiType {
+  unknown, // 未知类型
   quote, // 大A股票实时行情
   quoteExtra, // 分类板块入口
   industry, // 行业分类数据

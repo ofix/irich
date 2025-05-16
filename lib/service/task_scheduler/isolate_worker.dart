@@ -77,9 +77,7 @@ class IsolateWorker {
       } else if (event is PauseTaskUiEvent) {
         // 任务暂停
         if (runningTask != null) {
-          runningTask!.status = TaskStatus.paused;
-          IsolateEvent pausedEvent = TaskPausedIsolateEvent(_threadId, taskId: runningTask!.taskId);
-          runningTask!.notifyUiThread(pausedEvent);
+          runningTask!.onPausedIsolate(runningTask!.taskId);
         }
       } else if (event is CancelTaskUiEvent) {
         // 任务取消

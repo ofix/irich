@@ -25,6 +25,8 @@ enum RichStatus {
   fileWriteDeny, // 文件拒绝写入
   fileWriteFailed, // 文件写入失败
   innerError, // 内部错误
+  taskCancelled, // 任务被用户取消
+  taskPaused, // 任务被用户暂停
 }
 
 class RichResult {
@@ -64,6 +66,10 @@ class RichResult {
         return "股票不存在";
       case RichStatus.repeatInit:
         return "重复初始化";
+      case RichStatus.taskCancelled:
+        return "任务被用户取消";
+      case RichStatus.taskPaused:
+        return "任务被用户暂停";
       default:
         return "";
     }

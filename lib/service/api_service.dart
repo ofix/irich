@@ -57,7 +57,8 @@ class ApiService {
   final int _maxConn; // 最大并发数
   final _activeRequests = <_ActiveRequest>[];
   final ProviderApiType _curApiType; // 当前API请求类别
-  bool _isCanceled = false; // 取消并发请求
+  bool _isCanceled = false; // 取消异步并发请求
+  bool _isPaused = false; // 暂停异步并发请求
 
   /// [apiType] 请求类别
   /// [maxConn] 最大请求并发数
@@ -81,6 +82,14 @@ class ApiService {
     _requestQueue.clear(); // 清空待处理队列
     for (var r in _activeRequests) {
       r.completer.completeError(Exception("Canceled"));
+    }
+  }
+
+  void pause() {
+    _isPaused = true; // 暂停并发请求
+    _requestQueue.clear(); // 清空待处理队列
+    for (var r in _activeRequests) {
+      r.completer.completeError(Exception("Paused"));
     }
   }
 
@@ -125,7 +134,7 @@ class ApiService {
 
     final responses = <Map<String, dynamic>>[];
 
-    while ((!_requestQueue.isEmpty || _activeRequests.isNotEmpty) && !_isCanceled) {
+    while ((!_requestQueue.isEmpty || _activeRequests.isNotEmpty)) {
       // 填充活跃请求
       while (_activeRequests.length < _maxConn && !_requestQueue.isEmpty) {
         final request = _requestQueue.nextRequest();
@@ -159,6 +168,12 @@ class ApiService {
       }
     }
     _stopwatch.stop();
+    if (_isCanceled) {
+      return (error(RichStatus.taskCancelled), responses); // 任务被取消
+    }
+    if (_isPaused) {
+      return (error(RichStatus.taskCancelled), responses); // 任务被暂停
+    }
     return (success(), responses);
   }
 

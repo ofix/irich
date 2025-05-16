@@ -41,6 +41,12 @@ class Config {
     return p.join(appRootDir, 'data', 'holidays.json');
   }
 
+  // 暂停任务文件路径
+  static Future<String> get pathTask async {
+    String appRootDir = await FileTool.getAppRootDir();
+    return p.join(appRootDir, 'tasks');
+  }
+
   // SQLite数据库文件
   static String pathSql = "data/irich.sql";
 }

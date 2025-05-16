@@ -104,7 +104,7 @@ class StoreQuote {
   }
 
   /// 填充所有股票的地域字段
-  static void _fillShareProvince(List<Map<String, dynamic>> provinces) {
+  static void fillShareProvince(List<Map<String, dynamic>> provinces) {
     for (final province in provinces) {
       final shares = province['shares'];
       for (final shareCode in shares) {
@@ -117,7 +117,7 @@ class StoreQuote {
   }
 
   /// 填充所有股票的行业字段
-  static void _fillShareIndustry(List<Map<String, dynamic>> industries) {
+  static void fillShareIndustry(List<Map<String, dynamic>> industries) {
     for (final industry in industries) {
       final shares = industry['shares'];
       for (final shareCode in shares) {
@@ -197,9 +197,9 @@ class StoreQuote {
           debugPrint("写入文件 ${bkPath[i]}");
           // 填充所有股票行业字段
           if (i == 0) {
-            _fillShareProvince(bkJson);
+            fillShareProvince(bkJson);
           } else if (i == 1) {
-            _fillShareIndustry(bkJson);
+            fillShareIndustry(bkJson);
           }
           // 存储到缓存和文件
           await FileTool.saveFile(bkPath[i], data);

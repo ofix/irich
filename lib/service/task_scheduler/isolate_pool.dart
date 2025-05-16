@@ -9,12 +9,16 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:isolate';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/widgets.dart';
+import 'package:irich/global/config.dart';
 import 'package:irich/service/task_scheduler/task.dart';
 import 'package:irich/service/task_scheduler/isolate_worker.dart';
 import 'package:irich/service/task_scheduler/task_events.dart';
+import 'package:irich/utils/file_tool.dart';
 
 class IsolatePool {
   final int _minIsolates; // 最小线程数
@@ -32,7 +36,6 @@ class IsolatePool {
   final List<IsolateWorker> _idleWorkers = []; // 空闲子线程列表
   final List<IsolateWorker> _activeWorkers = []; // 活动子线程列表
   final Map<int, IsolateWorker> _workersMap = {}; // 线程ID => 线程映射表
-  final Map<String, int> _taskWorkermap = {}; // 任务ID => 线程ID映射表
   final Map<String, Task> _allTasks = {}; // 任务ID => 任务映射表(全量任务)
 
   IsolatePool({
@@ -51,18 +54,68 @@ class IsolatePool {
       await _spawnWorker(_nextThreadId++);
     }
     listenIsolateEvents();
+    await checkPausedTaskInFileSystem();
+  }
+
+  // 检查缓存目录中是否有近24小时暂停的任务
+  Future<void> checkPausedTaskInFileSystem() async {
+    final targetPath = await Config.pathTask;
+    final dir = Directory(targetPath);
+    try {
+      // 异步列出所有文件和子目录
+      await for (var item in dir.list(recursive: false)) {
+        if (item is File) {
+          // 获取文件状态（包含修改时间）
+          final stat = await item.stat();
+          final modifiedTime = stat.modified;
+          // 计算当前时间与修改时间的差值
+          final difference = DateTime.now().difference(modifiedTime);
+          // 检查是否超过24小时
+          if (difference.inHours <= 24) {
+            final data = await FileTool.loadFile(item.path);
+            Map<String, dynamic> json = jsonDecode(data);
+            Task task = Task.deserialize(json);
+            task.status = TaskStatus.paused; // 强制任务暂停
+            _pendingTasks.add(task);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('初始化暂停任务失败: $e');
+    }
   }
 
   // 处理子线程发送过来的UiEvent
   void listenIsolateEvents() {
-    _poolRecvPort?.listen((dynamic message) {
+    _poolRecvPort?.listen((dynamic message) async {
       final event = jsonDecode(message);
       if (event is TaskStartedIsolateEvent) {
+        String taskId = event.taskId;
+        Task? task = _allTasks[taskId];
+        task?.status = TaskStatus.running;
+        task?.startTime = event.timestamp;
       } else if (event is TaskProgressIsolateEvent) {
+        double progress = event.progress;
+        String taskId = event.taskId;
+        Task? task = _allTasks[taskId];
+        task?.progress = progress;
       } else if (event is TaskPausedIsolateEvent) {
+        String taskId = event.taskId;
+        Task? task = _allTasks[taskId];
+        task?.status = TaskStatus.paused;
+        _onWorkerIdle(getIsolateWorker(task!.threadId)!);
       } else if (event is TaskErrorIsolateEvent) {
+        String taskId = event.taskId;
+        Task? task = _allTasks[taskId];
+        task?.status = TaskStatus.failed;
+        _onWorkerIdle(getIsolateWorker(task!.threadId)!);
       } else if (event is TaskCompletedIsolateEvent) {
-        _onWorkerIdle(getIsolateWorker(event.threadId)!);
+        String taskId = event.taskId;
+        Task? task = _allTasks[taskId];
+        task?.status = TaskStatus.completed;
+        task?.endTime = event.timestamp;
+        await task?.onCompleted();
+        _onWorkerIdle(getIsolateWorker(task!.threadId)!);
       } else if (event is TaskRecoveredIsolateEvent) {}
     });
   }
@@ -100,8 +153,8 @@ class IsolatePool {
       return false;
     }
     task.status = TaskStatus.paused;
-    final threadId = _taskWorkermap[taskId];
-    if (threadId == null) {
+    final threadId = task.threadId;
+    if (threadId == 0) {
       // 任务没有在子线程执行
       return false;
     }
@@ -122,8 +175,8 @@ class IsolatePool {
       return false;
     }
     task.status = TaskStatus.paused;
-    final threadId = _taskWorkermap[taskId];
-    if (threadId == null) {
+    final threadId = task.threadId;
+    if (threadId == 0) {
       // 任务没有在子线程执行
       return false;
     }
@@ -144,8 +197,8 @@ class IsolatePool {
       return false;
     }
     task.status = TaskStatus.paused;
-    final threadId = _taskWorkermap[taskId];
-    if (threadId == null) {
+    final threadId = task.threadId;
+    if (threadId == 0) {
       // 任务没有在子线程执行
       return false;
     }
@@ -162,6 +215,7 @@ class IsolatePool {
     while (_pendingTasks.isNotEmpty && _idleWorkers.isNotEmpty) {
       final task = _pendingTasks.removeFirst();
       final worker = _idleWorkers.removeLast();
+      task.threadId = worker.threadId; // 将 threadId 赋值给Task
       final newTaskEvent = NewTaskEvent(task: task);
       worker.notify(newTaskEvent);
       _activeWorkers.add(worker);
@@ -206,6 +260,5 @@ class IsolatePool {
     _activeWorkers.clear();
     _workersMap.clear();
     _allTasks.clear();
-    _taskWorkermap.clear();
   }
 }

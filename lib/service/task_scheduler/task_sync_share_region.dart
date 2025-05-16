@@ -7,11 +7,21 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'package:irich/service/task_scheduler/task.dart';
+import 'dart:convert';
 
-class TaskSyncShareRegion extends Task {
+import 'package:flutter/material.dart';
+import 'package:irich/global/config.dart';
+import 'package:irich/service/api_provider_capabilities.dart';
+import 'package:irich/service/task_scheduler/batch_api_task.dart';
+import 'package:irich/service/task_scheduler/task.dart';
+import 'package:irich/store/store_quote.dart';
+import 'package:irich/utils/file_tool.dart';
+
+class TaskSyncShareRegion extends BatchApiTask {
   @override
   TaskType type = TaskType.syncShareRegion;
+  @override
+  ProviderApiType apiType = ProviderApiType.province;
   TaskSyncShareRegion({required super.params, super.priority, super.submitTime, super.status});
 
   factory TaskSyncShareRegion.deserialize(Map<String, dynamic> json) {
@@ -22,8 +32,33 @@ class TaskSyncShareRegion extends Task {
       status: TaskStatus.fromVal(json['status'] as int),
     );
   }
+
   @override
-  Future<dynamic> run() {
-    throw UnimplementedError("TaskSyncShareRegion must implement run()");
+  Future<dynamic> run() async {
+    super.doJob();
+    final bkJson = <Map<String, dynamic>>[];
+    for (final item in responses) {
+      final bkItem = <String, dynamic>{};
+      bkItem['code'] = item['param']['code']; // 板块代号
+      bkItem['name'] = item['param']['name']; // 板块名称
+      bkItem['pinyin'] = item['param']['pinyin']; // 板块拼音
+      bkItem['shares'] = item['response']; //板块成分股代码
+      bkJson.add(bkItem);
+    }
+    final data = jsonEncode(bkJson);
+    String filePath = await Config.pathMapFileProvince;
+    debugPrint("写入文件 $filePath");
+    await FileTool.saveFile(filePath, data);
+  }
+
+  @override
+  Future<dynamic> onCompleted() async {
+    // 加载股票地域信息
+    String filePath = await Config.pathMapFileProvince;
+    String data = await FileTool.loadFile(filePath);
+    final provinces = jsonDecode(data);
+    // 填充股票的province字段
+    StoreQuote.fillShareProvince(provinces);
+    // 通知UI更新
   }
 }

@@ -102,8 +102,8 @@ enum TaskType implements Comparable<TaskType> {
 
 abstract class Task {
   TaskType get type; // 任务类型
-  final Map<String, dynamic>? params; // 任务参数
-  final String taskId;
+  dynamic params; // 任务参数
+  String taskId;
   TaskPriority priority; // 任务优先级
   late DateTime submitTime; // 任务提交到调度中心的时间
   DateTime? startTime; // 任务开始时间
@@ -111,16 +111,18 @@ abstract class Task {
   int? timeConsumeInSeconds; // 任务耗时(单位：秒)
   TaskStatus status; // 任务状态
   SendPort? mainThread; // 向主线程发送消息
-
+  int threadId; // 线程ID
+  double progress; // 任务进度
   /// 基类构造函数 - 子类必须调用
   Task({
     required this.params,
-    String? taskId, // 可选参数，允许自定义taskId
     this.priority = TaskPriority.normal,
     DateTime? submitTime, // 改为可选参数
     this.status = TaskStatus.pending,
-  }) : taskId = taskId ?? const Uuid().v4(),
-       submitTime = submitTime ?? DateTime.now();
+  }) : taskId = const Uuid().v4(),
+       submitTime = submitTime ?? DateTime.now(),
+       threadId = 0,
+       progress = 0;
 
   Map<String, dynamic> serialize() => {
     "type": type.val,
@@ -128,6 +130,7 @@ abstract class Task {
     "taskId": taskId,
     "priority": priority.val,
     "status": status.val,
+    "progress": progress,
     "startTime": startTime?.toIso8601String(),
   };
 
@@ -151,10 +154,17 @@ abstract class Task {
   Future<dynamic> run(); // 任务主体函数
   void onProgress(Map<String, dynamic> params, String providerName) {} // 任务进度回调函数
   void onError(Object error, StackTrace stackTrace) {} // 任务执行失败回调函数
-  void onCanceled(String taskId) {} // 任务取消回调函数
-  void onResumed(String taskId) {} // 任务恢复回调函数
-  void onStarted(String taskId) {} // 任务已开始回调函数
-  void onDeleted(String taskId) {} // 任务被删除回调函数
+  void onCanceledUi(String taskId) {} // 任务取消回调函数
+  void onPausedUi(String taskId) {} // 任务被取消
+  void onResumedUi(String taskId) {} // 任务恢复回调函数
+  void onStartedUi(String taskId) {} // 任务已开始回调函数
+  void onDeletedUi(String taskId) {} // 任务被删除回调函数
+  Future<void> onCompleted() async {} // 任务完成后在UI线程继续需要完成的事情
+  void onCanceledIsolate(String taskId) {} // 任务取消回调函数
+  void onPausedIsolate(String taskId) {} // 任务被取消
+  void onResumedIsolate(String taskId) {} // 任务恢复回调函数
+  void onStartedIsolate(String taskId) {} // 任务已开始回调函数
+  void onDeletedIsolate(String taskId) {} // 任务被删除回调函数
   void onFinally() {}
   void notifyUiThread(IsolateEvent isolateEvent) {
     final message = isolateEvent.serialize();
