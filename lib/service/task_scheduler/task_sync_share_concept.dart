@@ -14,6 +14,10 @@ import 'package:irich/service/task_scheduler/task.dart';
 class TaskSyncShareConcept extends Task {
   @override
   TaskType type = TaskType.syncShareConcept;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncShareConcept({
     required super.params,
     super.priority = TaskPriority.normal,

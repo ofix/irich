@@ -13,30 +13,32 @@ import 'dart:io';
 
 import 'package:irich/service/task_scheduler/isolate_pool.dart';
 import 'package:irich/service/task_scheduler/task.dart';
-import 'package:irich/service/trading_calendar.dart';
+import 'package:irich/service/task_scheduler/task_events.dart';
 
 class TaskScheduler {
   IsolatePool? _isolatePool; // 计算密集型子线程
-  final TradingCalendar _calendar = TradingCalendar(); // 交易日历
-  final Map<String, Task> _allTasks = {}; // 所有在UI线程中的任务
-  final PriorityQueue<Task> _taskQueue = PriorityQueue<Task>(
+  final Map<String, Task<dynamic>> _allTasks = {}; // 所有在UI线程中的任务
+  final PriorityQueue<Task<dynamic>> _taskQueue = PriorityQueue<Task<dynamic>>(
     // 任务队列
     (a, b) => b.priority.index.compareTo(a.priority.index),
   );
+  final List<Task<dynamic>> _activeTasks = []; // 运行中的任务
   int runningTaskCount = 0; // 运行中任务计数
-  int? maxRunningTasks; // 支持最大同时运行的任务数（UI任务数+线程池任务数总和）
+  int? maxUiRunningTasks; // UI主线程中支持的并发异步任务数
+  int? maxPoolRunningTasks; // 线程池中支持的并发异步任务数
 
   // 单例模式
   static final TaskScheduler _instance = TaskScheduler._internal();
   static bool _initialized = false;
 
-  factory TaskScheduler({int? maxRunningTasks}) {
+  factory TaskScheduler({int? maxUiRunningTasks, int? maxPoolRunningTasks}) {
     if (!_initialized) {
-      final maxTasks = maxRunningTasks ?? Platform.numberOfProcessors;
-      _instance.maxRunningTasks = maxTasks;
+      final maxTasks = maxUiRunningTasks ?? Platform.numberOfProcessors ~/ 2;
+      _instance.maxUiRunningTasks = maxTasks;
+      _instance.maxPoolRunningTasks = maxTasks;
       _instance._isolatePool = IsolatePool(
-        minIsolates: maxTasks > 2 ? maxTasks - 2 : 2, // 确保至少2个isolate，一个用于IO，一个用于本地计算
-        maxIsolates: maxTasks > 2 ? maxTasks - 2 : 2,
+        minIsolates: maxTasks < 2 ? 2 : maxTasks, // 确保线程池至少2个线程，一个用于IO，一个用于本地计算
+        maxIsolates: maxTasks < 2 ? 2 : maxTasks,
       );
       _initialized = true;
     }
@@ -46,24 +48,45 @@ class TaskScheduler {
   TaskScheduler._internal();
 
   // 提交任务
-  Future<void> addTask(Task task) async {
+  Future<T> addTask<T>(Task<T> task) async {
     // 检查任务类型
     _allTasks[task.taskId] = task;
-    if (task.type == TaskType.syncShareQuote || task.type == TaskType.syncShareBk) {
-      // UI线程中异步完成
+    if (task.priority == TaskPriority.immediate) {
+      // 需要再UI线程中运行的任务需要赋予 immediate 优先级
+      final completer = Completer<T>(); // 通过 Completer 包裹后才能拿到任务的结果
+      task.completer = completer;
       _taskQueue.add(task);
       _scheduleTasks();
+      return completer.future;
     } else {
       _isolatePool?.addTask(task); // 添加任务到线程池，由线程池完成任务分派和运行
+      return Future.value();
     }
   }
 
   // 任务调度
-  void _scheduleTasks() {
-    while (runningTaskCount < 3 && _taskQueue.isNotEmpty) {
+  void _scheduleTasks() async {
+    while (runningTaskCount < maxUiRunningTasks! && _taskQueue.isNotEmpty) {
       final task = _taskQueue.removeFirst();
       runningTaskCount += 1;
-      if (task.status == TaskStatus.pending || task.status == TaskStatus.paused) {}
+      final startedEvent = TaskStartedEvent(threadId: 0, taskId: task.taskId);
+      task.onStartedUi(startedEvent);
+      try {
+        final result = await task.run();
+        final event = TaskCompletedEvent(threadId: 0, taskId: task.taskId);
+        task.onCompletedUi(event, result);
+      } catch (e, stackTrace) {
+        final event = TaskErrorEvent(
+          threadId: 0,
+          taskId: task.taskId,
+          error: e.toString(),
+          stackTrace: stackTrace,
+        );
+        task.onErrorUi(event);
+      } finally {
+        _activeTasks.remove(task);
+        _scheduleTasks();
+      }
     }
   }
 

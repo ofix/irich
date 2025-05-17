@@ -18,7 +18,11 @@ import 'package:irich/utils/file_tool.dart';
 import 'package:irich/utils/rich_result.dart';
 import 'package:path/path.dart' as p;
 
-abstract class BatchApiTask extends Task {
+abstract class BatchApiTask extends Task<void> {
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   ApiService apiService;
   ProviderApiType get apiType;
   String pausedFilePath;
@@ -33,7 +37,7 @@ abstract class BatchApiTask extends Task {
       recvRequests = 0;
 
   /// 在子线程中运行
-  Future<dynamic> doJob() async {
+  Future<void> doJob() async {
     apiService = ApiService(apiType);
     final result = await apiService.batchFetch(params, (
       Map<String, dynamic> params,
@@ -41,7 +45,7 @@ abstract class BatchApiTask extends Task {
     ) {
       recvRequests += 1;
       progress = recvRequests / totalRequests; // 计算进度
-      final progressEvent = TaskProgressIsolateEvent(
+      final progressEvent = TaskProgressEvent(
         threadId: threadId,
         taskId: taskId,
         progress: progress,
@@ -54,15 +58,16 @@ abstract class BatchApiTask extends Task {
     if (status.status == RichStatus.taskPaused) {
       // 任务真的暂停成功
       _savePausedTask(params, response);
-      final pausedEvent = TaskPausedIsolateEvent(threadId: threadId, taskId: taskId);
+      final pausedEvent = TaskPausedEvent(threadId: threadId, taskId: taskId);
       notifyUi(pausedEvent);
     }
     if (status.status == RichStatus.taskCancelled) {
       // 任务取消
-      final cancelledEvent = TaskCancelledIsolateEvent(threadId: threadId, taskId: taskId);
+      final cancelledEvent = TaskCancelledEvent(threadId: threadId, taskId: taskId);
       notifyUi(cancelledEvent);
     }
     if (status.status == RichStatus.ok) {
+      // 任务完成，直接保存结果到文件
       responses = [...responses, ...response];
     }
   }
@@ -101,7 +106,7 @@ abstract class BatchApiTask extends Task {
     responses = json['responses'];
     status = TaskStatus.running;
     await doJob();
-    final resumeEvent = TaskResumedIsolateEvent(threadId: threadId, taskId: taskId);
+    final resumeEvent = TaskResumedEvent(threadId: threadId, taskId: taskId);
     notifyUi(resumeEvent);
   }
 }

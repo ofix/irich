@@ -99,25 +99,25 @@ class IsolatePool {
       if (event is SendPortIsolateEvent) {
         final isolateWorker = _workersMap[event.threadId]; // 找到对应子线程的 worker
         isolateWorker?.isolateSendPort = event.isolateSendPort; // 子线程的消息发送端口
-      } else if (event is TaskStartedIsolateEvent) {
+      } else if (event is TaskStartedEvent) {
         Task? task = _searchTask(event);
         task?.onStartedUi(event);
-      } else if (event is TaskProgressIsolateEvent) {
+      } else if (event is TaskProgressEvent) {
         Task? task = _searchTask(event);
         task?.onProgressUi(event);
-      } else if (event is TaskPausedIsolateEvent) {
+      } else if (event is TaskPausedEvent) {
         Task? task = _searchTask(event);
         task?.status = TaskStatus.paused;
         _onWorkerIdle(getIsolateWorker(task!.threadId)!);
-      } else if (event is TaskErrorIsolateEvent) {
+      } else if (event is TaskErrorEvent) {
         Task? task = _searchTask(event);
         task?.status = TaskStatus.failed;
         _onWorkerIdle(getIsolateWorker(task!.threadId)!);
-      } else if (event is TaskCompletedIsolateEvent) {
+      } else if (event is TaskCompletedEvent) {
         Task? task = _searchTask(event);
-        task?.onCompletedUi(event);
+        task?.onCompletedUi(event, null);
         _onWorkerIdle(getIsolateWorker(task!.threadId)!);
-      } else if (event is TaskResumedIsolateEvent) {}
+      } else if (event is TaskResumedEvent) {}
     });
   }
 

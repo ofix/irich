@@ -35,7 +35,7 @@ class TaskSyncShareRegion extends BatchApiTask {
   }
 
   @override
-  Future<dynamic> run() async {
+  Future<void> run() async {
     super.doJob();
     final bkJson = <Map<String, dynamic>>[];
     for (final item in responses) {
@@ -53,7 +53,7 @@ class TaskSyncShareRegion extends BatchApiTask {
   }
 
   @override
-  Future<dynamic> onCompletedUi(TaskCompletedIsolateEvent event) async {
+  Future<dynamic> onCompletedUi(TaskCompletedEvent event, dynamic result) async {
     // 加载股票地域信息
     String filePath = await Config.pathMapFileProvince;
     String data = await FileTool.loadFile(filePath);

@@ -61,7 +61,7 @@ class IsolateWorker {
         // 新任务
         runningTask = event.task;
         // 任务开始事件
-        IsolateEvent startedEvent = TaskStartedIsolateEvent(
+        IsolateEvent startedEvent = TaskStartedEvent(
           threadId: _threadId,
           taskId: runningTask!.taskId,
         );
@@ -70,7 +70,7 @@ class IsolateWorker {
           await runningTask?.run();
         } catch (e, stackTrace) {
           // 发送任务出错事件
-          final errorEvent = TaskErrorIsolateEvent(
+          final errorEvent = TaskErrorEvent(
             threadId: _threadId,
             taskId: runningTask!.taskId,
             error: e.toString(),
@@ -79,10 +79,7 @@ class IsolateWorker {
           runningTask!.notifyUi(errorEvent);
         }
         // 发送任务完成事件
-        final completedEvent = TaskCompletedIsolateEvent(
-          threadId: _threadId,
-          taskId: runningTask!.taskId,
-        );
+        final completedEvent = TaskCompletedEvent(threadId: _threadId, taskId: runningTask!.taskId);
         runningTask!.notifyUi(completedEvent);
       } else if (event is PauseTaskUiEvent) {
         // 任务暂停
@@ -93,7 +90,7 @@ class IsolateWorker {
         // 任务取消
         if (runningTask != null) {
           runningTask!.status = TaskStatus.cancelled;
-          IsolateEvent cancelledEvent = TaskCancelledIsolateEvent(
+          IsolateEvent cancelledEvent = TaskCancelledEvent(
             threadId: _threadId,
             taskId: runningTask!.taskId,
           );
@@ -102,13 +99,13 @@ class IsolateWorker {
       } else if (event is ResumeTaskUiEvent) {
         // 任务恢复
         final taskId = event.taskId;
-        IsolateEvent resumedEvent = TaskResumedIsolateEvent(threadId: _threadId, taskId: taskId);
+        IsolateEvent resumedEvent = TaskResumedEvent(threadId: _threadId, taskId: taskId);
         runningTask!.notifyUi(resumedEvent);
         try {
           await runningTask?.run();
         } catch (e, stackTrace) {
           // 发送任务出错事件
-          final errorEvent = TaskErrorIsolateEvent(
+          final errorEvent = TaskErrorEvent(
             threadId: _threadId,
             taskId: runningTask!.taskId,
             error: e.toString(),
@@ -117,10 +114,7 @@ class IsolateWorker {
           runningTask!.notifyUi(errorEvent);
         }
         // 发送任务完成事件
-        final completedEvent = TaskCompletedIsolateEvent(
-          threadId: _threadId,
-          taskId: runningTask!.taskId,
-        );
+        final completedEvent = TaskCompletedEvent(threadId: _threadId, taskId: runningTask!.taskId);
         runningTask!.notifyUi(completedEvent);
       }
     });

@@ -17,9 +17,13 @@ import 'package:irich/service/api_service.dart';
 import 'package:irich/service/task_scheduler/task.dart';
 import 'package:irich/utils/file_tool.dart';
 
-class TaskSyncShareQuote extends Task {
+class TaskSyncShareQuote extends Task<List<Share>> {
   @override
   TaskType type = TaskType.syncShareQuote;
+  @override
+  bool canPaused = false;
+  @override
+  bool canCancelled = false;
   TaskSyncShareQuote({
     required super.params,
     super.priority = TaskPriority.immediate,

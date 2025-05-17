@@ -15,6 +15,10 @@ import 'package:irich/service/task_scheduler/task.dart';
 class TaskSyncShareBk extends Task {
   @override
   TaskType type = TaskType.syncShareQuote;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncShareBk({
     required super.params,
     super.priority = TaskPriority.immediate,
@@ -32,8 +36,8 @@ class TaskSyncShareBk extends Task {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> run() async {
-    final (statusBk, resultBk as List<Map<String, dynamic>>) = await ApiService(
+  Future<List<List<Map<String, dynamic>>>> run() async {
+    final (statusBk, resultBk as List<List<Map<String, dynamic>>>) = await ApiService(
       ProviderApiType.quoteExtra,
     ).fetch("");
     if (statusBk.ok()) {

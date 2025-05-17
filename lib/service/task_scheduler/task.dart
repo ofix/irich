@@ -101,12 +101,14 @@ enum TaskType implements Comparable<TaskType> {
   }
 }
 
-abstract class Task {
+abstract class Task<T> implements Comparable<Task<T>> {
   TaskType get type; // 任务类型
+  bool get canPaused; // 是否可暂停
+  bool get canCancelled; // 是否可取消
   dynamic params; // 任务参数
   String taskId;
   TaskPriority priority; // 任务优先级
-  late DateTime submitTime; // 任务提交到调度中心的时间
+  final DateTime submitTime; // 任务提交到调度中心的时间
   DateTime? startTime; // 任务开始时间
   DateTime? endTime; // 任务结束时间
   int? timeConsumeInSeconds; // 任务耗时(单位：秒)
@@ -114,16 +116,28 @@ abstract class Task {
   SendPort? mainThread; // 向主线程发送消息
   int threadId; // 线程ID
   double progress; // 任务进度
+  Completer<T>? completer;
+
   /// 基类构造函数 - 子类必须调用
   Task({
     required this.params,
     this.priority = TaskPriority.normal,
-    DateTime? submitTime, // 改为可选参数
     this.status = TaskStatus.pending,
+    DateTime? submitTime, // 改为可选参数
   }) : taskId = const Uuid().v4(),
        submitTime = submitTime ?? DateTime.now(),
        threadId = 0,
        progress = 0;
+
+  // 状态计算属性
+  Duration get waitingDuration =>
+      startTime != null ? startTime!.difference(submitTime) : DateTime.now().difference(submitTime);
+
+  Duration? get executionDuration =>
+      endTime != null && startTime != null ? endTime!.difference(startTime!) : null;
+
+  @override
+  int compareTo(Task<T> other) => other.priority.compareTo(priority);
 
   Map<String, dynamic> serialize() => {
     "type": type.val,
@@ -152,23 +166,23 @@ abstract class Task {
     }
   }
 
-  Future<dynamic> run(); // 任务主体函数
+  Future<T> run(); // 任务主体函数
 
-  void onErrorUi(Object error, StackTrace stackTrace) {} // 任务执行失败回调函数
+  void onErrorUi(TaskErrorEvent event) {} // 任务执行失败回调函数
   void onCancelledIsolate() {} // 任务取消回调函数
   void onPausedIsolate() {} // 任务暂停回调函数
   void onResumedIsolate() {} // 任务恢复回调，子线程中完成
 
-  void onStartedUi(TaskStartedIsolateEvent event) {
+  void onStartedUi(TaskStartedEvent event) {
     status = TaskStatus.running;
     startTime = event.timestamp;
   } // 任务已开始回调函数，UI层
 
-  void onProgressUi(TaskProgressIsolateEvent event) {
+  void onProgressUi(TaskProgressEvent event) {
     progress = event.progress;
   } // 任务进度回调函数，UI层
 
-  void onCompletedUi(TaskCompletedIsolateEvent event) {
+  void onCompletedUi(TaskCompletedEvent event, dynamic result) {
     status = TaskStatus.completed;
     endTime = event.timestamp;
   } // 任务完成的回调
@@ -179,9 +193,13 @@ abstract class Task {
   }
 }
 
-class TaskSyncShareRegionPartial<R> extends Task {
+class TaskSyncShareRegionPartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareRegionPartial;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncShareRegionPartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -190,15 +208,19 @@ class TaskSyncShareRegionPartial<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现增量同步最新股票地域数据
     throw UnimplementedError("TaskSyncShareRegionPartial must implement run()");
   }
 }
 
-class TaskSyncShareIndustryPartial<R> extends Task {
+class TaskSyncShareIndustryPartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareIndustryPartial;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncShareIndustryPartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -207,15 +229,19 @@ class TaskSyncShareIndustryPartial<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现增量同步最新股票行业数据
     throw UnimplementedError("TaskSyncShareIndustryPartial must implement run()");
   }
 }
 
-class TaskSyncShareConceptPartial<R> extends Task {
+class TaskSyncShareConceptPartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareConceptPartial;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncShareConceptPartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -224,15 +250,19 @@ class TaskSyncShareConceptPartial<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现增量同步最新股票概念数据
     throw UnimplementedError("TaskSyncShareConceptPartial must implement run()");
   }
 }
 
-class TaskSyncShareDailyKline<R> extends Task {
+class TaskSyncShareDailyKline<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareDailyKline;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncShareDailyKline({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -241,15 +271,19 @@ class TaskSyncShareDailyKline<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现同步最新全量股票前复权日K线数据
     throw UnimplementedError("TaskSyncShareDailyKline must implement run()");
   }
 }
 
-class TaskSyncShareDailyKlinePartial<R> extends Task {
+class TaskSyncShareDailyKlinePartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareDailyKlinePartial;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncShareDailyKlinePartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -258,15 +292,19 @@ class TaskSyncShareDailyKlinePartial<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现增量同步最新股票前复权日K线数据
     throw UnimplementedError("TaskSyncShareDailyKlinePartial must implement run()");
   }
 }
 
-class TaskSyncShareBasicInfo<R> extends Task {
+class TaskSyncShareBasicInfo<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareBasicInfo;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncShareBasicInfo({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -275,15 +313,19 @@ class TaskSyncShareBasicInfo<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现同步全量股票基本信息
     throw UnimplementedError("TaskSyncShareBasicInfo must implement run()");
   }
 }
 
-class TaskSyncShareBasicInfoPartial<R> extends Task {
+class TaskSyncShareBasicInfoPartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareBasicInfoPartial;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncShareBasicInfoPartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -292,15 +334,19 @@ class TaskSyncShareBasicInfoPartial<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现增量同步股票基本信息
     throw UnimplementedError("TaskSyncShareBasicInfoPartial must implement run()");
   }
 }
 
-class TaskSyncIndexDailyKline<R> extends Task {
+class TaskSyncIndexDailyKline<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncIndexDailyKline;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncIndexDailyKline({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -309,15 +355,19 @@ class TaskSyncIndexDailyKline<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现同步最新全量指数前复权日K线数据
     throw UnimplementedError("TaskSyncIndexDailyKline must implement run()");
   }
 }
 
-class TaskSyncIndexDailyKlinePartial<R> extends Task {
+class TaskSyncIndexDailyKlinePartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncIndexDailyKlinePartial;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncIndexDailyKlinePartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -326,15 +376,19 @@ class TaskSyncIndexDailyKlinePartial<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现增量同步最新指数前复权日K线数据
     throw UnimplementedError("TaskSyncIndexDailyKlinePartial must implement run()");
   }
 }
 
-class TaskSyncIndexMinuteKline<R> extends Task {
+class TaskSyncIndexMinuteKline<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncIndexMinuteKline;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSyncIndexMinuteKline({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -343,15 +397,19 @@ class TaskSyncIndexMinuteKline<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现同步最新全量指数分时图数据
     throw UnimplementedError("TaskSyncIndexMinuteKline must implement run()");
   }
 }
 
-class TaskSmartShareAnalysis<R> extends Task {
+class TaskSmartShareAnalysis<T> extends Task<T> {
   @override
   TaskType type = TaskType.smartShareAnalysis;
+  @override
+  bool canPaused = true;
+  @override
+  bool canCancelled = true;
   TaskSmartShareAnalysis({
     required super.params,
     super.priority = TaskPriority.high,
@@ -360,7 +418,7 @@ class TaskSmartShareAnalysis<R> extends Task {
   });
 
   @override
-  Future<dynamic> run() {
+  Future<T> run() {
     // 实现股票智选分析
     throw UnimplementedError("TaskSmartShareAnalysis must implement run()");
   }

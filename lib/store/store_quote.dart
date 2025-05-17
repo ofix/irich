@@ -15,6 +15,12 @@ import 'package:irich/global/config.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/service/task_scheduler/task_scheduler.dart';
+import 'package:irich/service/task_scheduler/task_sync_share_bk.dart';
+import 'package:irich/service/task_scheduler/task_sync_share_concept.dart';
+import 'package:irich/service/task_scheduler/task_sync_share_industry.dart';
+import 'package:irich/service/task_scheduler/task_sync_share_quote.dart';
+import 'package:irich/service/task_scheduler/task_sync_share_region.dart';
 import 'package:irich/utils/chinese_pinyin.dart';
 import 'package:irich/utils/date_time.dart';
 import 'package:irich/utils/file_tool.dart';
@@ -132,87 +138,95 @@ class StoreQuote {
   /// 爬取当前行情/行业板块/地域板块/股票行情基本信息
   static Future<RichResult> _fetchQuoteBasicInfo() async {
     // 爬取当前行情
-    _progressController.add(TaskProgress(name: "市场行情", current: 0, total: 100, desc: "获取A股市场行情数据"));
-    final (statusQuote, responseQuote as List<Share>) = await ApiService(
-      ProviderApiType.quote,
-    ).fetch("");
-    if (statusQuote.ok()) {
-      _shares = responseQuote;
-      _buildShareMap(_shares);
-      await _saveQuoteFile(await Config.pathDataFileQuote, _shares); // 保存行情数据到文件
-    }
+    // _progressController.add(TaskProgress(name: "市场行情", current: 0, total: 100, desc: "获取A股市场行情数据"));
+    // final (statusQuote, responseQuote as List<Share>) = await ApiService(
+    //   ProviderApiType.quote,
+    // ).fetch("");
+    // if (statusQuote.ok()) {
+    //   _shares = responseQuote;
+    //   _buildShareMap(_shares);
+    //   await _saveQuoteFile(await Config.pathDataFileQuote, _shares); // 保存行情数据到文件
+    // }
 
     // 爬取板块数据
-    _progressController.add(TaskProgress(name: "板块分类", current: 0, total: 100, desc: "获取板块分类数据"));
-    // 继续异步爬取 行业/地域/概念板块数据
-    final (statusMenu, responseQuoteExtra as List<List<Map<String, dynamic>>>) = await ApiService(
-      ProviderApiType.quoteExtra,
-    ).fetch("");
-    if (statusMenu.ok()) {
-      // 计算总共需要爬取的板块数量
-      int totalBk = 0;
-      int recvBk = 0;
-      final bkList = [ProviderApiType.province, ProviderApiType.industry, ProviderApiType.concept];
-      final bkName = ["地域板块", "行业板块", "概念板块"];
-      final bkPath = [
-        await Config.pathMapFileProvince,
-        await Config.pathMapFileIndustry,
-        await Config.pathMapFileConcept,
-      ];
-      for (final item in responseQuoteExtra) {
-        totalBk += item.length;
-      }
-      debugPrint("请求的板块总数: $totalBk");
-      _progressController.add(
-        TaskProgress(name: "板块分类", current: recvBk, total: totalBk, desc: "获取板块分类数据"),
-      );
-      // 依次爬取各个板块数据(省份/行业/概念)
-      for (int i = 0; i < responseQuoteExtra.length; i++) {
-        // 异步并发爬爬取省份板块
-        final (statusBk, responseBk) = await ApiService(bkList[i]).batchFetch(
-          responseQuoteExtra[i],
-          (Map<String, dynamic> params, String providerName) {
-            recvBk += 1;
-            _progressController.add(
-              TaskProgress(
-                name: bkName[i],
-                current: recvBk,
-                total: totalBk,
-                desc: "$providerName : ${params['name']}",
-              ),
-            );
-          },
-        );
-        if (statusBk.ok()) {
-          final bkJson = <Map<String, dynamic>>[];
-          for (final item in responseBk) {
-            final bkItem = <String, dynamic>{};
-            bkItem['code'] = item['param']['code']; // 板块代号
-            bkItem['name'] = item['param']['name']; // 板块名称
-            bkItem['pinyin'] = item['param']['pinyin']; // 板块拼音
-            bkItem['shares'] = item['response']; //板块成分股代码
-            bkJson.add(bkItem);
-          }
-          final data = jsonEncode(bkJson);
-          debugPrint("写入文件 ${bkPath[i]}");
-          // 填充所有股票行业字段
-          if (i == 0) {
-            fillShareProvince(bkJson);
-          } else if (i == 1) {
-            fillShareIndustry(bkJson);
-          }
-          // 存储到缓存和文件
-          await FileTool.saveFile(bkPath[i], data);
-        }
-      }
-    }
+    // _progressController.add(TaskProgress(name: "板块分类", current: 0, total: 100, desc: "获取板块分类数据"));
+    // // 继续异步爬取 行业/地域/概念板块数据
+    // final (statusMenu, responseQuoteExtra as List<List<Map<String, dynamic>>>) = await ApiService(
+    //   ProviderApiType.quoteExtra,
+    // ).fetch("");
+    // if (statusMenu.ok()) {
+    //   // 计算总共需要爬取的板块数量
+    //   int totalBk = 0;
+    //   int recvBk = 0;
+    //   final bkList = [ProviderApiType.province, ProviderApiType.industry, ProviderApiType.concept];
+    //   final bkName = ["地域板块", "行业板块", "概念板块"];
+    //   final bkPath = [
+    //     await Config.pathMapFileProvince,
+    //     await Config.pathMapFileIndustry,
+    //     await Config.pathMapFileConcept,
+    //   ];
+    //   for (final item in responseQuoteExtra) {
+    //     totalBk += item.length;
+    //   }
+    //   debugPrint("请求的板块总数: $totalBk");
+    //   _progressController.add(
+    //     TaskProgress(name: "板块分类", current: recvBk, total: totalBk, desc: "获取板块分类数据"),
+    //   );
+    //   // 依次爬取各个板块数据(省份/行业/概念)
+    //   for (int i = 0; i < responseQuoteExtra.length; i++) {
+    //     // 异步并发爬爬取省份板块
+    //     final (statusBk, responseBk) = await ApiService(bkList[i]).batchFetch(
+    //       responseQuoteExtra[i],
+    //       (Map<String, dynamic> params, String providerName) {
+    //         recvBk += 1;
+    //         _progressController.add(
+    //           TaskProgress(
+    //             name: bkName[i],
+    //             current: recvBk,
+    //             total: totalBk,
+    //             desc: "$providerName : ${params['name']}",
+    //           ),
+    //         );
+    //       },
+    //     );
+    //     if (statusBk.ok()) {
+    //       final bkJson = <Map<String, dynamic>>[];
+    //       for (final item in responseBk) {
+    //         final bkItem = <String, dynamic>{};
+    //         bkItem['code'] = item['param']['code']; // 板块代号
+    //         bkItem['name'] = item['param']['name']; // 板块名称
+    //         bkItem['pinyin'] = item['param']['pinyin']; // 板块拼音
+    //         bkItem['shares'] = item['response']; //板块成分股代码
+    //         bkJson.add(bkItem);
+    //       }
+    //       final data = jsonEncode(bkJson);
+    //       debugPrint("写入文件 ${bkPath[i]}");
+    //       // 填充所有股票行业字段
+    //       if (i == 0) {
+    //         fillShareProvince(bkJson);
+    //       } else if (i == 1) {
+    //         fillShareIndustry(bkJson);
+    //       }
+    //       // 存储到缓存和文件
+    //       await FileTool.saveFile(bkPath[i], data);
+    //     }
+    //   }
+    // }
 
-    // 爬取完成后建立股票行情数据索引
-    if (!_indexed) {
-      _indexed = true;
-      _buildShareClassfier(shares);
-      await _buildShareTrie(shares);
-    }
+    // // 爬取完成后建立股票行情数据索引
+    // if (!_indexed) {
+    //   _indexed = true;
+    //   _buildShareClassfier(shares);
+    //   await _buildShareTrie(shares);
+    // }
+    _shares = await TaskScheduler().addTask(TaskSyncShareQuote(params: {}));
+    _buildShareMap(_shares);
+    await _saveQuoteFile(await Config.pathDataFileQuote, _shares);
+
+    final responseBk = await TaskScheduler().addTask(TaskSyncShareBk(params: {}));
+    TaskScheduler().addTask(TaskSyncShareRegion(params: responseBk[0]));
+    TaskScheduler().addTask(TaskSyncShareIndustry(params: responseBk[1]));
+    TaskScheduler().addTask(TaskSyncShareConcept(params: responseBk[2]));
     return success();
   }
 
