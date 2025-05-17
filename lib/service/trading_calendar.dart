@@ -123,6 +123,26 @@ class TradingCalendar {
     return previousDay;
   }
 
+  // 计算两个日期之间的交易日天数
+  int countTradingDays(DateTime start, DateTime end) {
+    int count = 0;
+    DateTime current = start.copyWith(); // 避免修改原日期
+
+    // 确保 start <= end
+    if (start.isAfter(end)) {
+      throw ArgumentError('Start date must be before end date');
+    }
+
+    // 遍历每一天
+    while (current.isBefore(end) || current.isAtSameMomentAs(end)) {
+      if (isTradingDay(current)) {
+        count++;
+      }
+      current = current.add(const Duration(days: 1)); // 下一天
+    }
+    return count;
+  }
+
   /// 跳过节假日（需要维护节假日列表）
   DateTime _skipHolidays(DateTime date) {
     // 示例节假日列表 - 实际应用中应该从数据库或API获取
