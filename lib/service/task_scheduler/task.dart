@@ -11,12 +11,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
 
+import 'package:irich/global/config.dart';
 import 'package:irich/service/task_scheduler/task_events.dart';
 import 'package:irich/service/task_scheduler/task_sync_share_concept.dart';
 import 'package:irich/service/task_scheduler/task_sync_share_industry.dart';
 import 'package:irich/service/task_scheduler/task_sync_share_quote.dart';
 import 'package:irich/service/task_scheduler/task_sync_share_region.dart';
+import 'package:irich/utils/file_tool.dart';
 import 'package:uuid/uuid.dart';
+import 'package:path/path.dart' as p;
 
 enum TaskPriority implements Comparable<TaskPriority> {
   immediate(4), // 最高优先级(如实时行情)
@@ -51,6 +54,7 @@ enum TaskStatus {
   completed(4), // 任务完成（成功）
   cancelled(5), // 任务取消
   failed(6), // 任务失败
+  exit(7), // 子线程退出
   unknown(0);
 
   final int status;
@@ -117,6 +121,7 @@ abstract class Task<T> implements Comparable<Task<T>> {
   int threadId; // 线程ID
   double progress; // 任务进度
   Completer<T>? completer;
+  List<Map<String, dynamic>>? responses;
 
   /// 基类构造函数 - 子类必须调用
   Task({
@@ -170,8 +175,20 @@ abstract class Task<T> implements Comparable<Task<T>> {
 
   void onErrorUi(TaskErrorEvent event) {} // 任务执行失败回调函数
   void onCancelledIsolate() {} // 任务取消回调函数
-  void onPausedIsolate() {} // 任务暂停回调函数
-  void onResumedIsolate() {} // 任务恢复回调，子线程中完成
+  Future<void> onPausedIsolate() async {} // 任务暂停回调函数
+  static Future<Task> onResumedIsolate(String taskId, int threadId) async {
+    String taskPath = await Config.pathTask;
+    String pausedFilePath = p.join(taskPath, taskId, ".json");
+    final data = await FileTool.loadFile(pausedFilePath);
+    final json = jsonDecode(data);
+    final task = Task.deserialize(json);
+    task.params = json['params']; // 用参数覆盖原有的参数列表，继续未完成的请求
+    task.responses = json['responses'];
+    task.status = TaskStatus.running;
+    final resumeEvent = TaskResumedEvent(threadId: threadId, taskId: taskId);
+    task.notifyUi(resumeEvent);
+    return task;
+  } // 任务恢复回调，子线程中完成
 
   void onStartedUi(TaskStartedEvent event) {
     status = TaskStatus.running;

@@ -145,7 +145,7 @@ class FileTool {
   static Future<bool> isDailyFileExpired(String filePath) async {
     // 获取本地行情数据文件修改时间
     String localQuoteFileModifiedTime = await FileTool.getFileModifiedTime(filePath);
-    String today = now("%Y-%m-%d");
+    // String today = now("%Y-%m-%d");
     String nowTime = now("%Y-%m-%d %H:%M:%S");
     final calendar = TradingCalendar();
     if (calendar.isTradingDay(DateTime.now())) {

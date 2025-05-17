@@ -21,11 +21,13 @@ const String strTaskCancelled = "taskCancelled";
 const String strTaskPaused = "taskPaused";
 const String strTaskResumed = "taskResumed";
 const String strSendPort = "sendPort";
+const String strWorkerExited = "workerExited";
 // UI事件类型
 const String strNewTask = "newTask";
 const String strPauseTask = "pauseTask";
 const String strCancelTask = "cancelTask";
 const String strResumeTask = "resumeTask";
+const String strExitWorker = "exitWorker";
 
 abstract class IsolateEvent {
   int threadId; // 线程ID
@@ -235,6 +237,21 @@ class TaskResumedEvent extends IsolateEvent {
   }
 }
 
+// 子线程成功退出消息
+class WorkerExitedEvent extends IsolateEvent {
+  @override
+  final String type = strWorkerExited;
+
+  WorkerExitedEvent({required super.threadId, super.taskId = ""});
+  @override
+  Map<String, dynamic> serialize() => {
+    'type': type,
+    'threadId': threadId,
+    'taskId': taskId,
+    'timestamp': timestamp.toIso8601String(),
+  };
+}
+
 // UI 主线程事件消息
 abstract class UiEvent {
   String get type;
@@ -333,4 +350,15 @@ class ResumeTaskUiEvent extends UiEvent {
   factory ResumeTaskUiEvent.deserialize(Map<String, dynamic> json) {
     return ResumeTaskUiEvent(taskId: json['taskId'] as String);
   }
+}
+
+// 子线程退出事件消息
+class KillWorkerUiEvent extends UiEvent {
+  @override
+  final String type = strExitWorker;
+  final String taskId;
+  KillWorkerUiEvent({required this.taskId});
+
+  @override
+  Map<String, dynamic> serialize() => {};
 }

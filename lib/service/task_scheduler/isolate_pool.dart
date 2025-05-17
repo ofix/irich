@@ -96,10 +96,7 @@ class IsolatePool {
   void listenIsolateEvents() {
     _poolRecvPort?.listen((dynamic message) async {
       final event = jsonDecode(message);
-      if (event is SendPortIsolateEvent) {
-        final isolateWorker = _workersMap[event.threadId]; // 找到对应子线程的 worker
-        isolateWorker?.isolateSendPort = event.isolateSendPort; // 子线程的消息发送端口
-      } else if (event is TaskStartedEvent) {
+      if (event is TaskStartedEvent) {
         Task? task = _searchTask(event);
         task?.onStartedUi(event);
       } else if (event is TaskProgressEvent) {
@@ -232,7 +229,7 @@ class IsolatePool {
       _activeWorkers.length + _idleWorkers.length < _maxIsolates;
 
   Future<void> _spawnWorker(int threadId) async {
-    final worker = await IsolateWorker.create(this, threadId);
+    final worker = await IsolateWorker.create(_poolRecvPort!.sendPort, threadId);
     _idleWorkers.add(worker);
     _checkPendingTasks();
   }

@@ -38,7 +38,7 @@ class TaskSyncShareRegion extends BatchApiTask {
   Future<void> run() async {
     super.doJob();
     final bkJson = <Map<String, dynamic>>[];
-    for (final item in responses) {
+    for (final item in responses!) {
       final bkItem = <String, dynamic>{};
       bkItem['code'] = item['param']['code']; // 板块代号
       bkItem['name'] = item['param']['name']; // 板块名称

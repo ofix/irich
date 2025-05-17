@@ -7,116 +7,141 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'dart:convert';
 import 'dart:isolate';
 
-import 'package:irich/service/task_scheduler/isolate_pool.dart';
 import 'package:irich/service/task_scheduler/task.dart';
 import 'package:irich/service/task_scheduler/task_events.dart';
 
 class IsolateWorker {
-  static int _threadId = 0; // 线程ID
-  Isolate? _isolate; // 子线程
-  SendPort? isolateSendPort; // 子线程的发送端口，可以通过这个端口给子线程发送事件消息
+  final SendPort mainPort; // 线程池的消息发送端口
+  final int threadId; // 子线程ID
+  Isolate? _isolate; // 子线程引用
+  SendPort? _isolateSendPort; // 向子线程发送消息的端口
+  Task? _currentTask; // 当前线程执行的任务
 
-  final IsolatePool? _pool; // 线程池引用
-  IsolateWorker(this._pool);
+  IsolateWorker(this.threadId, this.mainPort);
 
-  static Future<IsolateWorker> create(IsolatePool pool, int threadId) async {
-    final worker = IsolateWorker(pool);
+  static Future<IsolateWorker> create(SendPort mainPort, int threadId) async {
+    final worker = IsolateWorker(threadId, mainPort);
     await worker._initialize();
-    _threadId = threadId;
     return worker;
   }
 
-  int get threadId => _threadId;
-
   Future<void> _initialize() async {
-    _isolate = await Isolate.spawn(_isolateEntry, _pool!.poolSendPort);
+    final initPort = ReceivePort();
+    _isolate = await Isolate.spawn(_isolateEntry, [mainPort, threadId, initPort.sendPort]);
+    // 等待子线程返回消息发送端口
+    _isolateSendPort = await initPort.first as SendPort;
+    initPort.close();
   }
 
   void notify(UiEvent event) {
-    isolateSendPort?.send(event);
+    _isolateSendPort?.send(event);
   }
 
   Future<void> dispose() async {
-    _isolate?.kill();
+    notify(KillWorkerUiEvent(taskId: _currentTask?.taskId ?? ""));
+    await Future.delayed(const Duration(milliseconds: 100)); // Allow cleanup
+    _isolate?.kill(priority: Isolate.immediate);
     _isolate = null;
-    isolateSendPort = null;
+    _isolateSendPort = null;
   }
 
-  static void _isolateEntry(SendPort mainSendPort) {
+  static void _isolateEntry(List<dynamic> args) {
+    final SendPort mainPort = args[0] as SendPort;
+    final int threadId = args[1] as int;
+    final SendPort initPort = args[2] as SendPort;
     final receivePort = ReceivePort();
-    final sendPortEvent = SendPortIsolateEvent(
-      threadId: _threadId,
-      taskId: "", // 未使用
-      isolateSendPort: receivePort.sendPort,
-    );
-    mainSendPort.send(sendPortEvent);
-
-    Task? runningTask;
+    // 返回子线程消息发送端口
+    initPort.send(receivePort.sendPort);
+    Task? currentTask;
     receivePort.listen((dynamic message) async {
-      final event = jsonDecode(message);
-      if (event is NewTaskEvent) {
-        // 新任务
-        runningTask = event.task;
-        // 任务开始事件
-        IsolateEvent startedEvent = TaskStartedEvent(
-          threadId: _threadId,
-          taskId: runningTask!.taskId,
-        );
-        runningTask!.notifyUi(startedEvent);
-        try {
-          await runningTask?.run();
-        } catch (e, stackTrace) {
-          // 发送任务出错事件
-          final errorEvent = TaskErrorEvent(
-            threadId: _threadId,
-            taskId: runningTask!.taskId,
-            error: e.toString(),
-            stackTrace: stackTrace,
+      try {
+        if (message is NewTaskEvent) {
+          currentTask = message.task;
+          await _handleNewTask(message, threadId);
+          currentTask = null;
+        } else if (message is PauseTaskUiEvent) {
+          _handlePauseTask(currentTask);
+          currentTask = null;
+        } else if (message is CancelTaskUiEvent) {
+          await _handleCancelTask(message, currentTask, threadId);
+          currentTask = null;
+        } else if (message is ResumeTaskUiEvent) {
+          // 任务恢复过程中，有可能当前任务是另外一个任务正在执行过程中
+          // 如果任务当前任务不为空，我们就暂停当前任务，然后再恢复
+          currentTask!.status == TaskStatus.running;
+          await _handlePauseTask(currentTask);
+          // 恢复过程也有可能出错，比如任务暂存文件被删除(超过24小时被清理等情况)
+          // 此函数不好封装，因为需要提前返回恢复的Task，在恢复过程中，有可能进程又发来消息，导致竞争
+          currentTask = await Task.onResumedIsolate(message.taskId, threadId);
+
+          currentTask?.notifyUi(TaskResumedEvent(threadId: threadId, taskId: message.taskId));
+          await currentTask?.run();
+          currentTask?.notifyUi(
+            TaskCompletedEvent(threadId: threadId, taskId: currentTask!.taskId),
           );
-          runningTask!.notifyUi(errorEvent);
+        } else if (message is KillWorkerUiEvent) {
+          await _handleKillWorker(mainPort, currentTask, threadId);
+          receivePort.close();
         }
-        // 发送任务完成事件
-        final completedEvent = TaskCompletedEvent(threadId: _threadId, taskId: runningTask!.taskId);
-        runningTask!.notifyUi(completedEvent);
-      } else if (event is PauseTaskUiEvent) {
-        // 任务暂停
-        if (runningTask != null) {
-          runningTask!.onPausedIsolate();
-        }
-      } else if (event is CancelTaskUiEvent) {
-        // 任务取消
-        if (runningTask != null) {
-          runningTask!.status = TaskStatus.cancelled;
-          IsolateEvent cancelledEvent = TaskCancelledEvent(
-            threadId: _threadId,
-            taskId: runningTask!.taskId,
-          );
-          runningTask!.notifyUi(cancelledEvent);
-        }
-      } else if (event is ResumeTaskUiEvent) {
-        // 任务恢复
-        final taskId = event.taskId;
-        IsolateEvent resumedEvent = TaskResumedEvent(threadId: _threadId, taskId: taskId);
-        runningTask!.notifyUi(resumedEvent);
-        try {
-          await runningTask?.run();
-        } catch (e, stackTrace) {
-          // 发送任务出错事件
-          final errorEvent = TaskErrorEvent(
-            threadId: _threadId,
-            taskId: runningTask!.taskId,
-            error: e.toString(),
-            stackTrace: stackTrace,
-          );
-          runningTask!.notifyUi(errorEvent);
-        }
-        // 发送任务完成事件
-        final completedEvent = TaskCompletedEvent(threadId: _threadId, taskId: runningTask!.taskId);
-        runningTask!.notifyUi(completedEvent);
+      } catch (e, stackTrace) {
+        _handleError(e, stackTrace, currentTask, threadId);
       }
     });
+  }
+
+  /// 处理新任务
+  static Future<void> _handleNewTask(NewTaskEvent event, int threadId) async {
+    final task = event.task;
+    task.notifyUi(TaskStartedEvent(threadId: threadId, taskId: task.taskId));
+    try {
+      await task.run();
+      task.notifyUi(TaskCompletedEvent(threadId: threadId, taskId: task.taskId));
+    } catch (e, stackTrace) {
+      task.notifyUi(
+        TaskErrorEvent(
+          threadId: threadId,
+          taskId: task.taskId,
+          error: e.toString(),
+          stackTrace: stackTrace,
+        ),
+      );
+    }
+  }
+
+  /// 暂停任务
+  static Future<void> _handlePauseTask(Task? currentTask) async {
+    currentTask?.status = TaskStatus.paused;
+    await currentTask?.onPausedIsolate();
+  }
+
+  /// 取消任务
+  static Future<void> _handleCancelTask(
+    CancelTaskUiEvent event,
+    Task? currentTask,
+    int threadId,
+  ) async {
+    currentTask?.status = TaskStatus.cancelled;
+    currentTask?.onCancelledIsolate();
+    currentTask?.notifyUi(TaskCancelledEvent(threadId: threadId, taskId: currentTask.taskId));
+  }
+
+  /// 子线程退出
+  static Future<void> _handleKillWorker(SendPort mainPort, Task? currentTask, int threadId) async {
+    currentTask?.onCancelledIsolate();
+    mainPort.send(WorkerExitedEvent(threadId: threadId));
+  }
+
+  /// 任务出错
+  static void _handleError(dynamic error, StackTrace stackTrace, Task? currentTask, int threadId) {
+    currentTask?.notifyUi(
+      TaskErrorEvent(
+        threadId: threadId,
+        taskId: currentTask.taskId,
+        error: error.toString(),
+        stackTrace: stackTrace,
+      ),
+    );
   }
 }

@@ -26,13 +26,11 @@ abstract class BatchApiTask extends Task<void> {
   ApiService apiService;
   ProviderApiType get apiType;
   String pausedFilePath;
-  List<Map<String, dynamic>> responses;
   int totalRequests; // 任务请求总数
   int recvRequests; // 已完成任务请求数
   BatchApiTask({super.params, super.priority, super.submitTime, super.status})
     : apiService = ApiService(ProviderApiType.unknown),
       pausedFilePath = '',
-      responses = [],
       totalRequests = (params as List<Map<String, dynamic>>).length,
       recvRequests = 0;
 
@@ -68,7 +66,11 @@ abstract class BatchApiTask extends Task<void> {
     }
     if (status.status == RichStatus.ok) {
       // 任务完成，直接保存结果到文件
-      responses = [...responses, ...response];
+      if (responses != null) {
+        responses = [...responses!, ...response];
+      } else {
+        responses = [...response];
+      }
     }
   }
 
@@ -88,25 +90,11 @@ abstract class BatchApiTask extends Task<void> {
 
   @override
   void onCancelledIsolate() {
-    status = TaskStatus.cancelled;
     apiService.cancel();
   }
 
   @override
-  void onPausedIsolate() {
-    status = TaskStatus.paused;
+  Future<void> onPausedIsolate() async {
     apiService.pause(); // 任务暂停
-  }
-
-  @override
-  void onResumedIsolate() async {
-    final data = await FileTool.loadFile(pausedFilePath);
-    final json = jsonDecode(data);
-    params = json['params']; // 用参数覆盖原有的参数列表，继续未完成的请求
-    responses = json['responses'];
-    status = TaskStatus.running;
-    await doJob();
-    final resumeEvent = TaskResumedEvent(threadId: threadId, taskId: taskId);
-    notifyUi(resumeEvent);
   }
 }

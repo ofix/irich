@@ -8,16 +8,22 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:irich/global/config.dart';
+import 'package:irich/service/api_provider_capabilities.dart';
+import 'package:irich/service/task_scheduler/batch_api_task.dart';
 import 'package:irich/service/task_scheduler/task.dart';
+import 'package:irich/service/task_scheduler/task_events.dart';
+import 'package:irich/store/store_quote.dart';
+import 'package:irich/utils/file_tool.dart';
 
-class TaskSyncShareIndustry extends Task {
+class TaskSyncShareIndustry extends BatchApiTask {
   @override
   TaskType type = TaskType.syncShareIndustry;
   @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
+  ProviderApiType apiType = ProviderApiType.industry;
   TaskSyncShareIndustry({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -35,8 +41,31 @@ class TaskSyncShareIndustry extends Task {
   }
 
   @override
-  Future<dynamic> run() {
-    // 实现同步最新全量股票行业数据
-    throw UnimplementedError("TaskSyncShareIndustry must implement run()");
+  Future<void> run() async {
+    super.doJob();
+    final bkJson = <Map<String, dynamic>>[];
+    for (final item in responses) {
+      final bkItem = <String, dynamic>{};
+      bkItem['code'] = item['param']['code']; // 板块代号
+      bkItem['name'] = item['param']['name']; // 板块名称
+      bkItem['pinyin'] = item['param']['pinyin']; // 板块拼音
+      bkItem['shares'] = item['response']; //板块成分股代码
+      bkJson.add(bkItem);
+    }
+    final data = jsonEncode(bkJson);
+    String filePath = await Config.pathMapFileIndustry;
+    debugPrint("写入文件 $filePath");
+    await FileTool.saveFile(filePath, data);
+  }
+
+  @override
+  Future<dynamic> onCompletedUi(TaskCompletedEvent event, dynamic result) async {
+    // 加载股票行业信息
+    String filePath = await Config.pathMapFileIndustry;
+    String data = await FileTool.loadFile(filePath);
+    final industries = jsonDecode(data);
+    // 填充股票的 industry 字段
+    StoreQuote.fillShareIndustry(industries);
+    // 通知UI更新
   }
 }

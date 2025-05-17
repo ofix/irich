@@ -8,16 +8,21 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:irich/global/config.dart';
+import 'package:irich/service/api_provider_capabilities.dart';
+import 'package:irich/service/task_scheduler/batch_api_task.dart';
 import 'package:irich/service/task_scheduler/task.dart';
+import 'package:irich/service/task_scheduler/task_events.dart';
+import 'package:irich/utils/file_tool.dart';
 
-class TaskSyncShareConcept extends Task {
+class TaskSyncShareConcept extends BatchApiTask {
   @override
   TaskType type = TaskType.syncShareConcept;
   @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
+  ProviderApiType apiType = ProviderApiType.concept;
   TaskSyncShareConcept({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -35,8 +40,26 @@ class TaskSyncShareConcept extends Task {
   }
 
   @override
-  Future<dynamic> run() {
-    // 实现同步最新全量股票概念数据
-    throw UnimplementedError("TaskSyncShareConcept must implement run()");
+  Future<void> run() async {
+    super.doJob();
+    final bkJson = <Map<String, dynamic>>[];
+    for (final item in responses!) {
+      final bkItem = <String, dynamic>{};
+      bkItem['code'] = item['param']['code']; // 板块代号
+      bkItem['name'] = item['param']['name']; // 板块名称
+      bkItem['pinyin'] = item['param']['pinyin']; // 板块拼音
+      bkItem['shares'] = item['response']; //板块成分股代码
+      bkJson.add(bkItem);
+    }
+    final data = jsonEncode(bkJson);
+    String filePath = await Config.pathMapFileConcept;
+    debugPrint("写入文件 $filePath");
+    await FileTool.saveFile(filePath, data);
+  }
+
+  @override
+  Future<dynamic> onCompletedUi(TaskCompletedEvent event, dynamic result) async {
+    // 加载股票行业信息
+    // 通知UI更新
   }
 }
