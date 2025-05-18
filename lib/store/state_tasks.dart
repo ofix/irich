@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/store/state_tasks.dart
+// Purpose:     tasks state
+// Author:      songhuabiao
+// Created:     2025-05-18 22:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/service/task_scheduler/task.dart';
 import 'package:irich/service/task_scheduler/task_scheduler.dart';
@@ -9,6 +18,8 @@ class StateTaskList extends StateNotifier<List<Task>> {
     _scheduler.addListener(_updateState);
   }
 
+  Map<String, dynamic> get stats => _scheduler.stats;
+
   void _updateState() {
     state = [..._scheduler.allTasks()];
   }
@@ -16,8 +27,6 @@ class StateTaskList extends StateNotifier<List<Task>> {
   void selectTask(Task task) {
     _scheduler.selectTask(task);
   }
-
-  Map<String, dynamic> get stats => _scheduler.stats;
 
   @override
   void dispose() {

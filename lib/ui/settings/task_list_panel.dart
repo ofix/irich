@@ -18,18 +18,28 @@ class TaskListPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(stateTaskListProvider);
-    final store = ref.read(stateTaskListProvider.notifier);
+    final selectedTask = ref.watch(selectedTaskProvider);
 
-    return ListView.builder(
-      itemCount: tasks.length,
-      itemBuilder: (context, index) {
-        final task = tasks[index];
-        return ListTile(
-          title: Text(task.toString()),
-          subtitle: LinearProgressIndicator(value: task.progress),
-          onTap: () => store.selectTask(task),
-        );
-      },
+    return Column(
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: Text('任务列表', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: tasks.length,
+            itemBuilder: (context, index) {
+              final task = tasks[index];
+              return TaskListItem(
+                key: ValueKey(task.taskId), // 确保每个任务项有唯一key
+                task: task,
+                isSelected: selectedTask?.taskId == task.taskId,
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -37,14 +47,8 @@ class TaskListPanel extends ConsumerWidget {
 class TaskListItem extends ConsumerWidget {
   final Task task;
   final bool isSelected;
-  final VoidCallback onTap;
 
-  const TaskListItem({
-    super.key,
-    required this.task,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const TaskListItem({super.key, required this.task, required this.isSelected});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,7 +56,6 @@ class TaskListItem extends ConsumerWidget {
       color: isSelected ? Colors.blue[50] : null,
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: InkWell(
-        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
