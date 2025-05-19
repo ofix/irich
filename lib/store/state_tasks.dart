@@ -14,14 +14,14 @@ import 'package:irich/service/task_scheduler/task_scheduler.dart';
 class StateTaskList extends StateNotifier<List<Task>> {
   final TaskScheduler _scheduler;
 
-  StateTaskList(this._scheduler) : super(_scheduler.allTasks()) {
+  StateTaskList(this._scheduler) : super(_scheduler.taskList) {
     _scheduler.addListener(_updateState);
   }
 
   Map<String, dynamic> get stats => _scheduler.stats;
 
   void _updateState() {
-    state = [..._scheduler.allTasks()];
+    state = [..._scheduler.taskList];
   }
 
   void selectTask(Task task) {

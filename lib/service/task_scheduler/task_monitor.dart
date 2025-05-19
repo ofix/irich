@@ -15,7 +15,7 @@ import 'package:irich/service/task_scheduler/task_scheduler.dart';
 
 class TaskMonitor with ChangeNotifier {
   final TaskScheduler _scheduler = TaskScheduler();
-  List<Task> get allTasks => _scheduler.allTasks();
+  List<Task> get allTasks => _scheduler.taskList;
   TaskMonitor() {
     // 定时刷新UI
     Timer.periodic(Duration(seconds: 1), (_) => notifyListeners());

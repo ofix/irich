@@ -13,23 +13,23 @@ import 'package:irich/service/task_scheduler/task.dart';
 import 'package:irich/service/task_scheduler/task_events.dart';
 
 class IsolateWorker {
-  final SendPort mainPort; // 线程池的消息发送端口
+  final SendPort mainSendPort; // 主线程(UI线程)的消息发送端口
   final int threadId; // 子线程ID
   Isolate? _isolate; // 子线程引用
   SendPort? _isolateSendPort; // 向子线程发送消息的端口
   Task? _currentTask; // 当前线程执行的任务
 
-  IsolateWorker(this.threadId, this.mainPort);
+  IsolateWorker(this.threadId, this.mainSendPort);
 
-  static Future<IsolateWorker> create(SendPort mainPort, int threadId) async {
-    final worker = IsolateWorker(threadId, mainPort);
+  static Future<IsolateWorker> create(SendPort mainSendPort, int threadId) async {
+    final worker = IsolateWorker(threadId, mainSendPort);
     await worker._initialize();
     return worker;
   }
 
   Future<void> _initialize() async {
     final initPort = ReceivePort();
-    _isolate = await Isolate.spawn(_isolateEntry, [mainPort, threadId, initPort.sendPort]);
+    _isolate = await Isolate.spawn(_isolateEntry, [mainSendPort, threadId, initPort.sendPort]);
     // 等待子线程返回消息发送端口
     _isolateSendPort = await initPort.first as SendPort;
     initPort.close();
@@ -48,7 +48,7 @@ class IsolateWorker {
   }
 
   static void _isolateEntry(List<dynamic> args) {
-    final SendPort mainPort = args[0] as SendPort;
+    final SendPort mainSendPort = args[0] as SendPort;
     final int threadId = args[1] as int;
     final SendPort initPort = args[2] as SendPort;
     final receivePort = ReceivePort();
@@ -82,7 +82,7 @@ class IsolateWorker {
             TaskCompletedEvent(threadId: threadId, taskId: currentTask!.taskId),
           );
         } else if (message is KillWorkerUiEvent) {
-          await _handleKillWorker(mainPort, currentTask, threadId);
+          await _handleKillWorker(mainSendPort, currentTask, threadId);
           receivePort.close();
         }
       } catch (e, stackTrace) {
