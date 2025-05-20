@@ -20,10 +20,6 @@ import 'package:irich/utils/file_tool.dart';
 class TaskSyncShareQuote extends Task<List<Share>> {
   @override
   TaskType type = TaskType.syncShareQuote;
-  @override
-  bool canPaused = false;
-  @override
-  bool canCancelled = false;
   TaskSyncShareQuote({
     required super.params,
     super.priority = TaskPriority.immediate,

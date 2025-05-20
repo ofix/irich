@@ -228,8 +228,8 @@ class TaskScheduler {
     if (task == null) {
       return false; // 任务不存在
     }
-    if (!task.canPaused) {
-      return false; // 任务不可以暂停
+    if (task.priority == TaskPriority.immediate) {
+      return false; // 主线程UI任务不可以暂停
     }
     task.status = TaskStatus.paused;
     final threadId = task.threadId;
@@ -275,7 +275,7 @@ class TaskScheduler {
     if (task == null) {
       return false; // 任务不存在
     }
-    if (!task.canCancelled) {
+    if (task.priority == TaskPriority.immediate) {
       return false; // 任务不可以取消
     }
     task.status = TaskStatus.paused;

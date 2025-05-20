@@ -107,8 +107,6 @@ enum TaskType implements Comparable<TaskType> {
 
 abstract class Task<T> implements Comparable<Task<T>> {
   TaskType get type; // 任务类型
-  bool get canPaused; // 是否可暂停
-  bool get canCancelled; // 是否可取消
   dynamic params; // 任务参数
   String taskId;
   TaskPriority priority; // 任务优先级
@@ -213,10 +211,6 @@ abstract class Task<T> implements Comparable<Task<T>> {
 class TaskSyncShareRegionPartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareRegionPartial;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSyncShareRegionPartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -234,10 +228,6 @@ class TaskSyncShareRegionPartial<T> extends Task<T> {
 class TaskSyncShareIndustryPartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareIndustryPartial;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSyncShareIndustryPartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -255,10 +245,6 @@ class TaskSyncShareIndustryPartial<T> extends Task<T> {
 class TaskSyncShareConceptPartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareConceptPartial;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSyncShareConceptPartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -276,10 +262,6 @@ class TaskSyncShareConceptPartial<T> extends Task<T> {
 class TaskSyncShareDailyKline<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareDailyKline;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSyncShareDailyKline({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -297,10 +279,6 @@ class TaskSyncShareDailyKline<T> extends Task<T> {
 class TaskSyncShareDailyKlinePartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareDailyKlinePartial;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSyncShareDailyKlinePartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -318,10 +296,6 @@ class TaskSyncShareDailyKlinePartial<T> extends Task<T> {
 class TaskSyncShareBasicInfo<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareBasicInfo;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSyncShareBasicInfo({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -339,10 +313,6 @@ class TaskSyncShareBasicInfo<T> extends Task<T> {
 class TaskSyncShareBasicInfoPartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncShareBasicInfoPartial;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSyncShareBasicInfoPartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -360,10 +330,6 @@ class TaskSyncShareBasicInfoPartial<T> extends Task<T> {
 class TaskSyncIndexDailyKline<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncIndexDailyKline;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSyncIndexDailyKline({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -381,10 +347,6 @@ class TaskSyncIndexDailyKline<T> extends Task<T> {
 class TaskSyncIndexDailyKlinePartial<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncIndexDailyKlinePartial;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSyncIndexDailyKlinePartial({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -402,10 +364,6 @@ class TaskSyncIndexDailyKlinePartial<T> extends Task<T> {
 class TaskSyncIndexMinuteKline<T> extends Task<T> {
   @override
   TaskType type = TaskType.syncIndexMinuteKline;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSyncIndexMinuteKline({
     required super.params,
     super.priority = TaskPriority.normal,
@@ -423,10 +381,6 @@ class TaskSyncIndexMinuteKline<T> extends Task<T> {
 class TaskSmartShareAnalysis<T> extends Task<T> {
   @override
   TaskType type = TaskType.smartShareAnalysis;
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   TaskSmartShareAnalysis({
     required super.params,
     super.priority = TaskPriority.high,
