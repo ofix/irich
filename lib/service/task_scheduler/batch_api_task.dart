@@ -19,10 +19,6 @@ import 'package:irich/utils/rich_result.dart';
 import 'package:path/path.dart' as p;
 
 abstract class BatchApiTask extends Task<void> {
-  @override
-  bool canPaused = true;
-  @override
-  bool canCancelled = true;
   ApiService apiService;
   ProviderApiType get apiType;
   String pausedFilePath;
