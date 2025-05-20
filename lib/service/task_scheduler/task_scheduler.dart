@@ -166,6 +166,33 @@ class TaskScheduler {
     return _taskMap[taskId];
   }
 
+  // UI显示相关函数集
+  void addListener(VoidCallback listener) => _listeners.add(listener);
+  void removeListener(VoidCallback listener) => _listeners.remove(listener);
+  void notifyListeners() {
+    for (final listener in _listeners) {
+      listener();
+    }
+  }
+
+  // 恢复所有暂停的任务
+  void resumeAllPausedTask() {
+    for (var entry in _taskMap.entries) {
+      entry.value.status = TaskStatus.paused;
+    }
+    notifyListeners();
+  }
+
+  Map<String, dynamic> get stats {
+    return {
+      'waiting': taskList.where((t) => t.status == TaskStatus.pending).length,
+      'running': taskList.where((t) => t.status == TaskStatus.running).length,
+      'completed': taskList.where((t) => t.status == TaskStatus.completed).length,
+      'error': taskList.where((t) => t.status == TaskStatus.failed).length,
+      //'totalSpeed': tasks.fold(0, (sum, task) => sum + task.speed),
+    };
+  }
+
   // 提交任务
   Future<T> addTask<T>(Task<T> task) async {
     // 检查任务类型
@@ -373,31 +400,5 @@ class TaskScheduler {
     _taskMap.clear();
     _pendingTaskQueue.clear();
     taskList.clear();
-  }
-
-  void addListener(VoidCallback listener) => _listeners.add(listener);
-  void removeListener(VoidCallback listener) => _listeners.remove(listener);
-  void notifyListeners() {
-    for (final listener in _listeners) {
-      listener();
-    }
-  }
-
-  // 恢复所有暂停的任务
-  void resumeAllPausedTask() {
-    for (var entry in _taskMap.entries) {
-      entry.value.status = TaskStatus.paused;
-    }
-    notifyListeners();
-  }
-
-  Map<String, dynamic> get stats {
-    return {
-      'waiting': taskList.where((t) => t.status == TaskStatus.pending).length,
-      'running': taskList.where((t) => t.status == TaskStatus.running).length,
-      'completed': taskList.where((t) => t.status == TaskStatus.completed).length,
-      'error': taskList.where((t) => t.status == TaskStatus.failed).length,
-      //'totalSpeed': tasks.fold(0, (sum, task) => sum + task.speed),
-    };
   }
 }
