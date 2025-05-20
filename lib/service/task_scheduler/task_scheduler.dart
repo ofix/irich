@@ -25,6 +25,7 @@ class TaskScheduler {
     (a, b) => a.priority.compareTo(b.priority),
   ); // 优先级任务等待队列
   final List<Task<dynamic>> taskList = []; // 任务列表，返回给UI显示的副本
+  final List<Task<dynamic>> runningTaskList = []; // 运行中的任务列表
 
   int runningTaskCount = 0; // 运行中任务计数
   int? maxUiRunningTasks = 2; // UI主线程中支持的并发异步任务数
@@ -134,24 +135,24 @@ class TaskScheduler {
         Task? task = _searchTask(event);
         task?.status = TaskStatus.paused;
         _onWorkerIdle(getIsolateWorker(task!.threadId)!);
-        _runningTaskCount--;
+        _removeRunningTask(task.taskId);
       } else if (event is TaskErrorEvent) {
         Task? task = _searchTask(event);
         task?.status = TaskStatus.failed;
-        _onWorkerIdle(getIsolateWorker(task!.threadId)!);
-        _runningTaskCount--;
+        _removeRunningTask(task!.taskId);
+        _onWorkerIdle(getIsolateWorker(task.threadId)!);
       } else if (event is TaskCompletedEvent) {
         Task? task = _searchTask(event);
         task?.onCompletedUi(event, null);
-        _runningTaskCount--;
-        _onWorkerIdle(getIsolateWorker(task!.threadId)!);
+        _removeRunningTask(task!.taskId);
+        _onWorkerIdle(getIsolateWorker(task.threadId)!);
       } else if (event is TaskResumedEvent) {
         Task? task = _searchTask(event);
         task?.status = TaskStatus.running;
       } else if (event is TaskCancelledEvent) {
         Task? task = _searchTask(event);
         task?.status = TaskStatus.cancelled;
-        _runningTaskCount--;
+        _removeRunningTask(task!.taskId);
       }
     });
   }
@@ -270,6 +271,8 @@ class TaskScheduler {
     _runningTaskCount++;
     final startedEvent = TaskStartedEvent(threadId: 0, taskId: task.taskId);
     task.onStartedUi(startedEvent);
+    runningTaskList.add(task);
+    final runningTaskIndex = runningTaskList.length - 1;
     try {
       final result = await task.run();
       final event = TaskCompletedEvent(threadId: 0, taskId: task.taskId);
@@ -282,7 +285,9 @@ class TaskScheduler {
         stackTrace: stackTrace,
       );
       task.onErrorUi(event);
+      runningTaskList.removeAt(runningTaskIndex);
     } finally {
+      runningTaskList.removeAt(runningTaskIndex);
       _runningTaskCount--;
       _schedule();
     }
@@ -308,6 +313,18 @@ class TaskScheduler {
     final newTaskEvent = NewTaskEvent(task: task);
     worker.notify(newTaskEvent);
     _activeWorkers.add(worker);
+    _runningTaskCount++;
+    runningTaskList.add(task);
+  }
+
+  void _removeRunningTask(String taskId) {
+    for (int i = 0; i < runningTaskList.length; i++) {
+      if (runningTaskList[i].taskId == taskId) {
+        runningTaskList.removeAt(i);
+        break;
+      }
+    }
+    _runningTaskCount--;
   }
 
   /// 任务调度
