@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:irich/global/config.dart';
 import 'dart:io';
 import 'package:irich/service/isolate_worker.dart';
+import 'package:irich/service/request_log.dart';
 import 'package:irich/service/tasks/task.dart';
 import 'package:irich/service/task_events.dart';
 import 'package:irich/utils/file_tool.dart';
@@ -26,6 +27,7 @@ class TaskScheduler {
   ); // 优先级任务等待队列
   final List<Task<dynamic>> taskList = []; // 任务列表，返回给UI显示的副本
   final List<Task<dynamic>> runningTaskList = []; // 运行中的任务列表
+  final Map<String, List<RequestLog>> _taskLogs = {}; // 任务请求日志
 
   int runningTaskCount = 0; // 运行中任务计数
   int? maxUiRunningTasks = 2; // UI主线程中支持的并发异步任务数
@@ -124,12 +126,13 @@ class TaskScheduler {
   // 处理子线程发送过来的UiEvent
   void listenIsolateEvents() {
     _mainRecvPort?.listen((dynamic message) async {
-      final event = jsonDecode(message);
+      final event = IsolateEvent.deserialize(message);
       if (event is TaskStartedEvent) {
         Task? task = _searchTask(event);
         task?.onStartedUi(event);
       } else if (event is TaskProgressEvent) {
         Task? task = _searchTask(event);
+        _taskLogs.putIfAbsent(task!.taskId, () => []).add(event.requestLog); // 添加请求日志
         task?.onProgressUi(event);
       } else if (event is TaskPausedEvent) {
         Task? task = _searchTask(event);
