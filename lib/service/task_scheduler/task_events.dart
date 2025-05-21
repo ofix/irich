@@ -8,7 +8,6 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 // 任务事件集合
-import 'dart:convert';
 import 'dart:isolate';
 
 import 'package:irich/service/request_log.dart';
