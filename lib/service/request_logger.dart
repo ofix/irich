@@ -9,6 +9,7 @@
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/request_log.dart';
 import 'package:irich/service/sql_service.dart';
 
@@ -38,7 +39,7 @@ class RequestLogger {
     try {
       final logs = <Map<String, dynamic>>[];
       for (final log in logsToInsert) {
-        logs.add(log.toMap());
+        logs.add(log.serialize());
       }
       sqlService.batchInsert('request_log', logs);
       if (kDebugMode) {
@@ -54,33 +55,34 @@ class RequestLogger {
   }
 
   // 记录爬虫请求错误日志
-  Future<void> logError({
-    required String providerId,
-    required String apiType,
+  Future<void> log({
+    required String taskId,
+    required EnumApiProvider providerId,
+    required ProviderApiType apiType,
+    required int statusCode,
     required String url,
-    required int? statusCode,
+    required DateTime requestTime,
+    required DateTime responseTime,
+    required int responseBytes,
     required String errorMessage,
     required int duration,
   }) async {
     final log = RequestLog(
+      taskId: taskId,
       providerId: providerId,
       apiType: apiType,
-      url: url,
-      requestTime: DateTime.now(),
       statusCode: statusCode,
-      errorMessage: errorMessage,
+      url: url,
+      requestTime: requestTime,
+      responseTime: responseTime,
       duration: duration,
+      responseBytes: responseBytes,
+      errorMessage: errorMessage,
     );
 
     // 输出到控制台
     debugPrint('''
-[Crawler Error]
-Provider: $providerId
-API Type: $apiType
-URL: $url
-Status: ${statusCode ?? 'N/A'}
-Error: $errorMessage
-Duration: ${duration}ms
+TaskId: $taskId, Status: ${statusCode ?? 'N/A'}, Provider: ${providerId.name}, API Type: ${apiType.val}, URL: $url, Duration: ${duration}ms, Bytes: $responseBytes, Error: $errorMessage
 ''');
 
     // 添加到缓冲区
@@ -108,7 +110,7 @@ Duration: ${duration}ms
 
     // 合并内存中的未写入日志（虽然_flushBuffer已经清空，但这里保持接口一致性）
     final allLogs = [
-      ...maps.map((map) => RequestLog.fromMap(map)),
+      ...maps.map((json) => RequestLog.unserialize(json)),
       ..._errorLogs.where((log) => !log.isResolved),
     ];
 
@@ -131,10 +133,14 @@ Duration: ${duration}ms
       (log) => log.id == id,
       orElse:
           () => RequestLog(
-            providerId: '',
-            apiType: '',
+            taskId: '',
+            providerId: EnumApiProvider.unknown,
+            apiType: ProviderApiType.unknown,
+            statusCode: 200,
             url: '',
             requestTime: DateTime.now(),
+            responseTime: DateTime.now(),
+            responseBytes: 0,
             duration: 0,
             id: -1, // 无效ID
           ),
@@ -154,8 +160,8 @@ Duration: ${duration}ms
   Future<void> incrementRetryCount(int id) async {
     // 先检查内存中的日志
     final memoryLogIndex = _errorLogs.indexWhere((log) => log.id == id);
-    if (memoryLogIndex != -1) {
-      _errorLogs[memoryLogIndex].retryCount++;
+    if (memoryLogIndex >= 0) {
+      _errorLogs[memoryLogIndex].retryCount = (_errorLogs[memoryLogIndex].retryCount ?? 0) + 1;
       return;
     }
 

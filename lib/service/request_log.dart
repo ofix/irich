@@ -7,27 +7,36 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
+import 'package:irich/service/api_provider_capabilities.dart';
+
 class RequestLog {
   int? id;
-  final String providerId;
-  final String apiType;
-  final String url;
-  final DateTime requestTime;
-  final int? statusCode;
-  final String? errorMessage;
-  final int duration; // 毫秒
-  int retryCount;
-  bool isResolved;
+  final String taskId; // 任务ID
+  final EnumApiProvider providerId; // 供应商ID
+  final ProviderApiType apiType; // 请求类型
+  final String url; // 请求URL
+  final DateTime requestTime; // 请求时间
+  final DateTime responseTime; // 响应时间
+  final int duration; // 请求耗时，毫秒
+  final int responseBytes; // 响应字节数
+  final int? statusCode; // 响应状态吗
+  final String? errorMessage; // 错误消息
+
+  int? retryCount; // 重试次数
+  bool isResolved; // 任务是否已解决
 
   RequestLog({
     this.id,
+    required this.taskId,
     required this.providerId,
     required this.apiType,
+    required this.statusCode,
     required this.url,
     required this.requestTime,
-    this.statusCode,
-    this.errorMessage,
+    required this.responseTime,
     required this.duration,
+    required this.responseBytes,
+    this.errorMessage,
     this.retryCount = 0,
     this.isResolved = false,
   });
@@ -35,57 +44,69 @@ class RequestLog {
   // 添加copyWith方法以便更新内存中的日志
   RequestLog copyWith({
     int? id, // 自增ID
-    String? providerId, // 供应商ID
-    String? apiType, // API类别
+    String? taskId, // 任务ID
+    EnumApiProvider? providerId, // 供应商ID
+    ProviderApiType? apiType, // API类别
+    int? statusCode, // 状态吗
     String? url, // 请求URL
     DateTime? requestTime, // 请求时间
-    int? statusCode, // 状态吗
-    String? errorMessage, // 错误信息
+    DateTime? responseTime, // 响应时间
     int? duration, // 请求持续时间
+    int? responseBytes, // 响应字节数
+    String? errorMessage, // 错误信息
     int? retryCount, // 重试次数
     bool? isResolved, // 是否解决
   }) {
     return RequestLog(
       id: id ?? this.id,
+      taskId: taskId ?? this.taskId,
       providerId: providerId ?? this.providerId,
       apiType: apiType ?? this.apiType,
       url: url ?? this.url,
-      requestTime: requestTime ?? this.requestTime,
       statusCode: statusCode ?? this.statusCode,
-      errorMessage: errorMessage ?? this.errorMessage,
+      requestTime: requestTime ?? this.requestTime,
+      responseTime: responseTime ?? this.responseTime,
       duration: duration ?? this.duration,
+      responseBytes: responseBytes ?? this.responseBytes,
+      errorMessage: errorMessage ?? this.errorMessage,
       retryCount: retryCount ?? this.retryCount,
       isResolved: isResolved ?? this.isResolved,
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> serialize() {
     return {
-      'id': id,
-      'provider_id': providerId,
-      'api_type': apiType,
-      'url': url,
-      'request_time': requestTime.millisecondsSinceEpoch,
-      'status_code': statusCode,
-      'error_message': errorMessage,
-      'duration': duration,
-      'retry_count': retryCount,
-      'is_resolved': isResolved ? 1 : 0,
+      'Id': id,
+      'TaskId': taskId,
+      'ProviderId': providerId.val,
+      'ApiType': apiType.val,
+      'StatusCode': statusCode,
+      'Url': url,
+      'RequestTime': requestTime.millisecondsSinceEpoch,
+      'ResponseTime': responseTime.microsecondsSinceEpoch,
+      'Duration': duration,
+      'ResponseBytes': responseBytes,
+      'ErrorMessage': errorMessage,
+      'RetryCount': retryCount,
+      'IsResolved': isResolved ? 1 : 0,
     };
   }
 
-  factory RequestLog.fromMap(Map<String, dynamic> map) {
+  factory RequestLog.unserialize(Map<String, dynamic> json) {
     return RequestLog(
-      id: map['id'],
-      providerId: map['provider_id'],
-      apiType: map['api_type'],
-      url: map['url'],
-      requestTime: DateTime.fromMillisecondsSinceEpoch(map['request_time']),
-      statusCode: map['status_code'],
-      errorMessage: map['error_message'],
-      duration: map['duration'],
-      retryCount: map['retry_count'],
-      isResolved: map['is_resolved'] == 1,
+      id: json['Id'],
+      taskId: json['TaskId'],
+      providerId: json['ProviderId'],
+      apiType: json['ApiType'],
+      statusCode: json['StatusCode'],
+      url: json['Url'],
+      requestTime: DateTime.fromMillisecondsSinceEpoch(json['RequestTime']),
+      responseTime: DateTime.fromMicrosecondsSinceEpoch(json['ResponseTime']),
+      responseBytes: json['ResponseBytes'],
+      errorMessage: json['ErrorMessage'],
+      duration: json['Duration'],
+      retryCount: json['RetryCount'],
+      isResolved: json['IsResolved'] == 1,
     );
   }
 }
