@@ -10,6 +10,7 @@
 // ignore_for_file: avoid_print
 import "package:irich/service/api_provider.dart";
 import "package:irich/service/api_provider_capabilities.dart";
+import "package:irich/service/request_log.dart";
 
 // 百度股市通 K 线数据 URL 生成函数
 String klineUrlFinanceBaidu(String shareCode, String klineType, String extra) {
@@ -54,7 +55,11 @@ class ApiProviderBaidu extends ApiProvider {
   final provider = EnumApiProvider.baiduFinance;
 
   @override
-  Future<dynamic> doRequest(ProviderApiType apiType, Map<String, dynamic> params) async {
+  Future<dynamic> doRequest(
+    ProviderApiType apiType,
+    Map<String, dynamic> params, [
+    void Function(RequestLog requestLog)? onPagerProgress,
+  ]) async {
     switch (apiType) {
       case ProviderApiType.dayKline:
         return fetchDayKline(params);

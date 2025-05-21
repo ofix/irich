@@ -14,6 +14,7 @@ import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_provider.dart";
 import "package:irich/global/stock.dart";
 import "package:http/http.dart" as http;
+import "package:irich/service/request_log.dart";
 
 // 和讯网股票列表获取函数
 String shareListUrlHexun(int market) {
@@ -34,7 +35,11 @@ class ApiProviderHexun extends ApiProvider {
   List<Share> marketShares = [];
 
   @override
-  Future<dynamic> doRequest(ProviderApiType apiType, Map<String, dynamic> params) async {
+  Future<dynamic> doRequest(
+    ProviderApiType apiType,
+    Map<String, dynamic> params, [
+    void Function(RequestLog requestLog)? onPagerProgress,
+  ]) async {
     switch (apiType) {
       case ProviderApiType.quote:
         return fetchQuote();

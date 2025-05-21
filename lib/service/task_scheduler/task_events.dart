@@ -119,13 +119,13 @@ class TaskProgressEvent extends IsolateEvent {
   @override
   final String type = strTaskProgress;
   final double progress; // 0.0 ~ 1.0
-  final List<RequestLog> requestLogs;
+  final RequestLog requestLog;
 
   TaskProgressEvent({
     required super.threadId,
     required super.taskId,
     required this.progress,
-    required this.requestLogs,
+    required this.requestLog,
   });
 
   @override
@@ -134,7 +134,7 @@ class TaskProgressEvent extends IsolateEvent {
     'TaskId': taskId,
     'Progress': progress,
     'Timestamp': timestamp.toIso8601String(),
-    'RequestLogs': RequestLog.serializeList(requestLogs),
+    'RequestLog': requestLog.serialize(),
   };
 
   factory TaskProgressEvent.deserialize(Map<String, dynamic> json) {
@@ -142,7 +142,7 @@ class TaskProgressEvent extends IsolateEvent {
       threadId: json['ThreadId'] as int,
       taskId: json['TaskId'] as String,
       progress: (json['Progress'] as num).toDouble(),
-      requestLogs: RequestLog.unserializeList(json['RequestLogs']),
+      requestLog: RequestLog.unserialize(json['RequestLog']),
     );
   }
 }

@@ -128,7 +128,8 @@ class ApiService {
   /// [onProgress] 爬取过程中的回调函数
   Future<(RichResult, List<Map<String, dynamic>>)> batchFetch(
     List<Map<String, dynamic>> params, [
-    void Function(List<RequestLog> requestLogs)? onProgress,
+    void Function(RequestLog requestLog)? onProgress,
+    void Function(RequestLog requestLog)? onPagerProgress, // 分页进度
   ]) async {
     _resetState();
     _requestQueue.addAll(params);
@@ -154,7 +155,9 @@ class ApiService {
 
       // 处理结果
       if (completed.isSuccess) {
-        onProgress?.call(completed.requestLogs);
+        if (onPagerProgress == null) {
+          onProgress?.call(completed.requestLog);
+        }
       } else if (completed.isRetryable) {
         _requestQueue.scheduleRetry(completed.params, _apiConfig.maxRetries);
       }
@@ -177,36 +180,27 @@ class ApiService {
   // 改进的请求处理方法（支持优先级标记）
   Future<_RequestResult> _processRequest(
     Map<String, dynamic> params,
-    List<dynamic> responses,
-  ) async {
+    List<dynamic> responses, [
+    void Function(RequestLog requestLog)? onPagerProgress, // 分页进度
+  ]) async {
     DateTime requestTime = DateTime.now();
     DateTime responseTime = requestTime;
     dynamic oneResult;
-    List<RequestLog> requestLogs = [];
+    late RequestLog requestLog;
     try {
-      oneResult = await _balancer.httpRequest(params).timeout(_apiConfig.timeoutPerRequest);
+      oneResult = await _balancer
+          .httpRequest(params, onPagerProgress)
+          .timeout(_apiConfig.timeoutPerRequest);
       DateTime responseTime = DateTime.now();
       if (oneResult is List<Map<String, dynamic>>) {
         int size = 0;
         for (int i = 0; i < oneResult.length; i++) {
           size += (oneResult[i]['Response'] as String).length;
-          final oneRequestLog = RequestLog(
-            taskId: params['TaskId'],
-            providerId: _balancer.apiProvider.provider,
-            apiType: _curApiType,
-            responseBytes: size,
-            requestTime: requestTime,
-            responseTime: responseTime,
-            url: oneResult[i]['Url'],
-            statusCode: oneResult[i]['StatusCode'],
-            duration: responseTime.difference(requestTime).inMilliseconds,
-          );
-          requestLogs.add(oneRequestLog);
         }
         _stats.recordSuccess(size);
       } else if (oneResult is ApiResult) {
         _stats.recordSuccess(oneResult.response.length);
-        final requestLog = RequestLog(
+        requestLog = RequestLog(
           taskId: params['TaskId'],
           providerId: _balancer.apiProvider.provider,
           apiType: _curApiType,
@@ -217,7 +211,6 @@ class ApiService {
           statusCode: oneResult.statusCode,
           duration: responseTime.difference(requestTime).inMilliseconds,
         );
-        requestLogs.add(requestLog);
       }
       final data = _balancer.apiProvider.parseResponse(
         _curApiType,
@@ -227,13 +220,13 @@ class ApiService {
       result["Params"] = params;
       result["Response"] = data;
       responses.add(result);
-      return _RequestResult.success(params, requestLogs);
+      return _RequestResult.success(params, requestLog);
     } catch (e) {
       if (!_isCanceled) {
         _stats.recordFailure();
         if (e is TimeoutException) _stats.recordTimeout();
       }
-      final requestLog = RequestLog(
+      requestLog = RequestLog(
         taskId: params['TaskId'],
         providerId: _balancer.apiProvider.provider,
         apiType: _curApiType,
@@ -244,8 +237,7 @@ class ApiService {
         statusCode: oneResult['StatucCode'],
         duration: responseTime.difference(requestTime).inMilliseconds,
       );
-      requestLogs.add(requestLog);
-      return _RequestResult.failure(params, requestLogs, e);
+      return _RequestResult.failure(params, requestLog, e);
     }
   }
 
@@ -334,11 +326,11 @@ class _PriorityRequestQueue {
 // 增强的请求结果
 class _RequestResult {
   final Map<String, dynamic> params;
-  final List<RequestLog> requestLogs;
+  final RequestLog requestLog;
   final dynamic error;
 
   bool get isSuccess => error == null;
   bool get isRetryable => error is! SocketException && error is! TimeoutException;
-  _RequestResult.success(this.params, this.requestLogs) : error = null;
-  _RequestResult.failure(this.params, this.requestLogs, this.error);
+  _RequestResult.success(this.params, this.requestLog) : error = null;
+  _RequestResult.failure(this.params, this.requestLog, this.error);
 }

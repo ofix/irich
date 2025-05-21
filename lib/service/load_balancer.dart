@@ -9,6 +9,7 @@
 
 import 'package:irich/service/api_provider.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
+import 'package:irich/service/request_log.dart';
 
 class LoadBalancer {
   static final ApiProviderCapabilities _providerCapabilities = ApiProviderCapabilities(); // 提供商能力
@@ -93,10 +94,13 @@ class LoadBalancer {
   }
 
   // 带负载均衡的请求方法
-  Future<dynamic> httpRequest(Map<String, dynamic> params) async {
+  Future<dynamic> httpRequest(
+    Map<String, dynamic> params, [
+    void Function(RequestLog requestLog)? onPagerProgress,
+  ]) async {
     _curProvider = _nextApiProvider();
     try {
-      final response = await _curProvider.doRequest(_curApiType, params);
+      final response = await _curProvider.doRequest(_curApiType, params, onPagerProgress);
       return response;
     } catch (e) {
       rethrow;

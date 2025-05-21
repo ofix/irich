@@ -14,6 +14,7 @@ import "package:flutter/material.dart";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_provider.dart";
 import "package:irich/global/stock.dart";
+import "package:irich/service/request_log.dart";
 
 // 东方财富分时K线 URL 生成函数
 String klineUrlEastMoneyMinute(String shareCode, int market) {
@@ -57,14 +58,18 @@ class ApiProviderEastMoney extends ApiProvider {
   final provider = EnumApiProvider.eastMoney;
 
   @override
-  Future<dynamic> doRequest(ProviderApiType apiType, Map<String, dynamic> params) async {
+  Future<dynamic> doRequest(
+    ProviderApiType apiType,
+    Map<String, dynamic> params, [
+    void Function(RequestLog requestLog)? onPagerProgress,
+  ]) async {
     switch (apiType) {
       case ProviderApiType.quoteExtra:
         return fetchQuoteExtra(params);
       case ProviderApiType.industry:
       case ProviderApiType.concept:
       case ProviderApiType.province:
-        return fetchBk(params); // 地域/行业/概念板块数据
+        return fetchBk(params, apiType, onPagerProgress); // 地域/行业/概念板块数据
       case ProviderApiType.dayKline:
         return fetchDayKline(params);
       case ProviderApiType.fiveDayKline:
@@ -129,7 +134,11 @@ class ApiProviderEastMoney extends ApiProvider {
     return menu;
   }
 
-  Future<List<Map<String, dynamic>>> fetchBk(Map<String, dynamic> params) async {
+  Future<List<Map<String, dynamic>>> fetchBk(
+    Map<String, dynamic> params,
+    ProviderApiType apiType, [
+    void Function(RequestLog requestLog)? onPagerProgress,
+  ]) async {
     final name = params['code']; // 板块代号,东方财富限制了
     final responses = <Map<String, dynamic>>[];
 
@@ -138,13 +147,27 @@ class ApiProviderEastMoney extends ApiProvider {
       final url =
           "https://push2.eastmoney.com/api/qt/clist/get?np=1&fltt=1&invt=2&po=1&dect=1&fid=f3&fs=b:$name&fields=f12,f14&pn=$i&pz=100";
       try {
+        DateTime requestTime = DateTime.now();
         final result = await getRawJson(url);
+        DateTime responseTime = DateTime.now();
         debugPrint(url);
         if (_isPageEnd(result.response)) break;
         responses.add({"StatusCode": 200, "Response": result.response, "Url": url});
         // 随机延时
         final random = Random();
         int delaySeconds = 1 + random.nextInt(1); // 随机 1~2 秒
+        final requestLog = RequestLog(
+          taskId: params['TaskId'],
+          providerId: provider,
+          apiType: apiType,
+          responseBytes: result.response.length,
+          requestTime: requestTime,
+          responseTime: responseTime,
+          url: url,
+          statusCode: result.statusCode,
+          duration: responseTime.difference(requestTime).inMilliseconds,
+        );
+        onPagerProgress?.call(requestLog);
         await Future.delayed(Duration(seconds: delaySeconds));
       } catch (e) {
         rethrow;

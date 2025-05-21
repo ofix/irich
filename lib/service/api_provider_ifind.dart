@@ -16,6 +16,7 @@ import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:irich/service/api_provider.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
+import 'package:irich/service/request_log.dart';
 
 // 同花顺数据中心
 class ApiProviderIfind extends ApiProvider {
@@ -23,14 +24,18 @@ class ApiProviderIfind extends ApiProvider {
   final provider = EnumApiProvider.iFind;
 
   @override
-  Future<dynamic> doRequest(ProviderApiType apiType, Map<String, dynamic> params) async {
+  Future<dynamic> doRequest(
+    ProviderApiType apiType,
+    Map<String, dynamic> params, [
+    void Function(RequestLog requestLog)? onPagerProgress,
+  ]) async {
     switch (apiType) {
       case ProviderApiType.quoteExtra:
         return fetchQuoteExtra(params);
       case ProviderApiType.industry:
       case ProviderApiType.concept:
       case ProviderApiType.province:
-        return fetchBk(params); // 地域/行业/概念板块数据
+        return fetchBk(params, apiType, onPagerProgress); // 地域/行业/概念板块数据
       default:
         throw UnimplementedError('Unsupported API type: $ProviderApiType');
     }
@@ -112,7 +117,11 @@ class ApiProviderIfind extends ApiProvider {
     return number;
   }
 
-  Future<dynamic> fetchBk(Map<String, dynamic> params) async {
+  Future<dynamic> fetchBk(
+    Map<String, dynamic> params,
+    ProviderApiType apiType, [
+    void Function(RequestLog requestLog)? onPagerProgress,
+  ]) async {
     final html = await getGbkHtml(params['Url']);
     debugPrint("请求分页 ${params['Url']}");
     final doc = parse(html);
@@ -151,9 +160,11 @@ class ApiProviderIfind extends ApiProvider {
     String cookie = _genCookie();
     // 继续请求剩下的分页数据
     for (int i = 0; i < pageUrls.length; i++) {
+      DateTime requestTime = DateTime.now();
       final htmlPage = await _getGbkHtml(pageUrls[i], cookie);
+      DateTime responseTime = DateTime.now();
       debugPrint("请求分页${params['name']} => ${pageUrls[i]}");
-      debugPrint("响应数据大小: ${htmlPage.length}");
+      debugPrint("响应数据大小: ${htmlPage.response.length}");
       final docPage = parse(htmlPage);
       // 分页数据
       final pageElements = docPage.querySelectorAll(".m-pager-table tbody tr a");
@@ -161,6 +172,20 @@ class ApiProviderIfind extends ApiProvider {
       for (int i = 0; i < pageElements.length; i += 2) {
         shares.add(pageElements[i].text);
       }
+
+      final requestLog = RequestLog(
+        taskId: params['TaskId'],
+        providerId: provider,
+        apiType: apiType,
+        responseBytes: htmlPage.response.length,
+        requestTime: requestTime,
+        responseTime: responseTime,
+        url: pageUrls[i],
+        statusCode: htmlPage.statusCode,
+        duration: responseTime.difference(requestTime).inMilliseconds,
+      );
+      onPagerProgress?.call(requestLog);
+
       // 随机延时
       final random = Random();
       int delaySeconds = 2 + random.nextInt(3); // 随机 1~2 秒
@@ -208,7 +233,7 @@ class ApiProviderIfind extends ApiProvider {
     return cookies.map((c) => c.toString()).join(', ');
   }
 
-  Future<String> _getGbkHtml(String url, cookie) async {
+  Future<ApiResult> _getGbkHtml(String url, cookie) async {
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -222,13 +247,14 @@ class ApiProviderIfind extends ApiProvider {
           "Cookie": cookie,
         },
       );
+      // 将 GBK 字节流转换为 UTF-8 字符串
+
       if (response.statusCode == 200) {
-        // 将 GBK 字节流转换为 UTF-8 字符串
         final gbkBytes = response.bodyBytes;
         final data = gbk.decode(gbkBytes); // 使用 charset 库解码
-        return data;
+        return ApiResult(url, response.statusCode, data);
       }
-      return "";
+      return ApiResult(url, response.statusCode, response.body);
     } catch (e) {
       debugPrint(e.toString());
       rethrow;
