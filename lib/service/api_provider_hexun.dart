@@ -104,22 +104,22 @@ class ApiProviderHexun extends ApiProvider {
       final arr = jsonData['Data'][0] as List;
 
       for (final item in arr) {
-        final factor = item[9].toDouble();
+        final factor = item[9];
         final share = Share(
           code: item[0].toString(),
           name: (item[1] as String).replaceAll(' ', ''),
           market: _toMarket(market),
-          priceYesterdayClose: item[4].toDouble() / factor,
-          priceNow: item[2].toDouble() / factor,
-          changeRate: item[3].toDouble() / 100,
-          priceOpen: item[5].toDouble() / factor,
-          priceMax: item[6].toDouble() / factor,
-          priceMin: item[7].toDouble() / factor,
-          volume: ((item[8].toDouble() / 100) as double).toInt(),
-          amount: item[10].toDouble(),
-          turnoverRate: item[11].toDouble() / 100,
-          priceAmplitude: item[12].toDouble() / 100,
-          qrr: item[13].toDouble() / 100,
+          priceYesterdayClose: item[4] / factor,
+          priceNow: item[2] / factor,
+          changeRate: item[3] / 100,
+          priceOpen: item[5] / factor,
+          priceMax: item[6] / factor,
+          priceMin: item[7] / factor,
+          volume: ((item[8] / 100) as double).toInt(),
+          amount: item[10],
+          turnoverRate: item[11] / 100,
+          priceAmplitude: item[12] / 100,
+          qrr: item[13] / 100,
         );
 
         shares.add(share);

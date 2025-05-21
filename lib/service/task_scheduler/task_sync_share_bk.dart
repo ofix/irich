@@ -24,10 +24,10 @@ class TaskSyncShareBk extends Task {
 
   factory TaskSyncShareBk.deserialize(Map<String, dynamic> json) {
     return TaskSyncShareBk(
-      params: json['params'] as Map<String, dynamic>,
-      priority: TaskPriority.fromVal(json['priority'] as int),
-      submitTime: DateTime.fromMicrosecondsSinceEpoch(json['submitTime']),
-      status: TaskStatus.fromVal(json['status'] as int),
+      params: json['Params'] as Map<String, dynamic>,
+      priority: TaskPriority.fromVal(json['Priority'] as int),
+      submitTime: DateTime.fromMicrosecondsSinceEpoch(json['SubmitTime']),
+      status: TaskStatus.fromVal(json['Status'] as int),
     );
   }
 

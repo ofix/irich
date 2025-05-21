@@ -68,7 +68,7 @@ class ApiProviderBaidu extends ApiProvider {
   }
 
   // 分时K线
-  Future<dynamic> fetchMinuteKline(Map<String, dynamic> params) async {
+  Future<ApiResult> fetchMinuteKline(Map<String, dynamic> params) async {
     final url = klineUrlFinanceBaiduMinute(params['shareCode']);
     try {
       return await getJson(url);
@@ -78,7 +78,7 @@ class ApiProviderBaidu extends ApiProvider {
   }
 
   // 五日分时均线数据
-  Future<dynamic> fetchFiveDayKline(Map<String, dynamic> params) async {
+  Future<ApiResult> fetchFiveDayKline(Map<String, dynamic> params) async {
     final url = klineUrlFinanceBaiduFiveDay(params['shareCode'], params['shareCode']);
     try {
       return await getJson(url);
@@ -88,7 +88,7 @@ class ApiProviderBaidu extends ApiProvider {
   }
 
   // 日K线数据
-  Future<dynamic> fetchDayKline(Map<String, dynamic> params) async {
+  Future<ApiResult> fetchDayKline(Map<String, dynamic> params) async {
     final url = klineUrlFinanceBaidu(
       params['shareCode'],
       "day", // 日K线

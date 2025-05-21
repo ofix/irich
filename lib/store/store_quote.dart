@@ -273,22 +273,22 @@ class StoreQuote {
 
     for (final share in shares) {
       final jsonObj = <String, dynamic>{
-        'code': share.code,
-        'name': share.name,
-        'market': share.market.market,
-        'price_yesterday_close': share.priceYesterdayClose,
-        'price_now': share.priceNow,
-        'price_min': share.priceMin,
-        'price_max': share.priceMax,
-        'price_open': share.priceOpen,
-        'price_close': share.priceClose ?? share.priceNow,
-        'price_amplitude': share.priceAmplitude,
+        'Code': share.code,
+        'Name': share.name,
+        'Market': share.market.market,
+        'PriceYesterdayClose': share.priceYesterdayClose,
+        'PriceNow': share.priceNow,
+        'PriceMin': share.priceMin,
+        'PriceMax': share.priceMax,
+        'PriceOpen': share.priceOpen,
+        'PriceClose': share.priceClose ?? share.priceNow,
+        'PriceAmplitude': share.priceAmplitude,
         // 'change_amount': share.changeAmount,
-        'change_rate': share.changeRate,
-        'volume': share.volume,
-        'amount': share.amount,
-        'turnover_rate': share.turnoverRate,
-        'qrr': share.qrr,
+        'ChangeRate': share.changeRate,
+        'Volume': share.volume,
+        'Amount': share.amount,
+        'TurnoverRate': share.turnoverRate,
+        'Qrr': share.qrr,
       };
       result.add(jsonObj);
     }
@@ -307,22 +307,22 @@ class StoreQuote {
       shares.clear();
       for (final item in arr) {
         Share share = Share(
-          name: item['name'], // 股票名称
-          code: item['code'], // 股票代码
-          market: Market.fromValue(item['market']), // 股票市场
-          priceYesterdayClose: double.parse(item['price_yesterday_close']), // 昨天收盘价
-          priceNow: double.parse(item['price_now']), // 当前价
-          priceMin: double.parse(item['price_min']), // 最低价
-          priceMax: double.parse(item['price_max']), // 最高价
-          priceOpen: double.parse(item['price_open']), // 开盘价
-          priceClose: double.parse(item['price_close']), // 收盘价
-          priceAmplitude: double.parse(item['price_amplitude']), // 股价振幅
-          changeAmount: double.parse(item['change_amount']), // 涨跌额
-          changeRate: double.parse(item['change_rate']), // 涨跌幅度
-          volume: int.parse(item['volume']), // 成交量
-          amount: double.parse(item['amount']), // 成交额
-          turnoverRate: double.parse(item['turnover_rate']), // 换手率
-          qrr: double.parse(item['qrr']), // 量比
+          name: item['Name'], // 股票名称
+          code: item['Code'], // 股票代码
+          market: Market.fromValue(item['Market']), // 股票市场
+          priceYesterdayClose: double.parse(item['PriceYesterdayClose']), // 昨天收盘价
+          priceNow: double.parse(item['PriceNow']), // 当前价
+          priceMin: double.parse(item['PriceMin']), // 最低价
+          priceMax: double.parse(item['PriceMax']), // 最高价
+          priceOpen: double.parse(item['PriceOpen']), // 开盘价
+          priceClose: double.parse(item['PriceClose']), // 收盘价
+          priceAmplitude: double.parse(item['PriceAmplitude']), // 股价振幅
+          changeAmount: double.parse(item['ChangeAmount']), // 涨跌额
+          changeRate: double.parse(item['ChangeRate']), // 涨跌幅度
+          volume: int.parse(item['Volume']), // 成交量
+          amount: double.parse(item['Amount']), // 成交额
+          turnoverRate: double.parse(item['TurnoverRate']), // 换手率
+          qrr: double.parse(item['Qrr']), // 量比
         );
         shares.add(share);
       }

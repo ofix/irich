@@ -29,10 +29,10 @@ class TaskSyncShareQuote extends Task<List<Share>> {
 
   factory TaskSyncShareQuote.deserialize(Map<String, dynamic> json) {
     return TaskSyncShareQuote(
-      params: json['params'] as Map<String, dynamic>,
-      priority: TaskPriority.fromVal(json['priority'] as int),
-      submitTime: DateTime.fromMicrosecondsSinceEpoch(json['submitTime']),
-      status: TaskStatus.fromVal(json['status'] as int),
+      params: json['Params'] as Map<String, dynamic>,
+      priority: TaskPriority.fromVal(json['Priority'] as int),
+      submitTime: DateTime.fromMicrosecondsSinceEpoch(json['SubmitTime']),
+      status: TaskStatus.fromVal(json['Status'] as int),
     );
   }
 
@@ -57,22 +57,22 @@ class TaskSyncShareQuote extends Task<List<Share>> {
 
     for (final share in shares) {
       final jsonObj = <String, dynamic>{
-        'code': share.code,
-        'name': share.name,
-        'market': share.market.market,
-        'price_yesterday_close': share.priceYesterdayClose,
-        'price_now': share.priceNow,
-        'price_min': share.priceMin,
-        'price_max': share.priceMax,
-        'price_open': share.priceOpen,
-        'price_close': share.priceClose ?? share.priceNow,
-        'price_amplitude': share.priceAmplitude,
+        'Code': share.code,
+        'Name': share.name,
+        'Market': share.market.market,
+        'PriceYesterdayClose': share.priceYesterdayClose,
+        'PriceNow': share.priceNow,
+        'PriceMin': share.priceMin,
+        'PriceMax': share.priceMax,
+        'PriceOpen': share.priceOpen,
+        'PriceClose': share.priceClose ?? share.priceNow,
+        'PriceAmplitude': share.priceAmplitude,
         // 'change_amount': share.changeAmount,
-        'change_rate': share.changeRate,
-        'volume': share.volume,
-        'amount': share.amount,
-        'turnover_rate': share.turnoverRate,
-        'qrr': share.qrr,
+        'ChangeRate': share.changeRate,
+        'Volume': share.volume,
+        'Amount': share.amount,
+        'TurnoverRate': share.turnoverRate,
+        'Qrr': share.qrr,
       };
       result.add(jsonObj);
     }

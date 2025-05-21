@@ -130,7 +130,9 @@ abstract class Task<T> implements Comparable<Task<T>> {
   }) : taskId = const Uuid().v4(),
        submitTime = submitTime ?? DateTime.now(),
        threadId = 0,
-       progress = 0;
+       progress = 0 {
+    params['TaskId'] = taskId;
+  }
 
   // 状态计算属性
   Duration get waitingDuration =>
@@ -143,17 +145,17 @@ abstract class Task<T> implements Comparable<Task<T>> {
   int compareTo(Task<T> other) => other.priority.compareTo(priority);
 
   Map<String, dynamic> serialize() => {
-    "type": type.val,
-    "params": jsonEncode(params),
-    "taskId": taskId,
-    "priority": priority.val,
-    "status": status.val,
-    "progress": progress,
-    "startTime": startTime?.toIso8601String(),
+    "Type": type.val,
+    "Params": jsonEncode(params),
+    "TaskId": taskId,
+    "Priority": priority.val,
+    "Status": status.val,
+    "Progress": progress,
+    "StartTime": startTime?.toIso8601String(),
   };
 
   static Task deserialize(Map<String, dynamic> json) {
-    TaskType type = TaskType.fromVal(json['type'] as int);
+    TaskType type = TaskType.fromVal(json['Type'] as int);
     // 根据类型创建具体任务实例
     switch (type) {
       case TaskType.syncShareQuote:
@@ -180,8 +182,8 @@ abstract class Task<T> implements Comparable<Task<T>> {
     final data = await FileTool.loadFile(pausedFilePath);
     final json = jsonDecode(data);
     final task = Task.deserialize(json);
-    task.params = json['params']; // 用参数覆盖原有的参数列表，继续未完成的请求
-    task.responses = json['responses'];
+    task.params = json['Params']; // 用参数覆盖原有的参数列表，继续未完成的请求
+    task.responses = json['Responses'];
     task.status = TaskStatus.running;
     final resumeEvent = TaskResumedEvent(threadId: threadId, taskId: taskId);
     task.notifyUi(resumeEvent);

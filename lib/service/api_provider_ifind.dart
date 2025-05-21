@@ -57,8 +57,8 @@ class ApiProviderIfind extends ApiProvider {
     final bkList = ["dy", "thshy", "gn"]; // 地域｜概念｜同花顺行业
     try {
       for (final bk in bkList) {
-        String html = await getGbkHtml("https://q.10jqka.com.cn/$bk/"); // 地域板块
-        responses.add(html);
+        final result = await getGbkHtml("https://q.10jqka.com.cn/$bk/"); // 地域板块
+        responses.add(result.response);
       }
       return responses;
     } catch (e) {
@@ -81,7 +81,7 @@ class ApiProviderIfind extends ApiProvider {
         debugPrint(
           "url: $url, name: ${ele.text}, code:$code, category:${bkList[i]}, pinyin;$pinyin ",
         );
-        bk.add({"url": url, "name": ele.text, "code": code, "category": bkList[i], pinyin: pinyin});
+        bk.add({"Url": url, "Name": ele.text, "Code": code, "Category": bkList[i], pinyin: pinyin});
       }
       result.add(bk);
     }
@@ -113,8 +113,8 @@ class ApiProviderIfind extends ApiProvider {
   }
 
   Future<dynamic> fetchBk(Map<String, dynamic> params) async {
-    final html = await getGbkHtml(params['url']);
-    debugPrint("请求分页 ${params['url']}");
+    final html = await getGbkHtml(params['Url']);
+    debugPrint("请求分页 ${params['Url']}");
     final doc = parse(html);
     List<String> pageUrls = [];
     List<String> shares = [];
@@ -126,7 +126,7 @@ class ApiProviderIfind extends ApiProvider {
     // 最大页码
     final pages = doc.querySelectorAll(".body .m-pager .changePage");
     if (pages.isEmpty) {
-      debugPrint("${params['name']}: ${shares.toString()}");
+      debugPrint("${params['Name']}: ${shares.toString()}");
       return shares; // 没有分页,比如贵州省
     }
     final pageSizeElement = pages[pages.length - 1];
@@ -141,10 +141,10 @@ class ApiProviderIfind extends ApiProvider {
     for (int i = 2; i <= pageSize; i++) {
       String pageUrl = _buildBkPageUrl(
         i,
-        params['category'],
+        params['Category'],
         baseUrl!,
         hiddenParam!,
-        params['code'],
+        params['Code'],
       );
       pageUrls.add(pageUrl);
     }
@@ -166,7 +166,7 @@ class ApiProviderIfind extends ApiProvider {
       int delaySeconds = 2 + random.nextInt(3); // 随机 1~2 秒
       await Future.delayed(Duration(seconds: delaySeconds));
     }
-    debugPrint("${params['name']}: ${shares.toString()}");
+    debugPrint("${params['Name']}: ${shares.toString()}");
     return shares;
   }
 

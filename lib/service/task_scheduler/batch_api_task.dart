@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'package:irich/global/config.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
+import 'package:irich/service/request_log.dart';
 import 'package:irich/service/task_scheduler/task.dart';
 import 'package:irich/service/task_scheduler/task_events.dart';
 import 'package:irich/utils/file_tool.dart';
@@ -33,16 +34,14 @@ abstract class BatchApiTask extends Task<void> {
   /// 在子线程中运行
   Future<void> doJob() async {
     apiService = ApiService(apiType);
-    final result = await apiService.batchFetch(params, (
-      Map<String, dynamic> params,
-      String providerName,
-    ) {
+    final result = await apiService.batchFetch(params, (List<RequestLog> logs) {
       recvRequests += 1;
       progress = recvRequests / totalRequests; // 计算进度
       final progressEvent = TaskProgressEvent(
         threadId: threadId,
         taskId: taskId,
         progress: progress,
+        requestLogs: logs,
       );
       notifyUi(progressEvent);
     });
@@ -78,8 +77,8 @@ abstract class BatchApiTask extends Task<void> {
   ) {
     final params = originParams.sublist(response.length);
     Map<String, dynamic> result = {};
-    result['params'] = params; // 还未完成的参数列表
-    result['responses'] = response; // 已经完成的响应列表
+    result['Params'] = params; // 还未完成的参数列表
+    result['Responses'] = response; // 已经完成的响应列表
     final data = jsonEncode(result);
     FileTool.saveFile(pausedFilePath, data);
   }

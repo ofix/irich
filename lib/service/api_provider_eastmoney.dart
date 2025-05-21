@@ -98,7 +98,7 @@ class ApiProviderEastMoney extends ApiProvider {
   }
 
   // 获取侧边栏数据
-  Future<dynamic> fetchQuoteExtra(Map<String, dynamic> params) async {
+  Future<ApiResult> fetchQuoteExtra(Map<String, dynamic> params) async {
     final url = "https://quote.eastmoney.com/center/api/sidemenu_new.json";
     try {
       return getJson(url);
@@ -107,12 +107,13 @@ class ApiProviderEastMoney extends ApiProvider {
     }
   }
 
-  List<List<Map<String, dynamic>>> parseQuoteExtra(Map<String, dynamic> response) {
+  List<List<Map<String, dynamic>>> parseQuoteExtra(ApiResult result) {
     final List<Map<String, dynamic>> concepts = [];
     final List<Map<String, dynamic>> industries = [];
     final List<Map<String, dynamic>> provinces = [];
     final List<List<Map<String, dynamic>>> menu = [];
     // 解析JSON数据
+    final response = jsonDecode(result.response);
     final List<dynamic> bklist = response["bklist"]; // 行业/概念/地域板块列表
     for (final bk in bklist) {
       final int type = bk["type"];
@@ -128,19 +129,19 @@ class ApiProviderEastMoney extends ApiProvider {
     return menu;
   }
 
-  Future<dynamic> fetchBk(Map<String, dynamic> params) async {
+  Future<List<Map<String, dynamic>>> fetchBk(Map<String, dynamic> params) async {
     final name = params['code']; // 板块代号,东方财富限制了
-    final responses = <String>[];
+    final responses = <Map<String, dynamic>>[];
 
     for (int i = 1; i <= 20; i++) {
       // 每页100条记录，假设最多20个分页，也即2000个成分股
       final url =
           "https://push2.eastmoney.com/api/qt/clist/get?np=1&fltt=1&invt=2&po=1&dect=1&fid=f3&fs=b:$name&fields=f12,f14&pn=$i&pz=100";
       try {
-        String response = await getRawJson(url);
+        final result = await getRawJson(url);
         debugPrint(url);
-        if (_isPageEnd(response)) break;
-        responses.add(response);
+        if (_isPageEnd(result.response)) break;
+        responses.add({"StatusCode": 200, "Response": result.response, "Url": url});
         // 随机延时
         final random = Random();
         int delaySeconds = 1 + random.nextInt(1); // 随机 1~2 秒
@@ -156,11 +157,11 @@ class ApiProviderEastMoney extends ApiProvider {
     return !data.contains('"data":{');
   }
 
-  List<String> parseBk(List<String> responses) {
+  List<String> parseBk(List<Map<String, dynamic>> responses) {
     final List<String> shareList = [];
     // 解析JSON数据
     for (final response in responses) {
-      final result = jsonDecode(response);
+      final result = jsonDecode(response['Response']);
       final data = result["data"]['diff'];
       for (final row in data) {
         final String shareCode = row["f12"]; // 股票名称
@@ -170,31 +171,10 @@ class ApiProviderEastMoney extends ApiProvider {
     return shareList;
   }
 
-  // 获取分时K线数据
-  Future<dynamic> fetchMinuteKline(Map<String, dynamic> params) async {
-    final url = klineUrlEastMoneyMinute(params['shareCode'], 3);
-    try {
-      return getJson(url);
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  // 获取五日分时数据
-  Future<dynamic> fetchFiveDayKline(Map<String, dynamic> params) async {
-    // 日K线
-    final url = klineUrlEastMoneyFiveDay(params['shareCode'], 0);
-    try {
-      return getJson(url);
-    } catch (e) {
-      rethrow;
-    }
-  }
-
   // 获取日K线数据
-  Future<dynamic> fetchDayKline(Map<String, dynamic> params) async {
+  Future<ApiResult> fetchDayKline(Map<String, dynamic> params) async {
     // 日K线
-    final url = klineUrlEastMoney(params['shareCode'], 0, 1);
+    final url = klineUrlEastMoney(params['ShareCode'], 0, 1);
     try {
       return getJson(url);
     } catch (e) {
@@ -229,12 +209,22 @@ class ApiProviderEastMoney extends ApiProvider {
     return uiKlines;
   }
 
+  // 获取分时K线数据
+  Future<ApiResult> fetchMinuteKline(Map<String, dynamic> params) async {
+    final url = klineUrlEastMoneyMinute(params['ShareCode'], 3);
+    try {
+      return getJson(url);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // 解析分时K线数据
-  List<MinuteKline?> parseMinuteKline(String response) {
+  List<MinuteKline?> parseMinuteKline(ApiResult result) {
     final minuteKlines = <MinuteKline>[];
     // 解析JSON数据
-    final result = jsonDecode(response);
-    final data = result["data"]["trends"] as String;
+    final response = jsonDecode(result.response);
+    final data = response["data"]["trends"] as String;
     final rows = data.split(';');
     for (final row in rows) {
       final fields = row.split(',');
@@ -255,11 +245,22 @@ class ApiProviderEastMoney extends ApiProvider {
     return minuteKlines;
   }
 
-  List<UiKline> parseFiveDayKline(String response) {
+  // 获取五日分时数据
+  Future<ApiResult> fetchFiveDayKline(Map<String, dynamic> params) async {
+    // 日K线
+    final url = klineUrlEastMoneyFiveDay(params['ShareCode'], 0);
+    try {
+      return getJson(url);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  List<UiKline> parseFiveDayKline(ApiResult result) {
     final List<UiKline> uiKlines = [];
     // 解析JSON数据
-    final dynamic result = jsonDecode(response);
-    final List<dynamic> klines = result["data"]["klines"];
+    final response = jsonDecode(result.response);
+    final List<dynamic> klines = response["data"]["klines"];
     for (final row in klines) {
       final List<String> fields = row.split(',');
       // 处理数值转换（Dart 无 stod，用 tryParse 替代）

@@ -92,6 +92,10 @@ class RequestLog {
     };
   }
 
+  static List<Map<String, dynamic>> serializeList(List<RequestLog> logs) {
+    return logs.map((log) => log.serialize()).toList();
+  }
+
   factory RequestLog.unserialize(Map<String, dynamic> json) {
     return RequestLog(
       id: json['Id'],
@@ -108,5 +112,8 @@ class RequestLog {
       retryCount: json['RetryCount'],
       isResolved: json['IsResolved'] == 1,
     );
+  }
+  static List<RequestLog> unserializeList(List<dynamic> jsonList) {
+    return jsonList.map((json) => RequestLog.unserialize(json)).toList();
   }
 }

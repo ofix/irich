@@ -12,9 +12,12 @@ import 'dart:collection';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:http/http.dart';
+import 'package:irich/service/api_provider.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/load_balancer.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/service/request_log.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/utils/rich_result.dart';
 
@@ -112,7 +115,7 @@ class ApiService {
       if (share == null) {
         return (error(RichStatus.shareNotExist), null);
       }
-      params = {"shareCode": share.code, "market": share.market, "shareName": share.name};
+      params = {"ShareCode": share.code, "Market": share.market, "ShareName": share.name};
       if (extraParams != null) {
         params.addAll(extraParams.cast<String, Object>());
       }
@@ -126,7 +129,7 @@ class ApiService {
   /// [onProgress] 爬取过程中的回调函数
   Future<(RichResult, List<Map<String, dynamic>>)> batchFetch(
     List<Map<String, dynamic>> params, [
-    void Function(Map<String, dynamic>, String)? onProgress,
+    void Function(List<RequestLog> requestLogs)? onProgress,
   ]) async {
     _resetState();
     _requestQueue.addAll(params);
@@ -140,12 +143,7 @@ class ApiService {
         final request = _requestQueue.nextRequest();
         final completer = Completer<_RequestResult>();
         final activeRequest = _ActiveRequest(request, completer);
-
-        _processRequest(request, responses).then(
-          (result) => completer.complete(result),
-          onError: (e) => completer.complete(_RequestResult.failure(request, e)),
-        );
-
+        _processRequest(request, responses).then((result) => completer.complete(result));
         _activeRequests.add(activeRequest);
       }
 
@@ -157,7 +155,7 @@ class ApiService {
 
       // 处理结果
       if (completed.isSuccess) {
-        onProgress?.call(completed.params, _balancer.apiProvider.provider.name);
+        onProgress?.call(completed.requestLogs);
       } else if (completed.isRetryable) {
         _requestQueue.scheduleRetry(completed.params, _apiConfig.maxRetries);
       }
@@ -182,29 +180,73 @@ class ApiService {
     Map<String, dynamic> params,
     List<dynamic> responses,
   ) async {
+    DateTime requestTime = DateTime.now();
+    DateTime responseTime = requestTime;
+    dynamic oneResult;
+    List<RequestLog> requestLogs = [];
     try {
-      final response = await _balancer.httpRequest(params).timeout(_apiConfig.timeoutPerRequest);
-      if (response is List) {
+      oneResult = await _balancer.httpRequest(params).timeout(_apiConfig.timeoutPerRequest);
+      DateTime responseTime = DateTime.now();
+      if (oneResult is List<Map<String, dynamic>>) {
         int size = 0;
-        for (int i = 0; i < response.length; i++) {
-          size += response.length;
+        for (int i = 0; i < oneResult.length; i++) {
+          size += (oneResult[i]['Response'] as String).length;
+          final oneRequestLog = RequestLog(
+            taskId: params['TaskId'],
+            providerId: _balancer.apiProvider.provider,
+            apiType: _curApiType,
+            responseBytes: size,
+            requestTime: requestTime,
+            responseTime: responseTime,
+            url: oneResult[i]['Url'],
+            statusCode: oneResult[i]['StatusCode'],
+            duration: responseTime.difference(requestTime).inMilliseconds,
+          );
+          requestLogs.add(oneRequestLog);
         }
         _stats.recordSuccess(size);
-      } else {
-        _stats.recordSuccess(response.length);
+      } else if (oneResult is ApiResult) {
+        _stats.recordSuccess(oneResult.response.length);
+        final requestLog = RequestLog(
+          taskId: params['TaskId'],
+          providerId: _balancer.apiProvider.provider,
+          apiType: _curApiType,
+          responseBytes: oneResult.response.length,
+          requestTime: requestTime,
+          responseTime: responseTime,
+          url: oneResult.url,
+          statusCode: oneResult.statusCode,
+          duration: responseTime.difference(requestTime).inMilliseconds,
+        );
+        requestLogs.add(requestLog);
       }
-      final data = _balancer.apiProvider.parseResponse(_curApiType, response); // 解析当前返回数据
+      final data = _balancer.apiProvider.parseResponse(
+        _curApiType,
+        oneResult['Response'],
+      ); // 解析当前返回数据
       final result = <String, dynamic>{};
-      result["param"] = params;
-      result["response"] = data;
+      result["Params"] = params;
+      result["Response"] = data;
       responses.add(result);
-      return _RequestResult.success(params);
+      return _RequestResult.success(params, requestLogs);
     } catch (e) {
       if (!_isCanceled) {
         _stats.recordFailure();
         if (e is TimeoutException) _stats.recordTimeout();
       }
-      return _RequestResult.failure(params, e);
+      final requestLog = RequestLog(
+        taskId: params['TaskId'],
+        providerId: _balancer.apiProvider.provider,
+        apiType: _curApiType,
+        responseBytes: (oneResult['Response'] as String).length,
+        requestTime: requestTime,
+        responseTime: responseTime,
+        url: oneResult['Url'],
+        statusCode: oneResult['StatucCode'],
+        duration: responseTime.difference(requestTime).inMilliseconds,
+      );
+      requestLogs.add(requestLog);
+      return _RequestResult.failure(params, requestLogs, e);
     }
   }
 
@@ -293,10 +335,11 @@ class _PriorityRequestQueue {
 // 增强的请求结果
 class _RequestResult {
   final Map<String, dynamic> params;
+  final List<RequestLog> requestLogs;
   final dynamic error;
 
   bool get isSuccess => error == null;
   bool get isRetryable => error is! SocketException && error is! TimeoutException;
-  _RequestResult.success(this.params) : error = null;
-  _RequestResult.failure(this.params, this.error);
+  _RequestResult.success(this.params, this.requestLogs) : error = null;
+  _RequestResult.failure(this.params, this.requestLogs, this.error);
 }

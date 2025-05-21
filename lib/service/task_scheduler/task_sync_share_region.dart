@@ -27,10 +27,10 @@ class TaskSyncShareRegion extends BatchApiTask {
 
   factory TaskSyncShareRegion.deserialize(Map<String, dynamic> json) {
     return TaskSyncShareRegion(
-      params: json['params'] as Map<String, dynamic>,
-      priority: TaskPriority.fromVal(json['priority'] as int),
-      submitTime: DateTime.fromMillisecondsSinceEpoch(json['submitTime'] as int),
-      status: TaskStatus.fromVal(json['status'] as int),
+      params: json['Params'] as Map<String, dynamic>,
+      priority: TaskPriority.fromVal(json['Priority'] as int),
+      submitTime: DateTime.fromMillisecondsSinceEpoch(json['SubmitTime'] as int),
+      status: TaskStatus.fromVal(json['Status'] as int),
     );
   }
 
@@ -40,10 +40,10 @@ class TaskSyncShareRegion extends BatchApiTask {
     final bkJson = <Map<String, dynamic>>[];
     for (final item in responses!) {
       final bkItem = <String, dynamic>{};
-      bkItem['code'] = item['param']['code']; // 板块代号
-      bkItem['name'] = item['param']['name']; // 板块名称
-      bkItem['pinyin'] = item['param']['pinyin']; // 板块拼音
-      bkItem['shares'] = item['response']; //板块成分股代码
+      bkItem['Code'] = item['Params']['code']; // 板块代号
+      bkItem['Name'] = item['Params']['name']; // 板块名称
+      bkItem['Pinyin'] = item['Params']['pinyin']; // 板块拼音
+      bkItem['Shares'] = item['Response']; //板块成分股代码
       bkJson.add(bkItem);
     }
     final data = jsonEncode(bkJson);

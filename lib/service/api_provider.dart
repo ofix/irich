@@ -7,12 +7,17 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'dart:convert';
-
 import 'package:charset/charset.dart';
 import 'package:flutter/material.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:http/http.dart' as http;
+
+class ApiResult {
+  final int statusCode;
+  final String response;
+  final String url;
+  ApiResult(this.url, this.statusCode, this.response);
+}
 
 abstract class ApiProvider {
   EnumApiProvider get provider;
@@ -21,7 +26,7 @@ abstract class ApiProvider {
   // 根据请求类型解析响应数据
   dynamic parseResponse(ProviderApiType apiType, dynamic response);
 
-  Future<dynamic> getJson(String url) async {
+  Future<ApiResult> getJson(String url) async {
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -31,18 +36,14 @@ abstract class ApiProvider {
               'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Safari/605.1.15',
         },
       );
-      if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes));
-      } else {
-        throw Exception("request $url failed");
-      }
+      return ApiResult(url, response.statusCode, response.body);
     } catch (e) {
       throw Exception(e.toString());
     }
   }
 
   // 返回原始的字符串
-  Future<String> getRawJson(String url) async {
+  Future<ApiResult> getRawJson(String url) async {
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -52,17 +53,13 @@ abstract class ApiProvider {
               'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Safari/605.1.15',
         },
       );
-      if (response.statusCode == 200) {
-        return response.body;
-      } else {
-        throw Exception("request $url failed");
-      }
+      return ApiResult(url, response.statusCode, response.body);
     } catch (e) {
       throw Exception(e.toString());
     }
   }
 
-  Future<String> getGbkHtml(String url) async {
+  Future<ApiResult> getGbkHtml(String url) async {
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -71,13 +68,9 @@ abstract class ApiProvider {
               'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Safari/605.1.15',
         },
       );
-      if (response.statusCode == 200) {
-        // 将 GBK 字节流转换为 UTF-8 字符串
-        final gbkBytes = response.bodyBytes;
-        final data = gbk.decode(gbkBytes); // 使用 charset 库解码
-        return data;
-      }
-      return "";
+      final gbkBytes = response.bodyBytes; // 将 GBK 字节流转换为 UTF-8 字符串
+      final data = gbk.decode(gbkBytes); // 使用 charset 库解码
+      return ApiResult(url, response.statusCode, data);
     } catch (e) {
       debugPrint(e.toString());
       rethrow;
