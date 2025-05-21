@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/api_provider_eastmoney.dart
+// Name:        irich/lib/service/api_providers/api_provider_eastmoney.dart
 // Purpose:     east money api provider
 // Author:      songhuabiao
 // Created:     2025-04-26 20:30
@@ -12,7 +12,7 @@ import "dart:convert";
 import "dart:math";
 import "package:flutter/material.dart";
 import "package:irich/service/api_provider_capabilities.dart";
-import "package:irich/service/api_provider.dart";
+import "package:irich/service/api_providers/api_provider.dart";
 import "package:irich/global/stock.dart";
 import "package:irich/service/request_log.dart";
 

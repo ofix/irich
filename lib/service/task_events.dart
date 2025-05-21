@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/task_scheduler/task_event.dart
+// Name:        irich/lib/service/task_events.dart
 // Purpose:     isolate communicate message
 // Author:      songhuabiao
 // Created:     2025-05-12 20:30
@@ -11,7 +11,7 @@
 import 'dart:isolate';
 
 import 'package:irich/service/request_log.dart';
-import 'package:irich/service/task_scheduler/task.dart';
+import 'package:irich/service/tasks/task.dart';
 
 // 线程事件类型
 const String strTaskProgress = "TaskProgress";

@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/task_scheduler/task_sync_share_bk.dart
+// Name:        irich/lib/service/tasks/task_sync_share_bk.dart
 // Purpose:     synchronize share provinces/concepts/industries
 // Author:      songhuabiao
 // Created:     2025-05-16 20:30
@@ -10,7 +10,7 @@
 import 'dart:async';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
-import 'package:irich/service/task_scheduler/task.dart';
+import 'package:irich/service/tasks/task.dart';
 
 class TaskSyncShareBk extends Task {
   @override

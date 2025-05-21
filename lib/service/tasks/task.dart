@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/task_scheduler/task.dart
+// Name:        irich/lib/service/tasks/task.dart
 // Purpose:     task base class
 // Author:      songhuabiao
 // Created:     2025-05-12 20:30
@@ -12,11 +12,11 @@ import 'dart:convert';
 import 'dart:isolate';
 
 import 'package:irich/global/config.dart';
-import 'package:irich/service/task_scheduler/task_events.dart';
-import 'package:irich/service/task_scheduler/task_sync_share_concept.dart';
-import 'package:irich/service/task_scheduler/task_sync_share_industry.dart';
-import 'package:irich/service/task_scheduler/task_sync_share_quote.dart';
-import 'package:irich/service/task_scheduler/task_sync_share_region.dart';
+import 'package:irich/service/task_events.dart';
+import 'package:irich/service/tasks/task_sync_share_concept.dart';
+import 'package:irich/service/tasks/task_sync_share_industry.dart';
+import 'package:irich/service/tasks/task_sync_share_quote.dart';
+import 'package:irich/service/tasks/task_sync_share_region.dart';
 import 'package:irich/utils/file_tool.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as p;

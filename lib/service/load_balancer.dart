@@ -7,7 +7,7 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'package:irich/service/api_provider.dart';
+import 'package:irich/service/api_providers/api_provider.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/request_log.dart';
 

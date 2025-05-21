@@ -12,7 +12,7 @@ import 'dart:collection';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'package:irich/service/api_provider.dart';
+import 'package:irich/service/api_providers/api_provider.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/load_balancer.dart';
 import 'package:irich/global/stock.dart';

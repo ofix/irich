@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/task_scheduler/task_scheduler.dart
+// Name:        irich/lib/service/task_scheduler.dart
 // Purpose:     task scheduler for time consuming tasks
 // Author:      songhuabiao
 // Created:     2025-05-12 20:30
@@ -14,9 +14,9 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:irich/global/config.dart';
 import 'dart:io';
-import 'package:irich/service/task_scheduler/isolate_worker.dart';
-import 'package:irich/service/task_scheduler/task.dart';
-import 'package:irich/service/task_scheduler/task_events.dart';
+import 'package:irich/service/isolate_worker.dart';
+import 'package:irich/service/tasks/task.dart';
+import 'package:irich/service/task_events.dart';
 import 'package:irich/utils/file_tool.dart';
 
 class TaskScheduler {

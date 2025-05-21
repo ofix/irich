@@ -9,7 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/service/task_scheduler/task.dart';
+import 'package:irich/service/tasks/task.dart';
 import 'package:irich/store/state_tasks.dart';
 
 class TaskListPanel extends ConsumerWidget {

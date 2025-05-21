@@ -1,32 +1,38 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/task_scheduler/task_sync_share_region.dart
-// Purpose:     synchronize share region task
+// Name:        irich/lib/service/tasks/task_sync_share_industry.dart
+// Purpose:     synchronize share industry task
 // Author:      songhuabiao
 // Created:     2025-05-12 20:30
 // Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:irich/global/config.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
-import 'package:irich/service/task_scheduler/batch_api_task.dart';
-import 'package:irich/service/task_scheduler/task.dart';
-import 'package:irich/service/task_scheduler/task_events.dart';
+import 'package:irich/service/tasks/batch_api_task.dart';
+import 'package:irich/service/tasks/task.dart';
+import 'package:irich/service/task_events.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/utils/file_tool.dart';
 
-class TaskSyncShareRegion extends BatchApiTask {
+class TaskSyncShareIndustry extends BatchApiTask {
   @override
-  TaskType type = TaskType.syncShareRegion;
+  TaskType type = TaskType.syncShareIndustry;
   @override
-  ProviderApiType apiType = ProviderApiType.province;
-  TaskSyncShareRegion({required super.params, super.priority, super.submitTime, super.status});
+  ProviderApiType apiType = ProviderApiType.industry;
+  TaskSyncShareIndustry({
+    required super.params,
+    super.priority = TaskPriority.normal,
+    super.submitTime,
+    super.status = TaskStatus.pending,
+  });
 
-  factory TaskSyncShareRegion.deserialize(Map<String, dynamic> json) {
-    return TaskSyncShareRegion(
+  factory TaskSyncShareIndustry.deserialize(Map<String, dynamic> json) {
+    return TaskSyncShareIndustry(
       params: json['Params'] as Map<String, dynamic>,
       priority: TaskPriority.fromVal(json['Priority'] as int),
       submitTime: DateTime.fromMillisecondsSinceEpoch(json['SubmitTime'] as int),
@@ -47,19 +53,19 @@ class TaskSyncShareRegion extends BatchApiTask {
       bkJson.add(bkItem);
     }
     final data = jsonEncode(bkJson);
-    String filePath = await Config.pathMapFileProvince;
+    String filePath = await Config.pathMapFileIndustry;
     debugPrint("写入文件 $filePath");
     await FileTool.saveFile(filePath, data);
   }
 
   @override
   Future<dynamic> onCompletedUi(TaskCompletedEvent event, dynamic result) async {
-    // 加载股票地域信息
-    String filePath = await Config.pathMapFileProvince;
+    // 加载股票行业信息
+    String filePath = await Config.pathMapFileIndustry;
     String data = await FileTool.loadFile(filePath);
-    final provinces = jsonDecode(data);
-    // 填充股票的province字段
-    StoreQuote.fillShareProvince(provinces);
+    final industries = jsonDecode(data);
+    // 填充股票的 industry 字段
+    StoreQuote.fillShareIndustry(industries);
     // 通知UI更新
   }
 }

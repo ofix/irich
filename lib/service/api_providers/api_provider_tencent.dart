@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/api_provider_tecent.dart
+// Name:        irich/lib/service/api_providers/api_provider_tecent.dart
 // Purpose:     tecent api provider
 // Author:      songhuabiao
 // Created:     2025-04-26 20:30

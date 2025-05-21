@@ -82,7 +82,7 @@ class RequestLogger {
 
     // 输出到控制台
     debugPrint('''
-TaskId: $taskId, Status: ${statusCode ?? 'N/A'}, Provider: ${providerId.name}, API Type: ${apiType.val}, URL: $url, Duration: ${duration}ms, Bytes: $responseBytes, Error: $errorMessage
+TaskId: $taskId, Status: $statusCode, Provider: ${providerId.name}, API Type: ${apiType.val}, URL: $url, Duration: ${duration}ms, Bytes: $responseBytes, Error: $errorMessage
 ''');
 
     // 添加到缓冲区

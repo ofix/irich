@@ -1,6 +1,6 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/task_scheduler/task_sync_share_industry.dart
-// Purpose:     synchronize share industry task
+// Name:        irich/lib/service/tasks/task_sync_share_concept.dart
+// Purpose:     synchronize share concepts task
 // Author:      songhuabiao
 // Created:     2025-05-12 20:30
 // Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
@@ -13,26 +13,25 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:irich/global/config.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
-import 'package:irich/service/task_scheduler/batch_api_task.dart';
-import 'package:irich/service/task_scheduler/task.dart';
-import 'package:irich/service/task_scheduler/task_events.dart';
-import 'package:irich/store/store_quote.dart';
+import 'package:irich/service/tasks/batch_api_task.dart';
+import 'package:irich/service/tasks/task.dart';
+import 'package:irich/service/task_events.dart';
 import 'package:irich/utils/file_tool.dart';
 
-class TaskSyncShareIndustry extends BatchApiTask {
+class TaskSyncShareConcept extends BatchApiTask {
   @override
-  TaskType type = TaskType.syncShareIndustry;
+  TaskType type = TaskType.syncShareConcept;
   @override
-  ProviderApiType apiType = ProviderApiType.industry;
-  TaskSyncShareIndustry({
+  ProviderApiType apiType = ProviderApiType.concept;
+  TaskSyncShareConcept({
     required super.params,
     super.priority = TaskPriority.normal,
     super.submitTime,
     super.status = TaskStatus.pending,
   });
 
-  factory TaskSyncShareIndustry.deserialize(Map<String, dynamic> json) {
-    return TaskSyncShareIndustry(
+  factory TaskSyncShareConcept.deserialize(Map<String, dynamic> json) {
+    return TaskSyncShareConcept(
       params: json['Params'] as Map<String, dynamic>,
       priority: TaskPriority.fromVal(json['Priority'] as int),
       submitTime: DateTime.fromMillisecondsSinceEpoch(json['SubmitTime'] as int),
@@ -53,7 +52,7 @@ class TaskSyncShareIndustry extends BatchApiTask {
       bkJson.add(bkItem);
     }
     final data = jsonEncode(bkJson);
-    String filePath = await Config.pathMapFileIndustry;
+    String filePath = await Config.pathMapFileConcept;
     debugPrint("写入文件 $filePath");
     await FileTool.saveFile(filePath, data);
   }
@@ -61,11 +60,6 @@ class TaskSyncShareIndustry extends BatchApiTask {
   @override
   Future<dynamic> onCompletedUi(TaskCompletedEvent event, dynamic result) async {
     // 加载股票行业信息
-    String filePath = await Config.pathMapFileIndustry;
-    String data = await FileTool.loadFile(filePath);
-    final industries = jsonDecode(data);
-    // 填充股票的 industry 字段
-    StoreQuote.fillShareIndustry(industries);
     // 通知UI更新
   }
 }

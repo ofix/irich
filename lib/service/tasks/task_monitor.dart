@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/task_scheduler/task_monitor.dart
+// Name:        irich/lib/service/tasks/task_monitor.dart
 // Purpose:     monitor task scheduler tasks' status
 // Author:      songhuabiao
 // Created:     2025-05-12 20:30
@@ -10,8 +10,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:irich/service/task_scheduler/task.dart';
-import 'package:irich/service/task_scheduler/task_scheduler.dart';
+import 'package:irich/service/tasks/task.dart';
+import 'package:irich/service/task_scheduler.dart';
 
 class TaskMonitor with ChangeNotifier {
   final TaskScheduler _scheduler = TaskScheduler();

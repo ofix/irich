@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/task_scheduler/task_sync_share_region.dart
+// Name:        irich/lib/service/tasks/task_sync_share_region.dart
 // Purpose:     synchronize share region task
 // Author:      songhuabiao
 // Created:     2025-05-12 20:30
@@ -13,8 +13,8 @@ import 'package:irich/global/config.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
 import 'package:irich/service/request_log.dart';
-import 'package:irich/service/task_scheduler/task.dart';
-import 'package:irich/service/task_scheduler/task_events.dart';
+import 'package:irich/service/tasks/task.dart';
+import 'package:irich/service/task_events.dart';
 import 'package:irich/utils/file_tool.dart';
 import 'package:irich/utils/rich_result.dart';
 import 'package:path/path.dart' as p;
@@ -34,17 +34,30 @@ abstract class BatchApiTask extends Task<void> {
   /// 在子线程中运行
   Future<void> doJob() async {
     apiService = ApiService(apiType);
-    final result = await apiService.batchFetch(params, (List<RequestLog> logs) {
-      recvRequests += 1;
-      progress = recvRequests / totalRequests; // 计算进度
-      final progressEvent = TaskProgressEvent(
-        threadId: threadId,
-        taskId: taskId,
-        progress: progress,
-        requestLogs: logs,
-      );
-      notifyUi(progressEvent);
-    });
+    final result = await apiService.batchFetch(
+      params,
+      (RequestLog log) {
+        recvRequests += 1;
+        progress = recvRequests / totalRequests; // 计算进度
+        final progressEvent = TaskProgressEvent(
+          threadId: threadId,
+          taskId: taskId,
+          progress: progress,
+          requestLog: log,
+        );
+        notifyUi(progressEvent);
+      },
+      (RequestLog log) {
+        progress = recvRequests / totalRequests; // 计算进度
+        final progressEvent = TaskProgressEvent(
+          threadId: threadId,
+          taskId: taskId,
+          progress: progress,
+          requestLog: log,
+        );
+        notifyUi(progressEvent);
+      },
+    );
     String taskPath = await Config.pathTask;
     pausedFilePath = p.join(taskPath, taskId, ".json");
     final (status, response) = result;

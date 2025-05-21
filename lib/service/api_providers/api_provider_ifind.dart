@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/api_provider_ifind.dart
+// Name:        irich/lib/service/api_providers/api_provider_ifind.dart
 // Purpose:     ifind api provider
 // Author:      songhuabiao
 // Created:     2025-04-26 20:30
@@ -14,7 +14,7 @@ import 'package:charset/charset.dart';
 import 'package:flutter/material.dart';
 import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
-import 'package:irich/service/api_provider.dart';
+import 'package:irich/service/api_providers/api_provider.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/request_log.dart';
 

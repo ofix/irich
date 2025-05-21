@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/task_scheduler/isolate_worker.dart
+// Name:        irich/lib/service/isolate_worker.dart
 // Purpose:     isolate worker
 // Author:      songhuabiao
 // Created:     2025-05-12 20:30
@@ -9,8 +9,8 @@
 
 import 'dart:isolate';
 
-import 'package:irich/service/task_scheduler/task.dart';
-import 'package:irich/service/task_scheduler/task_events.dart';
+import 'package:irich/service/tasks/task.dart';
+import 'package:irich/service/task_events.dart';
 
 class IsolateWorker {
   final SendPort mainSendPort; // 主线程(UI线程)的消息发送端口

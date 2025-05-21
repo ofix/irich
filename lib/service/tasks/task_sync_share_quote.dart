@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/task_scheduler/task_sync_share_quote.dart
+// Name:        irich/lib/service/tasks/task_sync_share_quote.dart
 // Purpose:     synchronize share quote
 // Author:      songhuabiao
 // Created:     2025-05-12 20:30
@@ -14,7 +14,7 @@ import 'package:irich/global/config.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
-import 'package:irich/service/task_scheduler/task.dart';
+import 'package:irich/service/tasks/task.dart';
 import 'package:irich/utils/file_tool.dart';
 
 class TaskSyncShareQuote extends Task<List<Share>> {

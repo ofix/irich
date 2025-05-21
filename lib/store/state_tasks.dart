@@ -8,8 +8,8 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/service/task_scheduler/task.dart';
-import 'package:irich/service/task_scheduler/task_scheduler.dart';
+import 'package:irich/service/tasks/task.dart';
+import 'package:irich/service/task_scheduler.dart';
 
 class StateTaskList extends StateNotifier<List<Task>> {
   final TaskScheduler _scheduler;

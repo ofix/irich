@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/service/api_provider_baidu.dart
+// Name:        irich/lib/service/api_providers/api_provider_baidu.dart
 // Purpose:     baidu finance api provider
 // Author:      songhuabiao
 // Created:     2025-04-26 20:30
@@ -8,7 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 // ignore_for_file: avoid_print
-import "package:irich/service/api_provider.dart";
+import "package:irich/service/api_providers/api_provider.dart";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/request_log.dart";
 
