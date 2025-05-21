@@ -14,14 +14,23 @@ import 'package:irich/service/api_provider_hexun.dart';
 import 'package:irich/service/api_provider_ifind.dart';
 
 enum EnumApiProvider {
-  eastMoney, // 东方财富
-  heXun, // 和讯网
-  baiduFinance, // 百度财经
-  iFind, // 同花顺
-}
+  eastMoney(1), // 东方财富
+  heXun(2), // 和讯网
+  baiduFinance(3), // 百度财经
+  iFind(4), // 同花顺
+  unknown(255); // 未知供应商
 
-// 为枚举添加扩展方法
-extension EnumApiProviderExtension on EnumApiProvider {
+  final int provider;
+  const EnumApiProvider(this.provider);
+
+  int get val => provider;
+  static EnumApiProvider fromVal(int value) {
+    return EnumApiProvider.values.firstWhere(
+      (e) => e.provider == value,
+      orElse: () => EnumApiProvider.unknown,
+    );
+  }
+
   String get name {
     switch (this) {
       case EnumApiProvider.eastMoney:
@@ -32,20 +41,56 @@ extension EnumApiProviderExtension on EnumApiProvider {
         return '[百度财经]';
       case EnumApiProvider.iFind:
         return '[同花顺]';
+      case EnumApiProvider.unknown:
+        return '[未知供应商]';
     }
   }
 }
 
 enum ProviderApiType {
-  unknown, // 未知类型
-  quote, // 大A股票实时行情
-  quoteExtra, // 分类板块入口
-  industry, // 行业分类数据
-  concept, // 概念分类数据
-  province, // 省份分类数据
-  minuteKline, // 分时K线
-  dayKline, // 日K线
-  fiveDayKline, // 5日K线
+  quote(1), // 大A股票实时行情
+  quoteExtra(2), // 分类板块入口
+  industry(3), // 行业分类数据
+  concept(4), // 概念分类数据
+  province(5), // 省份分类数据
+  minuteKline(6), // 分时K线
+  dayKline(7), // 日K线
+  fiveDayKline(8), // 5日K线
+  unknown(255); // 未知类型
+
+  final int apiType;
+  const ProviderApiType(this.apiType);
+
+  int get val => apiType;
+  static ProviderApiType fromVal(int value) {
+    return ProviderApiType.values.firstWhere(
+      (e) => e.apiType == value,
+      orElse: () => ProviderApiType.unknown,
+    );
+  }
+
+  String get name {
+    switch (this) {
+      case ProviderApiType.quote:
+        return '[股票行情]';
+      case ProviderApiType.quoteExtra:
+        return '[板块分类]';
+      case ProviderApiType.industry:
+        return '[行业板块]';
+      case ProviderApiType.concept:
+        return '[概念板块]';
+      case ProviderApiType.province:
+        return '[地域板块]';
+      case ProviderApiType.minuteKline:
+        return '[分时图]';
+      case ProviderApiType.dayKline:
+        return '[日K线]';
+      case ProviderApiType.fiveDayKline:
+        return '[五日分时图]';
+      case ProviderApiType.unknown:
+        return '[未知]';
+    }
+  }
 }
 
 class ApiProviderCapabilities {
@@ -83,6 +128,8 @@ class ApiProviderCapabilities {
         return ApiProviderBaidu();
       case EnumApiProvider.iFind:
         return ApiProviderIfind();
+      case EnumApiProvider.unknown:
+        throw ArgumentError('Unknown API provider: $provider');
     }
   }
 }
