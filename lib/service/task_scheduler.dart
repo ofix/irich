@@ -27,19 +27,13 @@ class TaskScheduler {
   ); // 优先级任务等待队列
   final List<Task<dynamic>> taskList = []; // 任务列表，返回给UI显示的副本
   final List<Task<dynamic>> runningTaskList = []; // 运行中的任务列表
-  final Map<String, List<RequestLog>> _taskLogs = {}; // 任务请求日志
-
-  int runningTaskCount = 0; // 运行中任务计数
-  int? maxUiRunningTasks = 2; // UI主线程中支持的并发异步任务数
-  int? maxPoolRunningTasks = 2; // 线程池中支持的并发异步任务数
+  final Map<String, List<RequestLog>> _isolateTaskLogs = {}; // 任务请求日志
 
   late int minIsolates; // 最小线程数
   late int maxIsolates; // 最大线程数
   late Duration idleTimeout; // 线程空闲超时时间，超过后将回收空闲线程
   ReceivePort? _mainRecvPort; // 线程池通信端口（ui主线程）
   int _nextThreadId = 0; // 子线程ID
-  int _runningTaskCount = 0; // 当前运行的任务总数
-  int maxConcurrentTasks = 6; // // 主线程+子线程最大并发数
 
   SendPort get mainSendPort => _mainRecvPort!.sendPort;
 
@@ -55,14 +49,13 @@ class TaskScheduler {
   static late TaskScheduler _instance;
 
   // 单例模式
-  factory TaskScheduler({int? maxUiRunningTasks, int? maxPoolRunningTasks}) {
+  factory TaskScheduler() {
     if (!_initialized) {
-      final maxTasks = maxUiRunningTasks ?? Platform.numberOfProcessors ~/ 2;
+      final minTasks = Platform.numberOfProcessors ~/ 2;
+      final maxTasks = Platform.numberOfProcessors;
       _instance = TaskScheduler._internal(
-        maxUiRunningTasks: maxTasks,
-        maxPoolRunningTasks: maxTasks,
-        minIsolates: maxTasks < 2 ? 2 : maxTasks,
-        maxIsolates: maxTasks < 2 ? 2 : maxTasks,
+        minIsolates: minTasks,
+        maxIsolates: maxTasks,
         idleTimeout: const Duration(seconds: 60),
       );
       _initialized = true;
@@ -71,8 +64,6 @@ class TaskScheduler {
   }
 
   TaskScheduler._internal({
-    required this.maxUiRunningTasks,
-    required this.maxPoolRunningTasks,
     required this.minIsolates,
     required this.maxIsolates,
     required this.idleTimeout,
@@ -109,6 +100,7 @@ class TaskScheduler {
             Task task = Task.deserialize(json);
             task.status = TaskStatus.paused; // 强制任务暂停
             _pendingTaskQueue.add(task);
+            taskList.add(task);
           }
         }
       }
@@ -123,41 +115,110 @@ class TaskScheduler {
     return _taskMap[taskId];
   }
 
+  List<RequestLog> taskLogs(String taskId) {
+    if (_isolateTaskLogs.containsKey(taskId)) {
+      return _isolateTaskLogs[taskId]!;
+    }
+    return [];
+  }
+
   // 处理子线程发送过来的UiEvent
   void listenIsolateEvents() {
     _mainRecvPort?.listen((dynamic message) async {
       final event = IsolateEvent.deserialize(message);
       if (event is TaskStartedEvent) {
-        Task? task = _searchTask(event);
-        task?.onStartedUi(event);
+        _handleTaskStarted(event);
       } else if (event is TaskProgressEvent) {
-        Task? task = _searchTask(event);
-        _taskLogs.putIfAbsent(task!.taskId, () => []).add(event.requestLog); // 添加请求日志
-        task?.onProgressUi(event);
+        _handleTaskProgress(event);
       } else if (event is TaskPausedEvent) {
-        Task? task = _searchTask(event);
-        task?.status = TaskStatus.paused;
-        _onWorkerIdle(getIsolateWorker(task!.threadId)!);
-        _removeRunningTask(task.taskId);
+        _handleTaskPaused(event);
       } else if (event is TaskErrorEvent) {
-        Task? task = _searchTask(event);
-        task?.status = TaskStatus.failed;
-        _removeRunningTask(task!.taskId);
-        _onWorkerIdle(getIsolateWorker(task.threadId)!);
+        _handleTaskError(event);
       } else if (event is TaskCompletedEvent) {
-        Task? task = _searchTask(event);
-        task?.onCompletedUi(event, null);
-        _removeRunningTask(task!.taskId);
-        _onWorkerIdle(getIsolateWorker(task.threadId)!);
+        _handleTaskCompleted(event);
       } else if (event is TaskResumedEvent) {
-        Task? task = _searchTask(event);
-        task?.status = TaskStatus.running;
+        _handleTaskResumed(event);
       } else if (event is TaskCancelledEvent) {
-        Task? task = _searchTask(event);
-        task?.status = TaskStatus.cancelled;
-        _removeRunningTask(task!.taskId);
+        _handleTaskCancelled(event);
       }
     });
+  }
+
+  // 处理任务开始执行事件
+  void _handleTaskStarted(TaskStartedEvent event) {
+    Task? task = _searchTask(event);
+    task?.onStartedUi(event);
+    notifyListeners();
+  }
+
+  // 处理任务进度事件
+  void _handleTaskProgress(TaskProgressEvent event) {
+    Task? task = _searchTask(event);
+    if (task != null) {
+      _isolateTaskLogs.putIfAbsent(task.taskId, () => []).add(event.requestLog); // 添加请求日志
+      task.onProgressUi(event);
+    }
+    notifyListeners();
+  }
+
+  // 处理任务暂停事件
+  void _handleTaskPaused(TaskPausedEvent event) {
+    Task? task = _searchTask(event);
+    if (task != null) {
+      task.status = TaskStatus.paused;
+      task.isProcessing = false;
+      _removeRunningTask(task.taskId);
+      final isolateWorker = getIsolateWorker(task.threadId);
+      if (isolateWorker != null) {
+        _onWorkerIdle(isolateWorker);
+      }
+      notifyListeners();
+    }
+  }
+
+  // 处理任务报错事件
+  void _handleTaskError(TaskErrorEvent event) {
+    Task? task = _searchTask(event);
+    if (task != null) {
+      task.status = TaskStatus.failed;
+      task.isProcessing = false;
+      _removeRunningTask(task.taskId);
+      IsolateWorker? isolateWorker = getIsolateWorker(task.threadId);
+      if (isolateWorker != null) {
+        _onWorkerIdle(isolateWorker);
+      }
+      notifyListeners();
+    }
+  }
+
+  // 处理任务完成事件
+  void _handleTaskCompleted(TaskCompletedEvent event) {
+    Task? task = _searchTask(event);
+    task?.onCompletedUi(event, null);
+    _removeRunningTask(task!.taskId);
+    IsolateWorker? isolateWorker = getIsolateWorker(task.threadId);
+    if (isolateWorker != null) {
+      _onWorkerIdle(isolateWorker);
+    }
+    notifyListeners();
+  }
+
+  // 处理任务恢复执行事件
+  void _handleTaskResumed(TaskResumedEvent event) {
+    Task? task = _searchTask(event);
+    task?.status = TaskStatus.running;
+    task?.isProcessing = false;
+    notifyListeners();
+  }
+
+  // 处理任务取消事件
+  void _handleTaskCancelled(TaskCancelledEvent event) {
+    Task? task = _searchTask(event);
+    task?.status = TaskStatus.cancelled;
+    if (task != null) {
+      _removeRunningTask(task.taskId);
+      notifyListeners();
+    }
   }
 
   IsolateWorker? getIsolateWorker(int threadId) {
@@ -180,15 +241,15 @@ class TaskScheduler {
 
   // 恢复所有暂停的任务
   void resumeAllPausedTask() {
-    for (var entry in _taskMap.entries) {
-      entry.value.status = TaskStatus.paused;
+    for (int i = 0; i < taskList.length; i++) {
+      taskList[i].status = TaskStatus.paused;
     }
     notifyListeners();
   }
 
   Map<String, dynamic> get stats {
     return {
-      'waiting': taskList.where((t) => t.status == TaskStatus.pending).length,
+      'pending': taskList.where((t) => t.status == TaskStatus.pending).length,
       'running': taskList.where((t) => t.status == TaskStatus.running).length,
       'completed': taskList.where((t) => t.status == TaskStatus.completed).length,
       'error': taskList.where((t) => t.status == TaskStatus.failed).length,
@@ -207,14 +268,12 @@ class TaskScheduler {
       _taskMap[task.taskId] = task;
       taskList.add(task);
       _schedule();
-      notifyListeners();
       return completer.future;
     } else {
       _pendingTaskQueue.add(task);
       _taskMap[task.taskId] = task;
       taskList.add(task);
       _schedule();
-      notifyListeners();
       return Future.value();
     }
   }
@@ -234,7 +293,9 @@ class TaskScheduler {
     if (task.priority == TaskPriority.immediate) {
       return false; // 主线程UI任务不可以暂停
     }
-    task.status = TaskStatus.paused;
+    if (task.isProcessing) {
+      return false; // 任务正在处理中，不允许继续操作
+    }
     final threadId = task.threadId;
     if (threadId == 0) {
       // 任务没有在子线程执行
@@ -244,9 +305,9 @@ class TaskScheduler {
     if (isolateWorker == null) {
       return false;
     }
+    task.isProcessing = true;
     final pauseTaskEvent = PauseTaskUiEvent(taskId: taskId); // 通知子线程暂停任务
     isolateWorker.notify(pauseTaskEvent);
-    notifyListeners();
     return true;
   }
 
@@ -256,20 +317,36 @@ class TaskScheduler {
     if (task == null) {
       return false; // 任务不存在
     }
-    task.status = TaskStatus.paused;
-    final threadId = task.threadId;
-    if (threadId == 0) {
-      // 任务没有在子线程执行
+    if (task.isProcessing) {
+      return false; // 任务正在处理中，不允许其他操作
+    }
+    // 没有空闲线程
+    if (_idleWorkers.isEmpty) {
+      // 空闲线程不够，看能不能生成一个
+      if (_activeWorkers.length + _idleWorkers.length < maxIsolates) {
+        _spawnWorker(_nextThreadId++);
+        if (_idleWorkers.isNotEmpty) {
+          _runTaskInIdleIsolateWorker(task);
+          return true;
+        }
+        return false;
+      }
       return false;
     }
-    final isolateWorker = _workerMap[threadId]; // 找到任务所在子线程
-    if (isolateWorker == null) {
-      return false;
-    }
-    final cancelTaskEvent = ResumeTaskUiEvent(taskId: taskId); // 通知子线程暂停任务
-    isolateWorker.notify(cancelTaskEvent);
-    notifyListeners();
+    // 有空闲线程
+    _runTaskInIdleIsolateWorker(task);
     return true;
+  }
+
+  // 将恢复的任务安排在一个空闲线程中重新运行
+  void _runTaskInIdleIsolateWorker(Task<dynamic> task) {
+    final worker = _idleWorkers.removeLast();
+    worker.isBusy = true; // 表示当前有任务在运行
+    task.threadId = worker.threadId; // 将 threadId 赋值给Task
+    final resumeTaskEvent = ResumeTaskUiEvent(taskId: task.taskId); // 通知子线程暂停任务
+    worker.notify(resumeTaskEvent);
+    _activeWorkers.add(worker);
+    runningTaskList.add(task);
   }
 
   // 取消任务
@@ -292,13 +369,11 @@ class TaskScheduler {
     }
     final cancelTaskEvent = CancelTaskUiEvent(taskId: taskId); // 通知子线程暂停任务
     isolateWorker.notify(cancelTaskEvent);
-    notifyListeners();
     return true;
   }
 
   /// 在主线程运行任务
   Future<void> _runTaskInMain(Task<dynamic> task) async {
-    _runningTaskCount++;
     final startedEvent = TaskStartedEvent(threadId: 0, taskId: task.taskId);
     task.onStartedUi(startedEvent);
     runningTaskList.add(task);
@@ -318,32 +393,30 @@ class TaskScheduler {
       runningTaskList.removeAt(runningTaskIndex);
     } finally {
       runningTaskList.removeAt(runningTaskIndex);
-      _runningTaskCount--;
       _schedule();
     }
   }
 
   /// 在子线程运行任务
   Future<void> _runTaskInWorker(Task<dynamic> task) async {
-    if (!_idleWorkers.isNotEmpty) {
+    if (_idleWorkers.isEmpty) {
       // 空闲线程不够，看能不能生成一个
-      if (_activeWorkers.length + _idleWorkers.length < maxIsolates) {
+      if (_activeWorkers.length + _idleWorkers.length <= maxIsolates) {
         _spawnWorker(_nextThreadId++);
       }
     }
 
-    if (!_idleWorkers.isNotEmpty) {
+    if (_idleWorkers.isEmpty) {
       _pendingTaskQueue.add(task); // 无可用k空闲线程，重新入队
       return;
     }
 
-    _runningTaskCount++; // 在子线程中运行任务
     final worker = _idleWorkers.removeLast();
+    worker.isBusy = true; // 表示当前有任务在子线程中运行
     task.threadId = worker.threadId; // 将 threadId 赋值给Task
     final newTaskEvent = NewTaskEvent(task: task);
     worker.notify(newTaskEvent);
     _activeWorkers.add(worker);
-    _runningTaskCount++;
     runningTaskList.add(task);
   }
 
@@ -354,14 +427,13 @@ class TaskScheduler {
         break;
       }
     }
-    _runningTaskCount--;
   }
 
   /// 任务调度
   /// 1. 如果任务优先级为immediate，则在主线程中运行
   /// 2. 其他任务则分配给子线程运行
   void _schedule() async {
-    if (_pendingTaskQueue.isEmpty || _runningTaskCount >= maxConcurrentTasks) {
+    if (_pendingTaskQueue.isEmpty) {
       return; // 无任务或已达最大并发数
     }
     final task = _pendingTaskQueue.removeFirst();
@@ -379,6 +451,7 @@ class TaskScheduler {
   }
 
   void _onWorkerIdle(IsolateWorker worker) {
+    worker.isBusy = false;
     _activeWorkers.remove(worker);
     _idleWorkers.add(worker);
     _schedule();

@@ -119,6 +119,7 @@ abstract class Task<T> implements Comparable<Task<T>> {
   int threadId; // 线程ID
   double progress; // 任务进度
   Completer<T>? completer;
+  bool isProcessing; // 正在处理中，暂停任务或者恢复任务需要等待子线程完成，期间不允许用户进行其他操作
   List<Map<String, dynamic>>? responses;
 
   /// 基类构造函数 - 子类必须调用
@@ -130,7 +131,8 @@ abstract class Task<T> implements Comparable<Task<T>> {
   }) : taskId = const Uuid().v4(),
        submitTime = submitTime ?? DateTime.now(),
        threadId = 0,
-       progress = 0 {
+       progress = 0,
+       isProcessing = false {
     params['TaskId'] = taskId;
   }
 

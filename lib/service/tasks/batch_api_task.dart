@@ -20,14 +20,13 @@ import 'package:irich/utils/rich_result.dart';
 import 'package:path/path.dart' as p;
 
 abstract class BatchApiTask extends Task<void> {
-  ApiService apiService;
+  late ApiService apiService;
   ProviderApiType get apiType;
   String pausedFilePath;
   int totalRequests; // 任务请求总数
   int recvRequests; // 已完成任务请求数
   BatchApiTask({super.params, super.priority, super.submitTime, super.status})
-    : apiService = ApiService(ProviderApiType.unknown),
-      pausedFilePath = '',
+    : pausedFilePath = '',
       totalRequests = (params as List<Map<String, dynamic>>).length,
       recvRequests = 0;
 
@@ -48,7 +47,7 @@ abstract class BatchApiTask extends Task<void> {
         notifyUi(progressEvent);
       },
       (RequestLog log) {
-        progress = recvRequests / totalRequests; // 计算进度
+        progress = recvRequests / totalRequests; // 分页请求进度
         final progressEvent = TaskProgressEvent(
           threadId: threadId,
           taskId: taskId,

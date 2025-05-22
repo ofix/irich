@@ -17,9 +17,9 @@ class IsolateWorker {
   final int threadId; // 子线程ID
   Isolate? _isolate; // 子线程引用
   SendPort? _isolateSendPort; // 向子线程发送消息的端口
-  Task? _currentTask; // 当前线程执行的任务
+  bool isBusy; // 当前线程有任务执行
 
-  IsolateWorker(this.threadId, this.mainSendPort);
+  IsolateWorker(this.threadId, this.mainSendPort) : isBusy = false;
 
   static Future<IsolateWorker> create(SendPort mainSendPort, int threadId) async {
     final worker = IsolateWorker(threadId, mainSendPort);
@@ -40,7 +40,7 @@ class IsolateWorker {
   }
 
   Future<void> dispose() async {
-    notify(KillWorkerUiEvent(taskId: _currentTask?.taskId ?? ""));
+    notify(KillWorkerUiEvent(taskId: ""));
     await Future.delayed(const Duration(milliseconds: 100)); // Allow cleanup
     _isolate?.kill(priority: Isolate.immediate);
     _isolate = null;
