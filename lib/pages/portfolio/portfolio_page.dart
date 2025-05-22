@@ -9,7 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:irich/components/desktop_layout.dart';
-import 'package:irich/ui/portfolio/portfolio_view.dart';
+import 'package:irich/pages/portfolio/portfolio_view.dart';
 
 class PortfolioPage extends StatelessWidget {
   const PortfolioPage({super.key, required this.title});

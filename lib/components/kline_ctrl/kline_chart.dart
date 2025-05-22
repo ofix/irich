@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/components/kline_ctrl/KlineChart.dart
+// Purpose:     kline chart
+// Author:      songhuabiao
+// Created:     2025-05-22 20:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 import 'package:flutter/widgets.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_painter.dart';
 import 'package:irich/formula/formula_ema.dart';

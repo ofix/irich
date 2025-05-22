@@ -8,6 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:irich/service/request_log.dart';
 import 'package:irich/service/tasks/task.dart';
 import 'package:irich/service/task_scheduler.dart';
 
@@ -54,7 +55,15 @@ final selectedTaskProvider = Provider<Task?>((ref) {
 });
 
 // 定义统计信息的 Provider
-final statsProvider = Provider<Map<String, dynamic>>((ref) {
+final taskStatsProvider = Provider<Map<String, dynamic>>((ref) {
   // 从 StoreTaskList 的 notifier 获取统计信息
   return ref.watch(stateTaskListProvider.notifier).stats;
+});
+
+// 定义选中的日志列表 Provider
+final selectedTaskLogsProvider = Provider<List<RequestLog>>((ref) {
+  final scheduler = ref.watch(taskSchedulerProvider);
+  final selectedTask = ref.watch(selectedTaskProvider);
+
+  return selectedTask != null ? scheduler.selectTaskLogs() : [];
 });

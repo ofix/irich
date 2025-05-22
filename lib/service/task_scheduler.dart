@@ -27,26 +27,26 @@ class TaskScheduler {
   ); // 优先级任务等待队列
   final List<Task<dynamic>> taskList = []; // 任务列表，返回给UI显示的副本
   final List<Task<dynamic>> runningTaskList = []; // 运行中的任务列表
-  final Map<String, List<RequestLog>> _isolateTaskLogs = {}; // 任务请求日志
-
-  late int minIsolates; // 最小线程数
-  late int maxIsolates; // 最大线程数
-  late Duration idleTimeout; // 线程空闲超时时间，超过后将回收空闲线程
-  ReceivePort? _mainRecvPort; // 线程池通信端口（ui主线程）
-  int _nextThreadId = 0; // 子线程ID
-
-  SendPort get mainSendPort => _mainRecvPort!.sendPort;
+  final Map<String, List<RequestLog>> _isolateTaskLogs = {}; // 子线程执行的任务请求日志
 
   final List<IsolateWorker> _idleWorkers = []; // 空闲子线程列表
   final List<IsolateWorker> _activeWorkers = []; // 活动子线程列表
-  final Map<int, IsolateWorker> _workerMap = {}; // 线程ID => Isolate封装类映射表
+  final Map<int, IsolateWorker> _workerMap = {}; // 线程ID => 子线程映射表
+  late int minIsolates; // 最小线程数
+  late int maxIsolates; // 最大线程数
+  late Duration idleTimeout; // 线程空闲超时时间，超时后将回收空闲线程
+  ReceivePort? _mainRecvPort; // 线程池通信端口（ui主线程）
+  int _nextThreadId = 0; // 子线程ID
+  SendPort get mainSendPort => _mainRecvPort!.sendPort;
+
+  // 单例模式
+  static bool _initialized = false;
+  static late TaskScheduler _instance;
 
   //////////////////  UI层 支持 ///////////////////////////
   final List<VoidCallback> _listeners = [];
   Task? _selectedTask;
   Task? get selectedTask => _selectedTask;
-  static bool _initialized = false;
-  static late TaskScheduler _instance;
 
   // 单例模式
   factory TaskScheduler() {
@@ -113,13 +113,6 @@ class TaskScheduler {
   Task? _searchTask(IsolateEvent event) {
     String taskId = event.taskId;
     return _taskMap[taskId];
-  }
-
-  List<RequestLog> taskLogs(String taskId) {
-    if (_isolateTaskLogs.containsKey(taskId)) {
-      return _isolateTaskLogs[taskId]!;
-    }
-    return [];
   }
 
   // 处理子线程发送过来的UiEvent
@@ -282,6 +275,14 @@ class TaskScheduler {
   void selectTask(Task task) {
     _selectedTask = task;
     notifyListeners();
+  }
+
+  // 选中任务的日志列表
+  List<RequestLog> selectTaskLogs() {
+    if (_isolateTaskLogs.containsKey(_selectedTask?.taskId)) {
+      return _isolateTaskLogs[_selectedTask?.taskId]!;
+    }
+    return [];
   }
 
   // 暂停任务
@@ -466,6 +467,7 @@ class TaskScheduler {
   }
 
   Future<void> close() async {
+    // 清理线程相关数据结构
     await Future.wait([
       ..._idleWorkers.map((w) => w.dispose()),
       ..._activeWorkers.map((w) => w.dispose()),
@@ -473,8 +475,10 @@ class TaskScheduler {
     _idleWorkers.clear();
     _activeWorkers.clear();
     _workerMap.clear();
+    // 清理任务相关数据结构
     _taskMap.clear();
     _pendingTaskQueue.clear();
     taskList.clear();
+    runningTaskList.clear();
   }
 }

@@ -34,15 +34,15 @@ enum EnumApiProvider {
   String get name {
     switch (this) {
       case EnumApiProvider.eastMoney:
-        return '[东方财富]';
+        return '东方财富';
       case EnumApiProvider.heXun:
-        return '[和讯网]';
+        return '和讯网';
       case EnumApiProvider.baiduFinance:
-        return '[百度财经]';
+        return '百度财经';
       case EnumApiProvider.iFind:
-        return '[同花顺]';
+        return '同花顺';
       case EnumApiProvider.unknown:
-        return '[未知供应商]';
+        return '未知供应商';
     }
   }
 }
