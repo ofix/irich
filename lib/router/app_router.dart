@@ -12,6 +12,7 @@ import 'package:irich/pages/discovery/discovery_page.dart';
 import 'package:irich/pages/market/market_page.dart';
 import 'package:irich/pages/portfolio/portfolio_page.dart';
 import 'package:irich/pages/favorite/favorite_page.dart';
+import 'package:irich/pages/settings/settings_page.dart';
 
 // 禁用GoRouter默认页面切换动画
 final appRouter = GoRouter(
@@ -40,6 +41,12 @@ final appRouter = GoRouter(
       pageBuilder:
           (context, state) =>
               NoTransitionPage(key: state.pageKey, child: const DiscoveryPage(title: '选股')),
+    ),
+    GoRoute(
+      path: '/settings',
+      pageBuilder:
+          (context, state) =>
+              NoTransitionPage(key: state.pageKey, child: const SettingsPage(title: "任务列表")),
     ),
   ],
 );

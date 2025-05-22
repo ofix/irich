@@ -1,10 +1,18 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/ui/settings/task_logs_panel.dart
+// Purpose:     select task logs panel
+// Author:      songhuabiao
+// Created:     2025-05-22 20:30
+// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:irich/service/api_provider_capabilities.dart';
+import 'package:irich/components/svg_image.dart';
 import 'package:irich/service/request_log.dart';
 import 'package:irich/store/state_tasks.dart';
-import 'package:path/path.dart';
 
 class TaskLogsPanel extends ConsumerWidget {
   const TaskLogsPanel({super.key});
@@ -121,15 +129,13 @@ class RequestLogItem extends StatelessWidget {
     return Row(
       children: [
         // 供应商图标
-        Container(
+        SizedBox(
           width: 24,
           height: 24,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4),
-            image: DecorationImage(
-              image: AssetImage('assets/images/providers/${log.providerId.name}.png'),
-              fit: BoxFit.contain,
-            ),
+          child: SvgImage(
+            assetPath: 'assets/images/${log.providerId.name}.svg',
+            width: 48,
+            height: 48,
           ),
         ),
         const SizedBox(width: 8),
@@ -140,7 +146,7 @@ class RequestLogItem extends StatelessWidget {
             TextSpan(
               children: [
                 TextSpan(
-                  text: '${log.apiType.name.toUpperCase()} • ',
+                  text: log.apiType.name,
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
