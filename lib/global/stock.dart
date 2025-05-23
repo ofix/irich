@@ -25,11 +25,21 @@ enum Market {
   }
 
   // 数字转枚举的工厂方法
-  static Market fromValue(int value) {
-    return Market.values.firstWhere(
-      (e) => e.market == value,
-      orElse: () => throw ArgumentError('Invalid market value: $value'),
-    );
+  static Market fromVal(int value) {
+    switch (value) {
+      case 1:
+        return Market.shangHai;
+      case 2:
+        return Market.shenZhen;
+      case 3:
+        return Market.chuangYeBan;
+      case 4:
+        return Market.keChuangBan;
+      case 5:
+        return Market.beiJiaoSuo;
+      default:
+        throw ArgumentError('Invalid market code: $value');
+    }
   }
 }
 

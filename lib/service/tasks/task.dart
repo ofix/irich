@@ -40,10 +40,20 @@ enum TaskPriority implements Comparable<TaskPriority> {
   int get val => priority;
 
   static TaskPriority fromVal(int value) {
-    return TaskPriority.values.firstWhere(
-      (e) => e.priority == value,
-      orElse: () => TaskPriority.unknown,
-    );
+    switch (value) {
+      case 4:
+        return TaskPriority.immediate;
+      case 3:
+        return TaskPriority.high;
+      case 2:
+        return TaskPriority.normal;
+      case 1:
+        return TaskPriority.low;
+      case 0:
+        return TaskPriority.unknown;
+      default:
+        return TaskPriority.unknown;
+    }
   }
 }
 
@@ -65,7 +75,26 @@ enum TaskStatus {
   int get val => status;
 
   static TaskStatus fromVal(int value) {
-    return TaskStatus.values.firstWhere((e) => e.status == value, orElse: () => TaskStatus.unknown);
+    switch (value) {
+      case 1:
+        return TaskStatus.pending;
+      case 2:
+        return TaskStatus.running;
+      case 3:
+        return TaskStatus.paused;
+      case 4:
+        return TaskStatus.completed;
+      case 5:
+        return TaskStatus.cancelled;
+      case 6:
+        return TaskStatus.failed;
+      case 7:
+        return TaskStatus.exit;
+      case 0:
+        return TaskStatus.unknown;
+      default:
+        throw ArgumentError('Invalid task status value: $value');
+    }
   }
 }
 
@@ -101,7 +130,76 @@ enum TaskType implements Comparable<TaskType> {
   int get val => type;
 
   static TaskType fromVal(int value) {
-    return TaskType.values.firstWhere((e) => e.type == value, orElse: () => TaskType.unknown);
+    switch (value) {
+      // 行情数据
+      case 1:
+        return syncShareQuote;
+      case 2:
+        return syncShareBk;
+      case 3:
+        return syncShareRegion;
+      case 4:
+        return syncShareRegionPartial;
+      case 5:
+        return syncShareIndustry;
+      case 6:
+        return syncShareIndustryPartial;
+      case 7:
+        return syncShareConcept;
+      case 8:
+        return syncShareConceptPartial;
+      case 9:
+        return syncShareDailyKline;
+      case 10:
+        return syncShareDailyKlinePartial;
+
+      // 基础信息
+      case 11:
+        return syncShareBasicInfo;
+      case 12:
+        return syncShareBasicInfoPartial;
+      case 13:
+        return syncIndexDailyKline;
+      case 14:
+        return syncIndexDailyKlinePartial;
+
+      // 实时数据
+      case 15:
+        return syncIndexMinuteKline;
+
+      // 分析任务
+      case 100:
+        return smartShareAnalysis;
+
+      // 未知类型
+      case 255:
+        return unknown;
+      default:
+        return unknown;
+    }
+  }
+
+  String get name {
+    const names = {
+      1: '行情数据同步',
+      2: '板块数据同步',
+      3: '股票地域(全量)',
+      4: '股票地域(增量)',
+      5: '股票行业(全量)',
+      6: '股票行业(增量)',
+      7: '股票概念(全量)',
+      8: '股票概念(增量)',
+      9: '股票日K线(全量)',
+      10: '股票日K线(增量)',
+      11: '股票基本信息(全量)',
+      12: '股票基本信息(增量)',
+      13: '指数日K线(全量)',
+      14: '指数日K线(增量)',
+      15: '指数分时图(全量)',
+      100: '智能选股分析',
+      255: '未知类型',
+    };
+    return names[type] ?? '未知任务类型';
   }
 }
 
@@ -110,15 +208,15 @@ abstract class Task<T> implements Comparable<Task<T>> {
   dynamic params; // 任务参数
   String taskId;
   TaskPriority priority; // 任务优先级
-  final DateTime submitTime; // 任务提交到调度中心的时间
+  DateTime submitTime; // 任务提交到调度中心的时间
   DateTime? startTime; // 任务开始时间
   DateTime? endTime; // 任务结束时间
   int? timeConsumeInSeconds; // 任务耗时(单位：秒)
   TaskStatus status; // 任务状态
+  double progress; // 任务进度
   SendPort? mainThread; // 向主线程发送消息
   int threadId; // 线程ID
-  double progress; // 任务进度
-  Completer<T>? completer;
+  Completer<T>? completer; // 处理
   bool isProcessing; // 正在处理中，暂停任务或者恢复任务需要等待子线程完成，期间不允许用户进行其他操作
   List<Map<String, dynamic>>? responses;
 
@@ -148,26 +246,38 @@ abstract class Task<T> implements Comparable<Task<T>> {
 
   Map<String, dynamic> serialize() => {
     "Type": type.val,
-    "Params": jsonEncode(params),
-    "TaskId": taskId,
     "Priority": priority.val,
+    "TaskId": taskId,
     "Status": status.val,
+    "Params": jsonEncode(params),
     "Progress": progress,
+    "SubmitTime": submitTime.toIso8601String(),
     "StartTime": startTime?.toIso8601String(),
   };
 
-  static Task deserialize(Map<String, dynamic> json) {
+  // 命名子类构造函数，供子类复用
+  Task.build(Map<String, dynamic> json)
+    : taskId = json['TaskId'] as String,
+      priority = TaskPriority.fromVal(json['Priority'] as int),
+      status = TaskStatus.fromVal(json['Status'] as int),
+      progress = json['Progress'] as double,
+      submitTime = DateTime.parse(json['SubmitTime']),
+      startTime = json['StartTime'] != null ? DateTime.parse(json['StartTime']) : null,
+      threadId = 0,
+      isProcessing = false;
+
+  static dynamic deserialize(Map<String, dynamic> json) {
     TaskType type = TaskType.fromVal(json['Type'] as int);
     // 根据类型创建具体任务实例
     switch (type) {
       case TaskType.syncShareQuote:
-        return TaskSyncShareQuote.deserialize(json);
+        return TaskSyncShareQuote.build(json);
       case TaskType.syncShareIndustry:
-        return TaskSyncShareIndustry.deserialize(json);
+        return TaskSyncShareIndustry.build(json);
       case TaskType.syncShareRegion:
-        return TaskSyncShareRegion.deserialize(json);
+        return TaskSyncShareRegion.build(json);
       case TaskType.syncShareConcept:
-        return TaskSyncShareConcept.deserialize(json);
+        return TaskSyncShareConcept.build(json);
       default:
         throw UnsupportedError('Unknown task type: ${json['type']}');
     }
@@ -187,6 +297,8 @@ abstract class Task<T> implements Comparable<Task<T>> {
     task.params = json['Params']; // 用参数覆盖原有的参数列表，继续未完成的请求
     task.responses = json['Responses'];
     task.status = TaskStatus.running;
+    task.startTime = json['StartTime'] != null ? DateTime.parse(json['StartTime']) : DateTime.now();
+    task.submitTime = DateTime.fromMillisecondsSinceEpoch(json['SubmitTime']);
     final resumeEvent = TaskResumedEvent(threadId: threadId, taskId: taskId);
     task.notifyUi(resumeEvent);
     return task;

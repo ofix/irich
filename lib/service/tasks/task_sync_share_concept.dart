@@ -30,14 +30,11 @@ class TaskSyncShareConcept extends BatchApiTask {
     super.status = TaskStatus.pending,
   });
 
-  factory TaskSyncShareConcept.deserialize(Map<String, dynamic> json) {
-    return TaskSyncShareConcept(
-      params: json['Params'] as Map<String, dynamic>,
-      priority: TaskPriority.fromVal(json['Priority'] as int),
-      submitTime: DateTime.fromMillisecondsSinceEpoch(json['SubmitTime'] as int),
-      status: TaskStatus.fromVal(json['Status'] as int),
-    );
-  }
+  // 命名构造函数
+  TaskSyncShareConcept.build(super.json)
+    : type = TaskType.fromVal(json['Type'] as int),
+      apiType = ProviderApiType.fromVal(json['ApiType'] as int),
+      super.build();
 
   @override
   Future<void> run() async {

@@ -309,7 +309,7 @@ class StoreQuote {
         Share share = Share(
           name: item['Name'], // 股票名称
           code: item['Code'], // 股票代码
-          market: Market.fromValue(item['Market']), // 股票市场
+          market: Market.fromVal(item['Market']), // 股票市场
           priceYesterdayClose: double.parse(item['PriceYesterdayClose']), // 昨天收盘价
           priceNow: double.parse(item['PriceNow']), // 当前价
           priceMin: double.parse(item['PriceMin']), // 最低价

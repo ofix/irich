@@ -27,14 +27,9 @@ class TaskSyncShareQuote extends Task<List<Share>> {
     super.status,
   });
 
-  factory TaskSyncShareQuote.deserialize(Map<String, dynamic> json) {
-    return TaskSyncShareQuote(
-      params: json['Params'] as Map<String, dynamic>,
-      priority: TaskPriority.fromVal(json['Priority'] as int),
-      submitTime: DateTime.fromMicrosecondsSinceEpoch(json['SubmitTime']),
-      status: TaskStatus.fromVal(json['Status'] as int),
-    );
-  }
+  TaskSyncShareQuote.build(super.json)
+    : type = TaskType.fromVal(json['Type'] as int),
+      super.build();
 
   @override
   Future<List<Share>> run() async {

@@ -25,10 +25,20 @@ enum EnumApiProvider {
 
   int get val => provider;
   static EnumApiProvider fromVal(int value) {
-    return EnumApiProvider.values.firstWhere(
-      (e) => e.provider == value,
-      orElse: () => EnumApiProvider.unknown,
-    );
+    switch (value) {
+      case 1:
+        return EnumApiProvider.eastMoney;
+      case 2:
+        return EnumApiProvider.heXun;
+      case 3:
+        return EnumApiProvider.baiduFinance;
+      case 4:
+        return EnumApiProvider.iFind;
+      case 255:
+        return EnumApiProvider.unknown;
+      default:
+        return EnumApiProvider.unknown;
+    }
   }
 
   String get name {
@@ -63,10 +73,28 @@ enum ProviderApiType {
 
   int get val => apiType;
   static ProviderApiType fromVal(int value) {
-    return ProviderApiType.values.firstWhere(
-      (e) => e.apiType == value,
-      orElse: () => ProviderApiType.unknown,
-    );
+    switch (value) {
+      case 1:
+        return ProviderApiType.quote;
+      case 2:
+        return ProviderApiType.quoteExtra;
+      case 3:
+        return ProviderApiType.industry;
+      case 4:
+        return ProviderApiType.concept;
+      case 5:
+        return ProviderApiType.province;
+      case 6:
+        return ProviderApiType.minuteKline;
+      case 7:
+        return ProviderApiType.dayKline;
+      case 8:
+        return ProviderApiType.fiveDayKline;
+      case 255:
+        return ProviderApiType.unknown;
+      default:
+        return ProviderApiType.unknown;
+    }
   }
 
   String get name {

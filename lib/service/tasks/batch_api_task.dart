@@ -22,13 +22,21 @@ import 'package:path/path.dart' as p;
 abstract class BatchApiTask extends Task<void> {
   late ApiService apiService;
   ProviderApiType get apiType;
-  String pausedFilePath;
+  int originTotalRequests; // 原始任务请求总数
   int totalRequests; // 任务请求总数
-  int recvRequests; // 已完成任务请求数
-  BatchApiTask({super.params, super.priority, super.submitTime, super.status})
-    : pausedFilePath = '',
-      totalRequests = (params as List<Map<String, dynamic>>).length,
-      recvRequests = 0;
+  int doneRequests; // 已完成任务请求数
+  BatchApiTask({
+    super.params,
+    super.priority,
+    super.submitTime,
+    super.status,
+    this.originTotalRequests = 0,
+  }) : totalRequests = (params as List<Map<String, dynamic>>).length,
+       doneRequests = 0 {
+    if (originTotalRequests == 0) {
+      originTotalRequests = totalRequests;
+    }
+  }
 
   /// 在子线程中运行
   Future<void> doJob() async {
@@ -36,8 +44,8 @@ abstract class BatchApiTask extends Task<void> {
     final result = await apiService.batchFetch(
       params,
       (RequestLog log) {
-        recvRequests += 1;
-        progress = recvRequests / totalRequests; // 计算进度
+        doneRequests += 1;
+        progress = doneRequests / originTotalRequests; // 计算进度
         final progressEvent = TaskProgressEvent(
           threadId: threadId,
           taskId: taskId,
@@ -47,7 +55,7 @@ abstract class BatchApiTask extends Task<void> {
         notifyUi(progressEvent);
       },
       (RequestLog log) {
-        progress = recvRequests / totalRequests; // 分页请求进度
+        progress = doneRequests / originTotalRequests; // 分页请求进度
         final progressEvent = TaskProgressEvent(
           threadId: threadId,
           taskId: taskId,
@@ -57,12 +65,11 @@ abstract class BatchApiTask extends Task<void> {
         notifyUi(progressEvent);
       },
     );
-    String taskPath = await Config.pathTask;
-    pausedFilePath = p.join(taskPath, taskId, ".json");
+
     final (status, response) = result;
     if (status.status == RichStatus.taskPaused) {
       // 任务真的暂停成功
-      _savePausedTask(params, response);
+      await _savePausedTask(params, response);
       final pausedEvent = TaskPausedEvent(threadId: threadId, taskId: taskId);
       notifyUi(pausedEvent);
     }
@@ -83,17 +90,37 @@ abstract class BatchApiTask extends Task<void> {
 
   /// [originParams] 原始的批量任务参数
   /// [response] 已完成的任务响应数据，
-  void _savePausedTask(
+  Future<void> _savePausedTask(
     List<Map<String, dynamic>> originParams,
     List<Map<String, dynamic>> response,
-  ) {
+  ) async {
+    String taskPath = await Config.pathTask;
+    final pausedFilePath = p.join(taskPath, taskId, ".json");
     final params = originParams.sublist(response.length);
     Map<String, dynamic> result = {};
     result['Params'] = params; // 还未完成的参数列表
+    result['TaskId'] = taskId; // 任务ID
+    result['ThreadId'] = threadId; // 线程ID
+    result['Status'] = status.val; // 任务状态
+    result['SubmitTime'] = submitTime.millisecondsSinceEpoch; // 提交时间
+    result['Priority'] = priority.val; // 任务优先级
+    result['TotalRequests'] = totalRequests; // 任务请求总数
+    result['DoneRequests'] = doneRequests; // 已完成任务请求数
+    result['OriginTotalRequests'] = originTotalRequests; // 原始任务请求总数
+    result['Progress'] = progress; // 任务进度
+    result['TaskType'] = type.val; // 任务类型
+    result['ApiType'] = apiType.val; // API类型
     result['Responses'] = response; // 已经完成的响应列表
     final data = jsonEncode(result);
     FileTool.saveFile(pausedFilePath, data);
   }
+
+  // 命名构造函数
+  BatchApiTask.build(super.json)
+    : doneRequests = json['DoneRequests'] as int,
+      originTotalRequests = json['OriginTotalRequests'] as int,
+      totalRequests = json['TotalRequests'] as int,
+      super.build();
 
   @override
   void onCancelledIsolate() {
