@@ -115,6 +115,9 @@ abstract class BatchApiTask extends Task<void> {
     FileTool.saveFile(pausedFilePath, data);
   }
 
+  @override
+  Map<String, dynamic> dump() => {};
+
   // 命名构造函数
   BatchApiTask.build(super.json)
     : doneRequests = json['DoneRequests'] as int,

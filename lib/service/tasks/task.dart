@@ -253,7 +253,10 @@ abstract class Task<T> implements Comparable<Task<T>> {
     "Progress": progress,
     "SubmitTime": submitTime.toIso8601String(),
     "StartTime": startTime?.toIso8601String(),
+    ...dump(),
   };
+
+  Map<String, dynamic> dump() => {};
 
   // 命名子类构造函数，供子类复用
   Task.build(Map<String, dynamic> json)
@@ -335,6 +338,9 @@ class TaskSyncShareRegionPartial<T> extends Task<T> {
   });
 
   @override
+  Map<String, dynamic> dump() => {};
+
+  @override
   Future<T> run() {
     // 实现增量同步最新股票地域数据
     throw UnimplementedError("TaskSyncShareRegionPartial must implement run()");
@@ -350,6 +356,9 @@ class TaskSyncShareIndustryPartial<T> extends Task<T> {
     super.submitTime,
     super.status = TaskStatus.pending,
   });
+
+  @override
+  Map<String, dynamic> dump() => {};
 
   @override
   Future<T> run() {
@@ -369,6 +378,9 @@ class TaskSyncShareConceptPartial<T> extends Task<T> {
   });
 
   @override
+  Map<String, dynamic> dump() => {};
+
+  @override
   Future<T> run() {
     // 实现增量同步最新股票概念数据
     throw UnimplementedError("TaskSyncShareConceptPartial must implement run()");
@@ -384,6 +396,9 @@ class TaskSyncShareDailyKline<T> extends Task<T> {
     super.submitTime,
     super.status = TaskStatus.pending,
   });
+
+  @override
+  Map<String, dynamic> dump() => {};
 
   @override
   Future<T> run() {
@@ -403,6 +418,9 @@ class TaskSyncShareDailyKlinePartial<T> extends Task<T> {
   });
 
   @override
+  Map<String, dynamic> dump() => {};
+
+  @override
   Future<T> run() {
     // 实现增量同步最新股票前复权日K线数据
     throw UnimplementedError("TaskSyncShareDailyKlinePartial must implement run()");
@@ -418,6 +436,9 @@ class TaskSyncShareBasicInfo<T> extends Task<T> {
     super.submitTime,
     super.status = TaskStatus.pending,
   });
+
+  @override
+  Map<String, dynamic> dump() => {};
 
   @override
   Future<T> run() {
@@ -437,6 +458,9 @@ class TaskSyncShareBasicInfoPartial<T> extends Task<T> {
   });
 
   @override
+  Map<String, dynamic> dump() => {};
+
+  @override
   Future<T> run() {
     // 实现增量同步股票基本信息
     throw UnimplementedError("TaskSyncShareBasicInfoPartial must implement run()");
@@ -452,6 +476,9 @@ class TaskSyncIndexDailyKline<T> extends Task<T> {
     super.submitTime,
     super.status = TaskStatus.pending,
   });
+
+  @override
+  Map<String, dynamic> dump() => {};
 
   @override
   Future<T> run() {
@@ -471,6 +498,9 @@ class TaskSyncIndexDailyKlinePartial<T> extends Task<T> {
   });
 
   @override
+  Map<String, dynamic> dump() => {};
+
+  @override
   Future<T> run() {
     // 实现增量同步最新指数前复权日K线数据
     throw UnimplementedError("TaskSyncIndexDailyKlinePartial must implement run()");
@@ -488,6 +518,9 @@ class TaskSyncIndexMinuteKline<T> extends Task<T> {
   });
 
   @override
+  Map<String, dynamic> dump() => {};
+
+  @override
   Future<T> run() {
     // 实现同步最新全量指数分时图数据
     throw UnimplementedError("TaskSyncIndexMinuteKline must implement run()");
@@ -503,6 +536,9 @@ class TaskSmartShareAnalysis<T> extends Task<T> {
     super.submitTime,
     super.status = TaskStatus.pending,
   });
+
+  @override
+  Map<String, dynamic> dump() => {};
 
   @override
   Future<T> run() {
