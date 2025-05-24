@@ -207,7 +207,7 @@ class FileTool {
     } else {
       appRootDir = (await getApplicationDocumentsDirectory()).path;
     }
-    return appRootDir;
+    return p.normalize(appRootDir);
   }
 
   // 拷贝文件到目录
