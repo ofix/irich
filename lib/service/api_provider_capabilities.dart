@@ -100,23 +100,23 @@ enum ProviderApiType {
   String get name {
     switch (this) {
       case ProviderApiType.quote:
-        return '[股票行情]';
+        return '股票行情';
       case ProviderApiType.quoteExtra:
-        return '[板块分类]';
+        return '板块分类';
       case ProviderApiType.industry:
-        return '[行业板块]';
+        return '行业板块';
       case ProviderApiType.concept:
-        return '[概念板块]';
+        return '概念板块';
       case ProviderApiType.province:
-        return '[地域板块]';
+        return '地域板块';
       case ProviderApiType.minuteKline:
-        return '[分时图]';
+        return '分时图';
       case ProviderApiType.dayKline:
-        return '[日K线]';
+        return '日K线';
       case ProviderApiType.fiveDayKline:
-        return '[五日分时图]';
+        return '五日分时图';
       case ProviderApiType.unknown:
-        return '[未知]';
+        return '未知';
     }
   }
 }

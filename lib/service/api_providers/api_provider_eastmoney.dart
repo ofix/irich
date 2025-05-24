@@ -150,12 +150,11 @@ class ApiProviderEastMoney extends ApiProvider {
         DateTime requestTime = DateTime.now();
         final result = await getRawJson(url);
         DateTime responseTime = DateTime.now();
-        debugPrint(url);
         if (_isPageEnd(result.response)) break;
         responses.add({"StatusCode": 200, "Response": result.response, "Url": url});
         // 随机延时
         final random = Random();
-        int delaySeconds = 1 + random.nextInt(1); // 随机 1~2 秒
+        int delaySeconds = 3 + random.nextInt(3); // 随机 1~2 秒
         final requestLog = RequestLog(
           taskId: params['TaskId'],
           providerId: provider,

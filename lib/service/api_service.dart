@@ -143,7 +143,11 @@ class ApiService {
         final request = _requestQueue.nextRequest();
         final completer = Completer<_RequestResult>();
         final activeRequest = _ActiveRequest(request, completer);
-        _processRequest(request, responses).then((result) => completer.complete(result));
+        _processRequest(
+          request,
+          responses,
+          onPagerProgress,
+        ).then((result) => completer.complete(result));
         _activeRequests.add(activeRequest);
       }
 
@@ -198,6 +202,23 @@ class ApiService {
           size += (oneResult[i]['Response'] as String).length;
         }
         _stats.recordSuccess(size);
+        final data = _balancer.apiProvider.parseResponse(_curApiType, oneResult); // 解析当前返回数据
+        final result = <String, dynamic>{};
+        result["Params"] = params;
+        result["Response"] = data;
+        responses.add(result);
+        requestLog = RequestLog(
+          taskId: params['TaskId'],
+          providerId: _balancer.apiProvider.provider,
+          apiType: _curApiType,
+          responseBytes: size,
+          requestTime: requestTime,
+          responseTime: responseTime,
+          url: "",
+          statusCode: 200,
+          duration: responseTime.difference(requestTime).inMilliseconds,
+        );
+        return _RequestResult.success(params, requestLog);
       } else if (oneResult is ApiResult) {
         _stats.recordSuccess(oneResult.response.length);
         requestLog = RequestLog(
@@ -211,16 +232,28 @@ class ApiService {
           statusCode: oneResult.statusCode,
           duration: responseTime.difference(requestTime).inMilliseconds,
         );
+        final data = _balancer.apiProvider.parseResponse(
+          _curApiType,
+          oneResult.response,
+        ); // 解析当前返回数据
+        final result = <String, dynamic>{};
+        result["Params"] = params;
+        result["Response"] = data;
+        responses.add(result);
+        return _RequestResult.success(params, requestLog);
       }
-      final data = _balancer.apiProvider.parseResponse(
-        _curApiType,
-        oneResult['Response'],
-      ); // 解析当前返回数据
-      final result = <String, dynamic>{};
-      result["Params"] = params;
-      result["Response"] = data;
-      responses.add(result);
-      return _RequestResult.success(params, requestLog);
+      requestLog = RequestLog(
+        taskId: "",
+        providerId: _balancer.apiProvider.provider,
+        apiType: _curApiType,
+        responseBytes: 0,
+        requestTime: requestTime,
+        responseTime: responseTime,
+        url: "",
+        statusCode: 500,
+        duration: responseTime.difference(requestTime).inMilliseconds,
+      );
+      return _RequestResult.failure(params, requestLog, "internal error");
     } catch (e) {
       if (!_isCanceled) {
         _stats.recordFailure();
