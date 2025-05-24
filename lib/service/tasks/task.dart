@@ -230,9 +230,7 @@ abstract class Task<T> implements Comparable<Task<T>> {
        submitTime = submitTime ?? DateTime.now(),
        threadId = 0,
        progress = 0,
-       isProcessing = false {
-    params['TaskId'] = taskId;
-  }
+       isProcessing = false;
 
   // 状态计算属性
   Duration get waitingDuration =>
@@ -248,25 +246,24 @@ abstract class Task<T> implements Comparable<Task<T>> {
     "Type": type.val,
     "Priority": priority.val,
     "TaskId": taskId,
+    "ThreadId": threadId,
     "Status": status.val,
     "Params": jsonEncode(params),
-    "Progress": progress,
     "SubmitTime": submitTime.toIso8601String(),
     "StartTime": startTime?.toIso8601String(),
-    ...dump(),
+    "Progress": progress,
   };
-
-  Map<String, dynamic> dump() => {};
 
   // 命名子类构造函数，供子类复用
   Task.build(Map<String, dynamic> json)
-    : taskId = json['TaskId'] as String,
-      priority = TaskPriority.fromVal(json['Priority'] as int),
+    : priority = TaskPriority.fromVal(json['Priority'] as int),
+      taskId = json['TaskId'] as String,
       status = TaskStatus.fromVal(json['Status'] as int),
-      progress = json['Progress'] as double,
+      params = jsonDecode(json['Params']),
       submitTime = DateTime.parse(json['SubmitTime']),
       startTime = json['StartTime'] != null ? DateTime.parse(json['StartTime']) : null,
-      threadId = 0,
+      progress = json['Progress'] as double,
+      threadId = json['ThreadId'] as int,
       isProcessing = false;
 
   static dynamic deserialize(Map<String, dynamic> json) {
@@ -338,7 +335,7 @@ class TaskSyncShareRegionPartial<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {
@@ -358,7 +355,7 @@ class TaskSyncShareIndustryPartial<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {
@@ -378,7 +375,7 @@ class TaskSyncShareConceptPartial<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {
@@ -398,7 +395,7 @@ class TaskSyncShareDailyKline<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {
@@ -418,7 +415,7 @@ class TaskSyncShareDailyKlinePartial<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {
@@ -438,7 +435,7 @@ class TaskSyncShareBasicInfo<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {
@@ -458,7 +455,7 @@ class TaskSyncShareBasicInfoPartial<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {
@@ -478,7 +475,7 @@ class TaskSyncIndexDailyKline<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {
@@ -498,7 +495,7 @@ class TaskSyncIndexDailyKlinePartial<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {
@@ -518,7 +515,7 @@ class TaskSyncIndexMinuteKline<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {
@@ -538,7 +535,7 @@ class TaskSmartShareAnalysis<T> extends Task<T> {
   });
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {};
 
   @override
   Future<T> run() {

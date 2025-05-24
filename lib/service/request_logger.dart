@@ -110,7 +110,7 @@ TaskId: $taskId, Status: $statusCode, Provider: ${providerId.name}, API Type: ${
 
     // 合并内存中的未写入日志（虽然_flushBuffer已经清空，但这里保持接口一致性）
     final allLogs = [
-      ...maps.map((json) => RequestLog.unserialize(json)),
+      ...maps.map((json) => RequestLog.deserialize(json)),
       ..._errorLogs.where((log) => !log.isResolved),
     ];
 

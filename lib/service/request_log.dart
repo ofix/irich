@@ -96,12 +96,12 @@ class RequestLog {
     return logs.map((log) => log.serialize()).toList();
   }
 
-  factory RequestLog.unserialize(Map<String, dynamic> json) {
+  factory RequestLog.deserialize(Map<String, dynamic> json) {
     return RequestLog(
       id: json['Id'],
       taskId: json['TaskId'],
-      providerId: json['ProviderId'],
-      apiType: json['ApiType'],
+      providerId: EnumApiProvider.fromVal(json['ProviderId'] as int),
+      apiType: ProviderApiType.fromVal(json['ApiType'] as int),
       statusCode: json['StatusCode'],
       url: json['Url'],
       requestTime: DateTime.fromMillisecondsSinceEpoch(json['RequestTime']),
@@ -113,7 +113,7 @@ class RequestLog {
       isResolved: json['IsResolved'] == 1,
     );
   }
-  static List<RequestLog> unserializeList(List<dynamic> jsonList) {
-    return jsonList.map((json) => RequestLog.unserialize(json)).toList();
+  static List<RequestLog> deserializeList(List<dynamic> jsonList) {
+    return jsonList.map((json) => RequestLog.deserialize(json)).toList();
   }
 }

@@ -40,9 +40,13 @@ abstract class BatchApiTask extends Task<void> {
 
   /// 在子线程中运行
   Future<void> doJob() async {
+    List<Map<String, dynamic>> safeParams = params.cast<Map<String, dynamic>>();
+    for (final item in safeParams) {
+      item['TaskId'] = taskId;
+    }
     apiService = ApiService(apiType);
     final result = await apiService.batchFetch(
-      params,
+      safeParams,
       (RequestLog log) {
         doneRequests += 1;
         progress = doneRequests / originTotalRequests; // 计算进度
@@ -116,13 +120,19 @@ abstract class BatchApiTask extends Task<void> {
   }
 
   @override
-  Map<String, dynamic> dump() => {};
+  Map<String, dynamic> serialize() => {
+    ...super.serialize(),
+    "ApiType": apiType.val,
+    "TotalRequests": totalRequests,
+    "DoneRequests": doneRequests,
+    "OriginTotalRequests": originTotalRequests,
+  };
 
   // 命名构造函数
   BatchApiTask.build(super.json)
-    : doneRequests = json['DoneRequests'] as int,
+    : totalRequests = json['TotalRequests'] as int,
+      doneRequests = json['DoneRequests'] as int,
       originTotalRequests = json['OriginTotalRequests'] as int,
-      totalRequests = json['TotalRequests'] as int,
       super.build();
 
   @override

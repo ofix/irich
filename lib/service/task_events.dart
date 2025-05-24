@@ -131,6 +131,7 @@ class TaskProgressEvent extends IsolateEvent {
   @override
   Map<String, dynamic> serialize() => {
     'Type': type,
+    'ThreadId': threadId,
     'TaskId': taskId,
     'Progress': progress,
     'Timestamp': timestamp.toIso8601String(),
@@ -142,7 +143,7 @@ class TaskProgressEvent extends IsolateEvent {
       threadId: json['ThreadId'] as int,
       taskId: json['TaskId'] as String,
       progress: (json['Progress'] as num).toDouble(),
-      requestLog: RequestLog.unserialize(json['RequestLog']),
+      requestLog: RequestLog.deserialize(json['RequestLog']),
     );
   }
 }
@@ -268,14 +269,18 @@ abstract class UiEvent {
 
   Map<String, dynamic> serialize();
 
-  static UiEvent? deserialize(Map<String, dynamic> json) {
+  static dynamic deserialize(Map<String, dynamic> json) {
     switch (json['Type']) {
+      case strNewTask:
+        return NewTaskEvent.deserialize(json);
       case strPauseTask:
         return PauseTaskUiEvent.deserialize(json);
       case strResumeTask:
         return ResumeTaskUiEvent.deserialize(json);
       case strCancelTask:
         return CancelTaskUiEvent.deserialize(json);
+      case strExitWorker:
+        return KillWorkerUiEvent.deserialize(json);
       default:
         return null;
     }
@@ -290,6 +295,10 @@ class NewTaskEvent extends UiEvent {
 
   @override
   Map<String, dynamic> serialize() => {'Type': type, "Task": task.serialize()};
+
+  factory NewTaskEvent.deserialize(Map<String, dynamic> json) {
+    return NewTaskEvent(task: Task.deserialize(json['Task']));
+  }
 }
 
 // 暂停任务事件消息
@@ -369,5 +378,13 @@ class KillWorkerUiEvent extends UiEvent {
   KillWorkerUiEvent({required this.taskId});
 
   @override
-  Map<String, dynamic> serialize() => {};
+  Map<String, dynamic> serialize() => {
+    'Type': type,
+    'TaskId': 0,
+    'Timestamp': timestamp.toIso8601String(),
+  };
+
+  factory KillWorkerUiEvent.deserialize(Map<String, dynamic> json) {
+    return KillWorkerUiEvent(taskId: json['TaskId'] as String);
+  }
 }
