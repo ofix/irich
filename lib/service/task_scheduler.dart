@@ -40,8 +40,9 @@ class TaskScheduler {
   SendPort get mainSendPort => _mainRecvPort!.sendPort;
 
   // 单例模式
-  static bool _initialized = false;
-  static late TaskScheduler _instance;
+  static TaskScheduler? _instance;
+  static Completer<TaskScheduler>? _completer;
+  static bool _isInitializing = false;
 
   //////////////////  UI层 支持 ///////////////////////////
   final List<VoidCallback> _listeners = [];
@@ -49,27 +50,11 @@ class TaskScheduler {
   Task? get selectedTask => _selectedTask;
 
   // 单例模式
-  factory TaskScheduler() {
-    if (!_initialized) {
-      final minTasks = Platform.numberOfProcessors ~/ 2;
-      final maxTasks = Platform.numberOfProcessors;
-      _instance = TaskScheduler._internal(
-        minIsolates: minTasks,
-        maxIsolates: maxTasks,
-        idleTimeout: const Duration(seconds: 60),
-      );
-      _initialized = true;
-    }
-    return _instance;
-  }
-
   TaskScheduler._internal({
     required this.minIsolates,
     required this.maxIsolates,
     required this.idleTimeout,
-  }) {
-    _initialize();
-  }
+  });
 
   Future<void> _initialize() async {
     _mainRecvPort = ReceivePort("task_scheduler");
@@ -80,12 +65,41 @@ class TaskScheduler {
     await checkPausedTaskInFileSystem();
   }
 
+  // 工厂构造函数（返回 Future<TaskScheduler>）
+  static Future<TaskScheduler> getInstance() async {
+    if (_instance != null) return _instance!;
+    if (_isInitializing) return await _completer!.future;
+
+    _isInitializing = true;
+    _completer = Completer<TaskScheduler>();
+    try {
+      final minTasks = Platform.numberOfProcessors ~/ 2;
+      final maxTasks = Platform.numberOfProcessors;
+      _instance = TaskScheduler._internal(
+        minIsolates: minTasks,
+        maxIsolates: maxTasks,
+        idleTimeout: const Duration(seconds: 60),
+      );
+      await _instance!._initialize(); // 等待异步初始化完成
+      _completer!.complete(_instance!);
+    } catch (e) {
+      _completer!.completeError(e);
+      _isInitializing = false;
+      rethrow;
+    }
+
+    return _instance!;
+  }
+
   // 检查缓存目录中是否有近24小时暂停的任务
   Future<void> checkPausedTaskInFileSystem() async {
     final targetPath = await Config.pathTask;
     final dir = Directory(targetPath);
     try {
       // 异步列出所有文件和子目录
+      if (!await FileTool.isFileExist(targetPath)) {
+        return;
+      }
       await for (var item in dir.list(recursive: false)) {
         if (item is File) {
           // 获取文件状态（包含修改时间）
@@ -141,6 +155,7 @@ class TaskScheduler {
   void _handleTaskStarted(TaskStartedEvent event) {
     Task? task = _searchTask(event);
     task?.onStartedUi(event);
+    debugPrint("[主线程][任务启动] 任务ID: ${task?.taskId}, 线程ID: ${task?.threadId}");
     notifyListeners();
   }
 
@@ -148,6 +163,10 @@ class TaskScheduler {
   void _handleTaskProgress(TaskProgressEvent event) {
     Task? task = _searchTask(event);
     if (task != null) {
+      final log = event.requestLog;
+      debugPrint(
+        "[${log.providerId.name}][${log.apiType.name}][线程${task.threadId}] 状态码: ${log.statusCode} 耗时: ${log.duration} 毫秒 ${log.url} ",
+      );
       _isolateTaskLogs.putIfAbsent(task.taskId, () => []).add(event.requestLog); // 添加请求日志
       task.onProgressUi(event);
     }
@@ -383,6 +402,7 @@ class TaskScheduler {
       final result = await task.run();
       final event = TaskCompletedEvent(threadId: 0, taskId: task.taskId);
       task.onCompletedUi(event, result);
+      task.completer?.complete(result);
     } catch (e, stackTrace) {
       final event = TaskErrorEvent(
         threadId: 0,
@@ -391,7 +411,7 @@ class TaskScheduler {
         stackTrace: stackTrace,
       );
       task.onErrorUi(event);
-      runningTaskList.removeAt(runningTaskIndex);
+      debugPrint("[Task][MainError]: ${e.toString()}");
     } finally {
       runningTaskList.removeAt(runningTaskIndex);
       _schedule();
@@ -409,6 +429,7 @@ class TaskScheduler {
 
     if (_idleWorkers.isEmpty) {
       _pendingTaskQueue.add(task); // 无可用k空闲线程，重新入队
+      debugPrint("无线程可用！");
       return;
     }
 
@@ -419,6 +440,7 @@ class TaskScheduler {
     worker.notify(newTaskEvent);
     _activeWorkers.add(worker);
     runningTaskList.add(task);
+    _schedule();
   }
 
   void _removeRunningTask(String taskId) {

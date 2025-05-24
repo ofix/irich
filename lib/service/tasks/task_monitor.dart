@@ -6,22 +6,39 @@
 // Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
-
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:irich/service/tasks/task.dart';
 import 'package:irich/service/task_scheduler.dart';
 
 class TaskMonitor with ChangeNotifier {
-  final TaskScheduler _scheduler = TaskScheduler();
+  late final TaskScheduler _scheduler; // 延迟初始化
+  Timer? _refreshTimer;
+
   List<Task> get allTasks => _scheduler.taskList;
-  TaskMonitor() {
-    // 定时刷新UI
-    Timer.periodic(Duration(seconds: 1), (_) => notifyListeners());
+
+  // 私有构造函数
+  TaskMonitor._internal();
+
+  // 工厂构造函数 + 静态异步初始化方法
+  static Future<TaskMonitor> create() async {
+    final monitor = TaskMonitor._internal();
+    await monitor._initialize();
+    return monitor;
   }
 
-  // 添加爬取任务
+  // 异步初始化逻辑
+  Future<void> _initialize() async {
+    _scheduler = await TaskScheduler.getInstance();
+    _startPeriodicRefresh();
+  }
+
+  // 启动定时刷新
+  void _startPeriodicRefresh() {
+    _refreshTimer = Timer.periodic(Duration(seconds: 1), (_) => notifyListeners());
+  }
+
+  // 添加任务
   void addTask({required TaskType taskType, TaskPriority priority = TaskPriority.normal}) {
     Task task;
     if (taskType == TaskType.syncIndexDailyKline) {
@@ -47,5 +64,11 @@ class TaskMonitor with ChangeNotifier {
   void resumeTask(String taskId) {
     _scheduler.resumeTask(taskId);
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 }

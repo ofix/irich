@@ -136,26 +136,32 @@ class TaskListItem extends ConsumerWidget {
   }
 
   Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
-    final scheduler = ref.read(taskSchedulerProvider);
+    final asyncScheduler = ref.watch(taskSchedulerProvider);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        if (task.status == TaskStatus.running)
-          IconButton(
-            icon: const Icon(Icons.pause, size: 20),
-            onPressed: () => scheduler.pauseTask(task.taskId),
-          ),
-        if (task.status == TaskStatus.paused)
-          IconButton(
-            icon: const Icon(Icons.play_arrow, size: 20),
-            onPressed: () => scheduler.resumeTask(task.taskId),
-          ),
-        IconButton(
-          icon: const Icon(Icons.cancel, size: 20),
-          onPressed: () => scheduler.cancelTask(task.taskId),
-        ),
-      ],
+    return asyncScheduler.when(
+      loading: () => const CircularProgressIndicator(),
+      error: (error, stack) => Text('Error: $error'),
+      data: (scheduler) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (task.status == TaskStatus.running)
+              IconButton(
+                icon: const Icon(Icons.pause, size: 20),
+                onPressed: () => scheduler.pauseTask(task.taskId),
+              ),
+            if (task.status == TaskStatus.paused)
+              IconButton(
+                icon: const Icon(Icons.play_arrow, size: 20),
+                onPressed: () => scheduler.resumeTask(task.taskId),
+              ),
+            IconButton(
+              icon: const Icon(Icons.cancel, size: 20),
+              onPressed: () => scheduler.cancelTask(task.taskId),
+            ),
+          ],
+        );
+      },
     );
   }
 }

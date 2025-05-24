@@ -36,7 +36,7 @@ class IsolateWorker {
   }
 
   void notify(UiEvent event) {
-    _isolateSendPort?.send(event);
+    _isolateSendPort?.send(event.serialize());
   }
 
   Future<void> dispose() async {
@@ -56,32 +56,34 @@ class IsolateWorker {
     initPort.send(receivePort.sendPort);
     Task? currentTask;
     receivePort.listen((dynamic message) async {
+      UiEvent event = UiEvent.deserialize(message);
       try {
-        if (message is NewTaskEvent) {
-          currentTask = message.task;
-          await _handleNewTask(message, threadId);
+        if (event is NewTaskEvent) {
+          currentTask = event.task;
+          currentTask?.mainThread = mainSendPort;
+          await _handleNewTask(event, threadId);
           currentTask = null;
-        } else if (message is PauseTaskUiEvent) {
+        } else if (event is PauseTaskUiEvent) {
           _handlePauseTask(currentTask);
           currentTask = null;
-        } else if (message is CancelTaskUiEvent) {
-          await _handleCancelTask(message, currentTask, threadId);
+        } else if (event is CancelTaskUiEvent) {
+          await _handleCancelTask(event, currentTask, threadId);
           currentTask = null;
-        } else if (message is ResumeTaskUiEvent) {
+        } else if (event is ResumeTaskUiEvent) {
           // 任务恢复过程中，有可能当前任务是另外一个任务正在执行过程中
           // 如果任务当前任务不为空，我们就暂停当前任务，然后再恢复
           currentTask!.status == TaskStatus.running;
           await _handlePauseTask(currentTask);
           // 恢复过程也有可能出错，比如任务暂存文件被删除(超过24小时被清理等情况)
           // 此函数不好封装，因为需要提前返回恢复的Task，在恢复过程中，有可能进程又发来消息，导致竞争
-          currentTask = await Task.onResumedIsolate(message.taskId, threadId);
+          currentTask = await Task.onResumedIsolate(event.taskId, threadId);
 
-          currentTask?.notifyUi(TaskResumedEvent(threadId: threadId, taskId: message.taskId));
+          currentTask?.notifyUi(TaskResumedEvent(threadId: threadId, taskId: event.taskId));
           await currentTask?.run();
           currentTask?.notifyUi(
             TaskCompletedEvent(threadId: threadId, taskId: currentTask!.taskId),
           );
-        } else if (message is KillWorkerUiEvent) {
+        } else if (event is KillWorkerUiEvent) {
           await _handleKillWorker(mainSendPort, currentTask, threadId);
           receivePort.close();
         }

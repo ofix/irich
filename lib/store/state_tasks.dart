@@ -13,57 +13,69 @@ import 'package:irich/service/tasks/task.dart';
 import 'package:irich/service/task_scheduler.dart';
 
 class StateTaskList extends StateNotifier<List<Task>> {
-  final TaskScheduler _scheduler;
+  final TaskScheduler? _scheduler;
 
-  StateTaskList(this._scheduler) : super(_scheduler.taskList) {
-    _scheduler.addListener(_updateState);
+  StateTaskList(this._scheduler) : super(_scheduler?.taskList ?? []) {
+    _scheduler?.addListener(_updateState);
   }
 
-  Map<String, dynamic> get stats => _scheduler.stats;
+  Map<String, dynamic> get stats => _scheduler?.stats ?? {};
 
   void _updateState() {
-    state = [..._scheduler.taskList];
+    if (_scheduler != null) {
+      state = [..._scheduler!.taskList];
+    }
   }
 
   void selectTask(Task task) {
-    _scheduler.selectTask(task);
+    _scheduler?.selectTask(task);
   }
 
   @override
   void dispose() {
-    _scheduler.removeListener(_updateState);
+    _scheduler?.removeListener(_updateState);
     super.dispose();
   }
 }
 
 // 定义全局 TaskScheduler 单例 Provider
-final taskSchedulerProvider = Provider<TaskScheduler>((ref) {
-  return TaskScheduler(); // 创建单例实例
+final taskSchedulerProvider = FutureProvider<TaskScheduler>((ref) async {
+  return await TaskScheduler.getInstance();
 });
 
 // 定义 StoreTaskList 的 StateNotifierProvider
 final stateTaskListProvider = StateNotifierProvider<StateTaskList, List<Task>>((ref) {
-  // 通过 ref.read 获取 TaskScheduler 实例
-  final scheduler = ref.read(taskSchedulerProvider);
-  return StateTaskList(scheduler); // 创建 StoreTaskList 并传入 scheduler
+  final asyncScheduler = ref.watch(taskSchedulerProvider);
+
+  return asyncScheduler.when(
+    loading: () => StateTaskList(null),
+    error: (err, stack) => StateTaskList(null),
+    data: (scheduler) => StateTaskList(scheduler),
+  );
 });
 
 // 定义选中任务的 Provider
 final selectedTaskProvider = Provider<Task?>((ref) {
-  // 使用 select 监听 TaskScheduler 的 selectedTask 变化
-  return ref.watch(taskSchedulerProvider.select((scheduler) => scheduler.selectedTask));
+  return ref.watch(
+    taskSchedulerProvider.select((asyncScheduler) => asyncScheduler.valueOrNull?.selectedTask),
+  );
 });
 
 // 定义统计信息的 Provider
 final taskStatsProvider = Provider<Map<String, dynamic>>((ref) {
-  // 从 StoreTaskList 的 notifier 获取统计信息
   return ref.watch(stateTaskListProvider.notifier).stats;
 });
 
 // 定义选中的日志列表 Provider
 final selectedTaskLogsProvider = Provider<List<RequestLog>>((ref) {
-  final scheduler = ref.watch(taskSchedulerProvider);
+  final asyncScheduler = ref.watch(taskSchedulerProvider);
   final selectedTask = ref.watch(selectedTaskProvider);
 
-  return selectedTask != null ? scheduler.selectTaskLogs() : [];
+  return asyncScheduler.when(
+    loading: () => [],
+    error: (_, __) => [],
+    data: (scheduler) {
+      return selectedTask != null ? scheduler.selectTaskLogs() : [];
+    },
+  );
 });

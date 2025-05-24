@@ -88,18 +88,14 @@ class StoreQuote {
   }
 
   static Future<void> _initializePaths() async {
-    try {
-      _pathDataFileQuote = await Config.pathDataFileQuote;
-      _pathIndexFileProvince = await Config.pathMapFileProvince;
-      _pathIndexFileIndustry = await Config.pathMapFileIndustry;
-      _pathIndexFileConcept = await Config.pathMapFileConcept;
-    } catch (e) {
-      debugPrint(e.toString());
-    }
+    _pathDataFileQuote = await Config.pathDataFileQuote;
+    _pathIndexFileProvince = await Config.pathMapFileProvince;
+    _pathIndexFileIndustry = await Config.pathMapFileIndustry;
+    _pathIndexFileConcept = await Config.pathMapFileConcept;
   }
 
   static Future<bool> isQuoteExtraDataReady() async {
-    _initializePaths();
+    await _initializePaths();
     if (!await FileTool.isFileExist(_pathDataFileQuote) ||
         !await FileTool.isFileExist(_pathIndexFileProvince) ||
         !await FileTool.isFileExist(_pathIndexFileIndustry) ||
@@ -219,14 +215,15 @@ class StoreQuote {
     //   _buildShareClassfier(shares);
     //   await _buildShareTrie(shares);
     // }
-    _shares = await TaskScheduler().addTask(TaskSyncShareQuote(params: {}));
+    final scheduler = await TaskScheduler.getInstance();
+    _shares = await scheduler.addTask(TaskSyncShareQuote(params: {}));
     _buildShareMap(_shares);
     await _saveQuoteFile(await Config.pathDataFileQuote, _shares);
 
-    final responseBk = await TaskScheduler().addTask(TaskSyncShareBk(params: {}));
-    TaskScheduler().addTask(TaskSyncShareRegion(params: responseBk[0]));
-    TaskScheduler().addTask(TaskSyncShareIndustry(params: responseBk[1]));
-    TaskScheduler().addTask(TaskSyncShareConcept(params: responseBk[2]));
+    final responseBk = await scheduler.addTask(TaskSyncShareBk(params: {}));
+    scheduler.addTask(TaskSyncShareRegion(params: responseBk[0]));
+    scheduler.addTask(TaskSyncShareIndustry(params: responseBk[1]));
+    scheduler.addTask(TaskSyncShareConcept(params: responseBk[2]));
     return success();
   }
 
