@@ -21,6 +21,7 @@ class RequestLog {
   final int responseBytes; // 响应字节数
   final int? statusCode; // 响应状态吗
   final String? errorMessage; // 错误消息
+  final double? pageProgress; // 分页进度
 
   int? retryCount; // 重试次数
   bool isResolved; // 任务是否已解决
@@ -39,6 +40,7 @@ class RequestLog {
     this.errorMessage,
     this.retryCount = 0,
     this.isResolved = false,
+    this.pageProgress = 0,
   });
 
   // 添加copyWith方法以便更新内存中的日志
@@ -56,6 +58,7 @@ class RequestLog {
     String? errorMessage, // 错误信息
     int? retryCount, // 重试次数
     bool? isResolved, // 是否解决
+    double? pageProgress, // 分页进度
   }) {
     return RequestLog(
       id: id ?? this.id,
@@ -71,6 +74,7 @@ class RequestLog {
       errorMessage: errorMessage ?? this.errorMessage,
       retryCount: retryCount ?? this.retryCount,
       isResolved: isResolved ?? this.isResolved,
+      pageProgress: pageProgress ?? this.pageProgress,
     );
   }
 
@@ -89,6 +93,7 @@ class RequestLog {
       'ErrorMessage': errorMessage,
       'RetryCount': retryCount,
       'IsResolved': isResolved ? 1 : 0,
+      'PageProgress': pageProgress,
     };
   }
 
@@ -111,6 +116,7 @@ class RequestLog {
       duration: json['Duration'],
       retryCount: json['RetryCount'],
       isResolved: json['IsResolved'] == 1,
+      pageProgress: json['PageProgress'],
     );
   }
   static List<RequestLog> deserializeList(List<dynamic> jsonList) {

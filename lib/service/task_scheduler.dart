@@ -164,10 +164,13 @@ class TaskScheduler {
     Task? task = _searchTask(event);
     if (task != null) {
       final log = event.requestLog;
+      final progress = '${(event.progress * 100).toStringAsFixed(2)}%';
       debugPrint(
-        "[${log.providerId.name}][${log.apiType.name}][线程${task.threadId}] 状态码: ${log.statusCode} 耗时: ${log.duration} 毫秒 ${log.url} ",
+        "[${log.providerId.name}][${log.apiType.name}][线程${task.threadId}] 进度: $progress, 状态码: ${log.statusCode} 耗时: ${log.duration} 毫秒 ${log.url} ",
       );
-      _isolateTaskLogs.putIfAbsent(task.taskId, () => []).add(event.requestLog); // 添加请求日志
+      if (log.url != "") {
+        _isolateTaskLogs.putIfAbsent(task.taskId, () => []).add(event.requestLog); // 添加请求日志
+      }
       task.onProgressUi(event);
     }
     notifyListeners();

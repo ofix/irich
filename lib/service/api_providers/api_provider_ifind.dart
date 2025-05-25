@@ -248,13 +248,13 @@ class ApiProviderIfind extends ApiProvider {
         },
       );
       // 将 GBK 字节流转换为 UTF-8 字符串
-
+      int size = getResponseBytes(response);
       if (response.statusCode == 200) {
         final gbkBytes = response.bodyBytes;
         final data = gbk.decode(gbkBytes); // 使用 charset 库解码
-        return ApiResult(url, response.statusCode, data);
+        return ApiResult(url, response.statusCode, data, size);
       }
-      return ApiResult(url, response.statusCode, response.body);
+      return ApiResult(url, response.statusCode, response.body, size);
     } catch (e) {
       debugPrint(e.toString());
       rethrow;

@@ -10,7 +10,6 @@
 // ignore_for_file: avoid_print
 import "dart:convert";
 import "dart:math";
-import "package:flutter/material.dart";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_providers/api_provider.dart";
 import "package:irich/global/stock.dart";
@@ -134,15 +133,18 @@ class ApiProviderEastMoney extends ApiProvider {
     return menu;
   }
 
-  Future<List<Map<String, dynamic>>> fetchBk(
+  Future<List<ApiResult>> fetchBk(
     Map<String, dynamic> params,
     ProviderApiType apiType, [
     void Function(RequestLog requestLog)? onPagerProgress,
   ]) async {
     final name = params['code']; // 板块代号,东方财富限制了
-    final responses = <Map<String, dynamic>>[];
+    final responses = <ApiResult>[];
+    int pageTotal = 0;
+    int pageDone = 0;
+    double pageProgress = 0.0;
 
-    for (int i = 1; i <= 20; i++) {
+    for (int i = 1; i <= 30; i++) {
       // 每页100条记录，假设最多20个分页，也即2000个成分股
       final url =
           "https://push2.eastmoney.com/api/qt/clist/get?np=1&fltt=1&invt=2&po=1&dect=1&fid=f3&fs=b:$name&fields=f12,f14&pn=$i&pz=100";
@@ -150,8 +152,17 @@ class ApiProviderEastMoney extends ApiProvider {
         DateTime requestTime = DateTime.now();
         final result = await getRawJson(url);
         DateTime responseTime = DateTime.now();
+        if (i == 1) {
+          final json = jsonDecode(result.response);
+          pageTotal = json['data']['total'];
+        }
+        pageDone += 100;
+        pageProgress = pageDone / pageTotal;
+        if (pageDone >= pageTotal) {
+          pageProgress = 1;
+        }
         if (_isPageEnd(result.response)) break;
-        responses.add({"StatusCode": 200, "Response": result.response, "Url": url});
+        responses.add(result);
         // 随机延时
         final random = Random();
         int delaySeconds = 3 + random.nextInt(3); // 随机 1~2 秒
@@ -159,12 +170,13 @@ class ApiProviderEastMoney extends ApiProvider {
           taskId: params['TaskId'],
           providerId: provider,
           apiType: apiType,
-          responseBytes: result.response.length,
+          responseBytes: result.responseBytes,
           requestTime: requestTime,
           responseTime: responseTime,
           url: url,
           statusCode: result.statusCode,
           duration: responseTime.difference(requestTime).inMilliseconds,
+          pageProgress: pageProgress,
         );
         onPagerProgress?.call(requestLog);
         await Future.delayed(Duration(seconds: delaySeconds));
@@ -179,11 +191,11 @@ class ApiProviderEastMoney extends ApiProvider {
     return !data.contains('"data":{');
   }
 
-  List<String> parseBk(List<Map<String, dynamic>> responses) {
+  List<String> parseBk(List<ApiResult> responses) {
     final List<String> shareList = [];
     // 解析JSON数据
-    for (final response in responses) {
-      final result = jsonDecode(response['Response']);
+    for (final item in responses) {
+      final result = jsonDecode(item.response);
       final data = result["data"]['diff'];
       for (final row in data) {
         final String shareCode = row["f12"]; // 股票名称

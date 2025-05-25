@@ -159,9 +159,7 @@ class ApiService {
 
       // 处理结果
       if (completed.isSuccess) {
-        if (onPagerProgress == null) {
-          onProgress?.call(completed.requestLog);
-        }
+        onProgress?.call(completed.requestLog);
       } else if (completed.isRetryable) {
         _requestQueue.scheduleRetry(completed.params, _apiConfig.maxRetries);
       }
@@ -196,10 +194,10 @@ class ApiService {
           .httpRequest(params, onPagerProgress)
           .timeout(_apiConfig.timeoutPerRequest);
       DateTime responseTime = DateTime.now();
-      if (oneResult is List<Map<String, dynamic>>) {
+      if (oneResult is List<ApiResult>) {
         int size = 0;
         for (int i = 0; i < oneResult.length; i++) {
-          size += (oneResult[i]['Response'] as String).length;
+          size += oneResult[i].responseBytes;
         }
         _stats.recordSuccess(size);
         final data = _balancer.apiProvider.parseResponse(_curApiType, oneResult); // 解析当前返回数据

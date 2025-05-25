@@ -59,7 +59,9 @@ abstract class BatchApiTask extends Task<void> {
         notifyUi(progressEvent);
       },
       (RequestLog log) {
-        progress = doneRequests / originTotalRequests; // 分页请求进度
+        progress =
+            doneRequests / originTotalRequests +
+            (1 / originTotalRequests) * log.pageProgress!; // 分页请求进度
         final progressEvent = TaskProgressEvent(
           threadId: threadId,
           taskId: taskId,

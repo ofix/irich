@@ -14,10 +14,11 @@ import 'package:http/http.dart' as http;
 import 'package:irich/service/request_log.dart';
 
 class ApiResult {
-  final int statusCode;
-  final String response;
-  final String url;
-  ApiResult(this.url, this.statusCode, this.response);
+  final int statusCode; // HTTPS 响应状态码
+  final String response; // HTTPS 响应数据
+  final String url; // 请求URL
+  final int responseBytes; // HTTPS 响应数据包大小
+  ApiResult(this.url, this.statusCode, this.response, this.responseBytes);
 }
 
 abstract class ApiProvider {
@@ -41,7 +42,8 @@ abstract class ApiProvider {
               'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Safari/605.1.15',
         },
       );
-      return ApiResult(url, response.statusCode, response.body);
+      int size = getResponseBytes(response);
+      return ApiResult(url, response.statusCode, response.body, size);
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -58,10 +60,22 @@ abstract class ApiProvider {
               'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Safari/605.1.15',
         },
       );
-      return ApiResult(url, response.statusCode, response.body);
+      int size = getResponseBytes(response);
+      return ApiResult(url, response.statusCode, response.body, size);
     } catch (e) {
       throw Exception(e.toString());
     }
+  }
+
+  int getResponseBytes(http.Response response) {
+    final contentLength = response.headers['content-length'];
+    int size = 0;
+    if (contentLength != null) {
+      size = int.parse(contentLength);
+    } else {
+      size = response.bodyBytes.length;
+    }
+    return size;
   }
 
   Future<ApiResult> getGbkHtml(String url) async {
@@ -75,7 +89,8 @@ abstract class ApiProvider {
       );
       final gbkBytes = response.bodyBytes; // 将 GBK 字节流转换为 UTF-8 字符串
       final data = gbk.decode(gbkBytes); // 使用 charset 库解码
-      return ApiResult(url, response.statusCode, data);
+      int size = getResponseBytes(response);
+      return ApiResult(url, response.statusCode, data, size);
     } catch (e) {
       debugPrint(e.toString());
       rethrow;
