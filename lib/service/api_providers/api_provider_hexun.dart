@@ -10,6 +10,7 @@
 // ignore_for_file: avoid_print
 import "dart:convert";
 
+import "package:flutter/material.dart";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_providers/api_provider.dart";
 import "package:irich/global/stock.dart";
@@ -17,13 +18,13 @@ import "package:http/http.dart" as http;
 import "package:irich/service/request_log.dart";
 
 // 和讯网股票列表获取函数
-String shareListUrlHexun(int market) {
+String shareListUrlHexun(int market, int pageOffset, int pageSize) {
   return "https://stocksquote.hexun.com/a/sortlist"
       "?block=$market"
       "&title=15"
       "&direction=0"
-      "&start=0"
-      "&number=10000"
+      "&start=$pageOffset"
+      "&number=$pageSize"
       "&column=code,name,price,updownrate,LastClose,open,high,low,volume,priceweight,amount,"
       "exchangeratio,VibrationRatio,VolumeRatio";
 }
@@ -54,19 +55,32 @@ class ApiProviderHexun extends ApiProvider {
     return response;
   }
 
+  List<Share> removeDuplicates(List<Share> shares) {
+    // 使用 Map 去重（保留最后一个出现的 Share）
+    final uniqueMap = {for (var share in shares) share.code: share};
+    return uniqueMap.values.toList();
+  }
+
   // 获取股票列表
   Future<dynamic> fetchQuote() async {
     try {
-      final List<int> markets = [1, 2, 6, 1789];
+      final List<int> markets = [1, 1, 1, 2, 2, 2, 6, 6, 1789];
       final results = await Future.wait([
-        _fetchMarketShares(1), // 沪市A股
-        _fetchMarketShares(2), // 深市A股
-        _fetchMarketShares(6), // 创业板
-        _fetchMarketShares(1789), // 科创板
+        _fetchMarketShares(1, 0, 1000), // 沪市A股
+        _fetchMarketShares(1, 1000, 1000), // 沪市A股
+        _fetchMarketShares(1, 2000, 1000), // 沪市A股
+        _fetchMarketShares(2, 0, 1000), // 深市A股
+        _fetchMarketShares(2, 1000, 1000), // 深市A股
+        _fetchMarketShares(2, 2000, 1000), // 深市A股
+        _fetchMarketShares(6, 0, 1000), // 创业板
+        _fetchMarketShares(6, 1000, 1000), // 创业板
+        _fetchMarketShares(1789, 0, 1000), // 科创板
       ]);
       for (var i = 0; i < results.length; i++) {
         marketShares.addAll(_parseMarketShare(results[i], markets[i]));
       }
+      // 股票去重
+      marketShares = removeDuplicates(marketShares);
       return marketShares;
     } catch (e) {
       throw Exception('Failed to fetch market shares: $e');
@@ -74,8 +88,8 @@ class ApiProviderHexun extends ApiProvider {
   }
 
   // 获取和讯网股票列表数据
-  Future<dynamic> _fetchMarketShares(int market) async {
-    final url = shareListUrlHexun(market);
+  Future<dynamic> _fetchMarketShares(int market, int pageOffset, int pageSize) async {
+    final url = shareListUrlHexun(market, pageOffset, pageSize);
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final data = response.body.replaceAll(RegExp(r'^\(|\);$'), '');

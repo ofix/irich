@@ -88,12 +88,14 @@ class _MarketPageState extends State<MarketPage> {
   }
 
   Future<void> _load() async {
+    bool bShowPopup = false;
     // 检查行业/概念/地域板块数据本地文件是否存在
     final isReady = await StoreQuote.isQuoteExtraDataReady();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!isReady) {
         // 不存在就显示弹窗，并显示进度条信息
         showProgressPopup(context, StoreQuote.progressStream);
+        bShowPopup = true;
       }
       backgroundColor = Theme.of(context).primaryColor;
     });
@@ -105,7 +107,9 @@ class _MarketPageState extends State<MarketPage> {
     setState(() {});
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      hideProgressPopup(context);
+      if (bShowPopup) {
+        hideProgressPopup(context);
+      }
     });
     // _startTimer();
   }

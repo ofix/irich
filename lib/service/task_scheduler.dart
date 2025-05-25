@@ -58,9 +58,12 @@ class TaskScheduler {
 
   Future<void> _initialize() async {
     _mainRecvPort = ReceivePort("task_scheduler");
-    for (int i = 0; i < minIsolates; i++) {
+
+    // 并发创建子进程
+    final futures = List.generate(minIsolates, (_) async {
       await _spawnWorker(_nextThreadId++);
-    }
+    });
+    await Future.wait(futures);
     listenIsolateEvents();
     await checkPausedTaskInFileSystem();
   }

@@ -181,7 +181,7 @@ class StoreQuote {
         'PriceOpen': share.priceOpen,
         'PriceClose': share.priceClose ?? share.priceNow,
         'PriceAmplitude': share.priceAmplitude,
-        // 'change_amount': share.changeAmount,
+        // 'ChangeAmount': share.changeAmount,
         'ChangeRate': share.changeRate,
         'Volume': share.volume,
         'Amount': share.amount,
@@ -198,7 +198,8 @@ class StoreQuote {
   static Future<RichResult> _loadQuoteFile(String path, List<Share> shares) async {
     try {
       String data = await FileTool.loadFile(path);
-      List<Map<String, dynamic>> arr = jsonDecode(data);
+      List<dynamic> rawList = jsonDecode(data) as List<dynamic>;
+      List<Map<String, dynamic>> arr = rawList.cast<Map<String, dynamic>>();
       if (arr.length < 1000) {
         return error(RichStatus.fileDirty);
       }
@@ -208,24 +209,25 @@ class StoreQuote {
           name: item['Name'], // 股票名称
           code: item['Code'], // 股票代码
           market: Market.fromVal(item['Market']), // 股票市场
-          priceYesterdayClose: double.parse(item['PriceYesterdayClose']), // 昨天收盘价
-          priceNow: double.parse(item['PriceNow']), // 当前价
-          priceMin: double.parse(item['PriceMin']), // 最低价
-          priceMax: double.parse(item['PriceMax']), // 最高价
-          priceOpen: double.parse(item['PriceOpen']), // 开盘价
-          priceClose: double.parse(item['PriceClose']), // 收盘价
-          priceAmplitude: double.parse(item['PriceAmplitude']), // 股价振幅
-          changeAmount: double.parse(item['ChangeAmount']), // 涨跌额
-          changeRate: double.parse(item['ChangeRate']), // 涨跌幅度
-          volume: int.parse(item['Volume']), // 成交量
-          amount: double.parse(item['Amount']), // 成交额
-          turnoverRate: double.parse(item['TurnoverRate']), // 换手率
-          qrr: double.parse(item['Qrr']), // 量比
+          priceYesterdayClose: item['PriceYesterdayClose'] as double, // 昨天收盘价
+          priceNow: item['PriceNow'] as double, // 当前价
+          priceMin: item['PriceMin'] as double, // 最低价
+          priceMax: item['PriceMax'] as double, // 最高价
+          priceOpen: item['PriceOpen'] as double, // 开盘价
+          priceClose: item['PriceClose'] as double, // 收盘价
+          priceAmplitude: item['PriceAmplitude'] as double, // 股价振幅
+          // changeAmount: item['ChangeAmount'] as double, // 涨跌额
+          changeRate: item['ChangeRate'] as double, // 涨跌幅度
+          volume: item['Volume'] as int, // 成交量
+          amount: item['Amount'] as double, // 成交额
+          turnoverRate: item['TurnoverRate'] as double, // 换手率
+          qrr: item['Qrr'] as double, // 量比
         );
         shares.add(share);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint("Error loading Quote file: $e");
+      debugPrint(stackTrace.toString());
       return error(RichStatus.fileDirty);
     }
     return success();
