@@ -180,6 +180,18 @@ class FileTool {
     }
   }
 
+  /// 检查每周需要更新的本地数据文件是否过期
+  static Future<bool> isWeekFileExpired(String filePath, {int days = 5}) async {
+    // 获取本地行情数据文件修改时间
+    final file = File(filePath);
+    final stat = await file.stat();
+    final age = DateTime.now().difference(stat.modified).inDays;
+    if (age >= days) {
+      return true;
+    }
+    return false;
+  }
+
   static Future<String> getRuntimeDir() async {
     final dir = await getApplicationDocumentsDirectory(); // 或 getApplicationSupportDirectory()
     return dir.path;

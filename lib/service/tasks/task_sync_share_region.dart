@@ -43,10 +43,10 @@ class TaskSyncShareRegion extends BatchApiTask {
     final bkJson = <Map<String, dynamic>>[];
     for (final item in responses!) {
       final bkItem = <String, dynamic>{};
-      bkItem['Code'] = item['Params']['code']; // 板块代号
-      bkItem['Name'] = item['Params']['name']; // 板块名称
-      bkItem['Pinyin'] = item['Params']['pinyin']; // 板块拼音
-      bkItem['Shares'] = item['Response']; //板块成分股代码
+      bkItem['Code'] = item['Params']['code']; // 地域板块代号
+      bkItem['Name'] = item['Params']['name']; // 地域板块名称
+      bkItem['Pinyin'] = item['Params']['pinyin']; // 地域板块拼音
+      bkItem['Shares'] = item['Response']; // 地域板块成分股代码
       bkJson.add(bkItem);
     }
     final data = jsonEncode(bkJson);
@@ -57,12 +57,6 @@ class TaskSyncShareRegion extends BatchApiTask {
 
   @override
   Future<dynamic> onCompletedUi(TaskCompletedEvent event, dynamic result) async {
-    // 加载股票地域信息
-    String filePath = await Config.pathMapFileProvince;
-    String data = await FileTool.loadFile(filePath);
-    List<Map<String, dynamic>> provinces = jsonDecode(data) as List<Map<String, dynamic>>;
-    // 填充股票的province字段
-    StoreQuote.fillShareProvince(provinces);
-    // 通知UI更新
+    StoreQuote.loadLocalProvinceFile();
   }
 }

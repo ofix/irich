@@ -16,6 +16,7 @@ import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/tasks/batch_api_task.dart';
 import 'package:irich/service/tasks/task.dart';
 import 'package:irich/service/task_events.dart';
+import 'package:irich/store/store_quote.dart';
 import 'package:irich/utils/file_tool.dart';
 
 class TaskSyncShareConcept extends BatchApiTask {
@@ -42,10 +43,10 @@ class TaskSyncShareConcept extends BatchApiTask {
     final bkJson = <Map<String, dynamic>>[];
     for (final item in responses!) {
       final bkItem = <String, dynamic>{};
-      bkItem['Code'] = item['Params']['code']; // 板块代号
-      bkItem['Name'] = item['Params']['name']; // 板块名称
-      bkItem['Pinyin'] = item['Params']['pinyin']; // 板块拼音
-      bkItem['Shares'] = item['Response']; //板块成分股代码
+      bkItem['Code'] = item['Params']['code']; // 概念板块代号
+      bkItem['Name'] = item['Params']['name']; // 概念板块名称
+      bkItem['Pinyin'] = item['Params']['pinyin']; // 概念板块拼音
+      bkItem['Shares'] = item['Response']; // 概念板块成分股代码
       bkJson.add(bkItem);
     }
     final data = jsonEncode(bkJson);
@@ -56,7 +57,7 @@ class TaskSyncShareConcept extends BatchApiTask {
 
   @override
   Future<dynamic> onCompletedUi(TaskCompletedEvent event, dynamic result) async {
-    // 加载股票行业信息
     // 通知UI更新
+    StoreQuote.loadLocalConceptFile();
   }
 }

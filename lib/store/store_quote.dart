@@ -12,8 +12,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:irich/components/progress_popup.dart';
 import 'package:irich/global/config.dart';
-import 'package:irich/service/api_provider_capabilities.dart';
-import 'package:irich/service/api_service.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/service/task_scheduler.dart';
 import 'package:irich/service/tasks/task_sync_share_bk.dart';
@@ -22,7 +20,6 @@ import 'package:irich/service/tasks/task_sync_share_industry.dart';
 import 'package:irich/service/tasks/task_sync_share_quote.dart';
 import 'package:irich/service/tasks/task_sync_share_region.dart';
 import 'package:irich/utils/chinese_pinyin.dart';
-import 'package:irich/utils/date_time.dart';
 import 'package:irich/utils/file_tool.dart';
 import 'package:irich/utils/rich_result.dart';
 import 'package:irich/utils/trie.dart';
@@ -105,159 +102,63 @@ class StoreQuote {
     return true;
   }
 
-  /// 填充所有股票的地域字段
-  static void fillShareProvince(List<Map<String, dynamic>> provinces) {
-    for (final province in provinces) {
-      final shares = province['shares'];
-      for (final shareCode in shares) {
-        Share? share = _shareMap[shareCode];
-        if (share != null) {
-          share.province = province['name'];
-        }
-      }
-    }
-  }
-
-  /// 填充所有股票的行业字段
-  static void fillShareIndustry(List<Map<String, dynamic>> industries) {
-    for (final industry in industries) {
-      final shares = industry['shares'];
-      for (final shareCode in shares) {
-        Share? share = _shareMap[shareCode];
-        if (share != null) {
-          share.industryName = industry['name'];
-        }
-      }
-    }
-  }
-
-  /// 爬取当前行情/行业板块/地域板块/股票行情基本信息
-  static Future<RichResult> _fetchQuoteBasicInfo() async {
-    // 爬取当前行情
-    // _progressController.add(TaskProgress(name: "市场行情", current: 0, total: 100, desc: "获取A股市场行情数据"));
-    // final (statusQuote, responseQuote as List<Share>) = await ApiService(
-    //   ProviderApiType.quote,
-    // ).fetch("");
-    // if (statusQuote.ok()) {
-    //   _shares = responseQuote;
-    //   _buildShareMap(_shares);
-    //   await _saveQuoteFile(await Config.pathDataFileQuote, _shares); // 保存行情数据到文件
-    // }
-
-    // 爬取板块数据
-    // _progressController.add(TaskProgress(name: "板块分类", current: 0, total: 100, desc: "获取板块分类数据"));
-    // // 继续异步爬取 行业/地域/概念板块数据
-    // final (statusMenu, responseQuoteExtra as List<List<Map<String, dynamic>>>) = await ApiService(
-    //   ProviderApiType.quoteExtra,
-    // ).fetch("");
-    // if (statusMenu.ok()) {
-    //   // 计算总共需要爬取的板块数量
-    //   int totalBk = 0;
-    //   int recvBk = 0;
-    //   final bkList = [ProviderApiType.province, ProviderApiType.industry, ProviderApiType.concept];
-    //   final bkName = ["地域板块", "行业板块", "概念板块"];
-    //   final bkPath = [
-    //     await Config.pathMapFileProvince,
-    //     await Config.pathMapFileIndustry,
-    //     await Config.pathMapFileConcept,
-    //   ];
-    //   for (final item in responseQuoteExtra) {
-    //     totalBk += item.length;
-    //   }
-    //   debugPrint("请求的板块总数: $totalBk");
-    //   _progressController.add(
-    //     TaskProgress(name: "板块分类", current: recvBk, total: totalBk, desc: "获取板块分类数据"),
-    //   );
-    //   // 依次爬取各个板块数据(省份/行业/概念)
-    //   for (int i = 0; i < responseQuoteExtra.length; i++) {
-    //     // 异步并发爬爬取省份板块
-    //     final (statusBk, responseBk) = await ApiService(bkList[i]).batchFetch(
-    //       responseQuoteExtra[i],
-    //       (Map<String, dynamic> params, String providerName) {
-    //         recvBk += 1;
-    //         _progressController.add(
-    //           TaskProgress(
-    //             name: bkName[i],
-    //             current: recvBk,
-    //             total: totalBk,
-    //             desc: "$providerName : ${params['name']}",
-    //           ),
-    //         );
-    //       },
-    //     );
-    //     if (statusBk.ok()) {
-    //       final bkJson = <Map<String, dynamic>>[];
-    //       for (final item in responseBk) {
-    //         final bkItem = <String, dynamic>{};
-    //         bkItem['code'] = item['param']['code']; // 板块代号
-    //         bkItem['name'] = item['param']['name']; // 板块名称
-    //         bkItem['pinyin'] = item['param']['pinyin']; // 板块拼音
-    //         bkItem['shares'] = item['response']; //板块成分股代码
-    //         bkJson.add(bkItem);
-    //       }
-    //       final data = jsonEncode(bkJson);
-    //       debugPrint("写入文件 ${bkPath[i]}");
-    //       // 填充所有股票行业字段
-    //       if (i == 0) {
-    //         fillShareProvince(bkJson);
-    //       } else if (i == 1) {
-    //         fillShareIndustry(bkJson);
-    //       }
-    //       // 存储到缓存和文件
-    //       await FileTool.saveFile(bkPath[i], data);
-    //     }
-    //   }
-    // }
-
-    // // 爬取完成后建立股票行情数据索引
-    // if (!_indexed) {
-    //   _indexed = true;
-    //   _buildShareClassfier(shares);
-    //   await _buildShareTrie(shares);
-    // }
-    final scheduler = await TaskScheduler.getInstance();
-    _shares = await scheduler.addTask(TaskSyncShareQuote(params: {}));
-    _buildShareMap(_shares);
-    await _saveQuoteFile(await Config.pathDataFileQuote, _shares);
-
-    final responseBk = await scheduler.addTask(TaskSyncShareBk(params: {}));
-    scheduler.addTask(TaskSyncShareRegion(params: responseBk[0]));
-    scheduler.addTask(TaskSyncShareIndustry(params: responseBk[1]));
-    scheduler.addTask(TaskSyncShareConcept(params: responseBk[2]));
-    return success();
-  }
-
   /// 获取所有股票列表
   static Future<RichResult> load() async {
     await _initializePaths();
-    // 用户第一次启动iRich，异步爬取当前行情/行业板块/地域板块/股票基本信息
-    if (!await isQuoteExtraDataReady()) {
-      return _fetchQuoteBasicInfo();
-    }
-    // 1. 检查本地文件中是否存在股票行情数据
-    if (await FileTool.isDailyFileExpired(_pathDataFileQuote)) {
-      // 过期了要求拉取数据
-      if (betweenTimePeriod("09:00", "09:29")) {
-        // 这个时间段不能拉取,只加载本地过期股票行情数据
-        return await _loadQuoteFile(_pathDataFileQuote, _shares);
-      } else {
-        final (result, shares as List<Share>) = await ApiService(ProviderApiType.quote).fetch("");
-        if (!result.ok()) {
-          return error(RichStatus.networkError);
-        }
-      }
-      return success();
-    }
-    final result = await _loadQuoteFile(_pathDataFileQuote, _shares);
-    if (!result.ok()) {
-      final (result, shares as List<Share>) = await ApiService(ProviderApiType.quote).fetch("");
+    final scheduler = await TaskScheduler.getInstance();
+    // 检查行情数据文件是否存在且没有过期
+    if (!await FileTool.isFileExist(_pathDataFileQuote) ||
+        await FileTool.isDailyFileExpired(_pathDataFileQuote)) {
+      _shares = await scheduler.addTask(TaskSyncShareQuote(params: {}));
+      await _saveQuoteFile(await Config.pathDataFileQuote, _shares);
+      _buildShareMap(_shares);
+    } else {
+      final result = await _loadQuoteFile(_pathDataFileQuote, _shares);
       if (!result.ok()) {
-        return error(RichStatus.networkError);
+        _shares = await scheduler.addTask(TaskSyncShareQuote(params: {}));
+        await _saveQuoteFile(await Config.pathDataFileQuote, _shares);
       }
+      _buildShareMap(_shares);
+    }
+    // 检查本地 地域/行业/概念板块 文件是否都存在
+    if (await FileTool.isFileExist(_pathIndexFileProvince) &&
+        !await FileTool.isWeekFileExpired(_pathIndexFileProvince) &&
+        await FileTool.isFileExist(_pathIndexFileIndustry) &&
+        !await FileTool.isWeekFileExpired(_pathIndexFileIndustry) &&
+        await FileTool.isFileExist(_pathIndexFileConcept) &&
+        !await FileTool.isWeekFileExpired(_pathIndexFileConcept)) {
+      await loadLocalProvinceFile();
+      await loadLocalIndustryFile();
+      await loadLocalConceptFile();
+      _buildShareTrie(_shares);
       return success();
-    } // 步骤1. 恢复 m_market_shares 数据
+    }
 
-    return error(RichStatus.fileDirty);
+    final responseBk = await scheduler.addTask(TaskSyncShareBk(params: {}));
+    // 如果本地地域板块文件不存在或者过期，则创建下载任务，否则直接加载本地数据
+    if (!await FileTool.isFileExist(_pathIndexFileProvince) ||
+        await FileTool.isWeekFileExpired(_pathIndexFileProvince)) {
+      scheduler.addTask(TaskSyncShareRegion(params: responseBk[0]));
+    } else {
+      await loadLocalProvinceFile();
+    }
+
+    // 如果本地行业板块文件不存在或者过期，则创建下载任务，否则直接加载本地数据
+    if (!await FileTool.isFileExist(_pathIndexFileIndustry) ||
+        await FileTool.isWeekFileExpired(_pathIndexFileIndustry)) {
+      scheduler.addTask(TaskSyncShareIndustry(params: responseBk[1]));
+    } else {
+      await loadLocalIndustryFile();
+    }
+
+    // 如果本地概念板块文件不存在或者过期，则创建下载任务，否则直接加载本地数据
+    if (!await FileTool.isFileExist(_pathIndexFileConcept) ||
+        await FileTool.isWeekFileExpired(_pathIndexFileConcept)) {
+      scheduler.addTask(TaskSyncShareConcept(params: responseBk[2]));
+    } else {
+      await loadLocalConceptFile();
+    }
+    return success();
   }
 
   static Future<bool> _saveQuoteFile(String filePath, List<Share> shares) async {
@@ -324,7 +225,7 @@ class StoreQuote {
         shares.add(share);
       }
     } catch (e) {
-      print("Error loading file: $e");
+      debugPrint("Error loading Quote file: $e");
       return error(RichStatus.fileDirty);
     }
     return success();
@@ -365,23 +266,6 @@ class StoreQuote {
     }
   }
 
-  // 构建股票分类器
-  static void _buildShareClassfier(List<Share> shares) {
-    for (final share in shares) {
-      if (share.industry != null) {
-        _industryShares.putIfAbsent(share.industry!.name, () => []).add(share);
-      }
-      if (share.concepts != null) {
-        for (final concept in share.concepts!) {
-          _conceptShares.putIfAbsent(concept.name, () => []).add(share);
-        }
-      }
-      if (share.province != null) {
-        _provinceShares.putIfAbsent(share.province!, () => []).add(share);
-      }
-    }
-  }
-
   /// 构建股票Trie树
   static Future<void> _buildShareTrie(List<Share> shares) async {
     for (final share in shares) {
@@ -391,6 +275,69 @@ class StoreQuote {
       List<String> pinyin = await ChinesePinYin.getFirstLetters(share.name);
       for (final char in pinyin) {
         _trie.insert(char.toLowerCase(), share.code);
+      }
+    }
+  }
+
+  // 加载本地股票地域文件数据
+  static Future<void> loadLocalProvinceFile() async {
+    String data = await FileTool.loadFile(await Config.pathMapFileProvince);
+    List<Map<String, dynamic>> provinces = jsonDecode(data) as List<Map<String, dynamic>>;
+    fillShareProvince(provinces);
+  }
+
+  // 填充所有股票的地域字段，地域和股票列表的内存映射
+  static void fillShareProvince(List<Map<String, dynamic>> provinces) {
+    for (final province in provinces) {
+      final shares = province['Shares'];
+      for (final shareCode in shares) {
+        Share? share = _shareMap[shareCode];
+        if (share != null) {
+          share.province = province['Name'];
+          _provinceShares.putIfAbsent(province['Name'], () => []).add(share);
+        }
+      }
+    }
+  }
+
+  // 加载本地股票行业文件数据
+  static Future<void> loadLocalIndustryFile() async {
+    String data = await FileTool.loadFile(await Config.pathMapFileIndustry);
+    List<Map<String, dynamic>> industries = jsonDecode(data) as List<Map<String, dynamic>>;
+    fillShareIndustry(industries);
+  }
+
+  // 填充所有股票行业字段，行业和股票列表的内存映射
+  static void fillShareIndustry(List<Map<String, dynamic>> industries) {
+    for (final industry in industries) {
+      final shares = industry['Shares'];
+      for (final shareCode in shares) {
+        Share? share = _shareMap[shareCode];
+        if (share != null) {
+          share.industryName = industry['Name'];
+          _industryShares.putIfAbsent(industry['Name'], () => []).add(share);
+        }
+      }
+    }
+  }
+
+  // 加载本地股票概念文件数据
+  static Future<void> loadLocalConceptFile() async {
+    String data = await FileTool.loadFile(await Config.pathMapFileConcept);
+    List<Map<String, dynamic>> concepts = jsonDecode(data) as List<Map<String, dynamic>>;
+    fillShareConcept(concepts);
+  }
+
+  // 填充所有概念和股票列表的内存映射
+  static void fillShareConcept(List<Map<String, dynamic>> concepts) {
+    for (final concept in concepts) {
+      final shares = concept['Shares'];
+      final conceptName = concept['Name'];
+      for (final shareCode in shares) {
+        Share? share = _shareMap[shareCode];
+        if (share != null) {
+          _conceptShares.putIfAbsent(conceptName, () => []).add(share);
+        }
       }
     }
   }

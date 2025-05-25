@@ -42,10 +42,10 @@ class TaskSyncShareIndustry extends BatchApiTask {
     final bkJson = <Map<String, dynamic>>[];
     for (final item in responses!) {
       final bkItem = <String, dynamic>{};
-      bkItem['Code'] = item['Params']['code']; // 板块代号
-      bkItem['Name'] = item['Params']['name']; // 板块名称
-      bkItem['Pinyin'] = item['Params']['pinyin']; // 板块拼音
-      bkItem['Shares'] = item['Response']; //板块成分股代码
+      bkItem['Code'] = item['Params']['code']; // 行业板块代号
+      bkItem['Name'] = item['Params']['name']; // 行业板块名称
+      bkItem['Pinyin'] = item['Params']['pinyin']; // 行业板块拼音
+      bkItem['Shares'] = item['Response']; // 行业板块成分股代码
       bkJson.add(bkItem);
     }
     final data = jsonEncode(bkJson);
@@ -57,11 +57,7 @@ class TaskSyncShareIndustry extends BatchApiTask {
   @override
   Future<dynamic> onCompletedUi(TaskCompletedEvent event, dynamic result) async {
     // 加载股票行业信息
-    String filePath = await Config.pathMapFileIndustry;
-    String data = await FileTool.loadFile(filePath);
-    List<Map<String, dynamic>> industries = jsonDecode(data) as List<Map<String, dynamic>>;
-    // 填充股票的 industry 字段
-    StoreQuote.fillShareIndustry(industries);
+    StoreQuote.loadLocalIndustryFile();
     // 通知UI更新
   }
 }
