@@ -282,7 +282,8 @@ class StoreQuote {
   // 加载本地股票地域文件数据
   static Future<void> loadLocalProvinceFile() async {
     String data = await FileTool.loadFile(await Config.pathMapFileProvince);
-    List<Map<String, dynamic>> provinces = jsonDecode(data) as List<Map<String, dynamic>>;
+    List<dynamic> rawList = jsonDecode(data) as List<dynamic>;
+    List<Map<String, dynamic>> provinces = rawList.cast<Map<String, dynamic>>();
     fillShareProvince(provinces);
   }
 
@@ -303,7 +304,8 @@ class StoreQuote {
   // 加载本地股票行业文件数据
   static Future<void> loadLocalIndustryFile() async {
     String data = await FileTool.loadFile(await Config.pathMapFileIndustry);
-    List<Map<String, dynamic>> industries = jsonDecode(data) as List<Map<String, dynamic>>;
+    List<dynamic> rawList = jsonDecode(data) as List<dynamic>;
+    List<Map<String, dynamic>> industries = rawList.cast<Map<String, dynamic>>();
     fillShareIndustry(industries);
   }
 
@@ -324,7 +326,8 @@ class StoreQuote {
   // 加载本地股票概念文件数据
   static Future<void> loadLocalConceptFile() async {
     String data = await FileTool.loadFile(await Config.pathMapFileConcept);
-    List<Map<String, dynamic>> concepts = jsonDecode(data) as List<Map<String, dynamic>>;
+    List<dynamic> rawList = jsonDecode(data) as List<dynamic>;
+    List<Map<String, dynamic>> concepts = rawList.cast<Map<String, dynamic>>();
     fillShareConcept(concepts);
   }
 
