@@ -38,7 +38,7 @@ class TaskSyncShareIndustry extends BatchApiTask {
 
   @override
   Future<void> run() async {
-    super.doJob();
+    await super.doJob();
     final bkJson = <Map<String, dynamic>>[];
     for (final item in responses!) {
       final bkItem = <String, dynamic>{};
@@ -59,7 +59,7 @@ class TaskSyncShareIndustry extends BatchApiTask {
     // 加载股票行业信息
     String filePath = await Config.pathMapFileIndustry;
     String data = await FileTool.loadFile(filePath);
-    final industries = jsonDecode(data);
+    List<Map<String, dynamic>> industries = jsonDecode(data) as List<Map<String, dynamic>>;
     // 填充股票的 industry 字段
     StoreQuote.fillShareIndustry(industries);
     // 通知UI更新

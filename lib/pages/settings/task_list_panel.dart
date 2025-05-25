@@ -67,12 +67,12 @@ class TaskListItem extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      task.toString(),
+                      task.type.name,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Text('${(task.progress * 100).toStringAsFixed(1)}%'),
+                  Text('${(task.progress * 100).toStringAsFixed(2)}%'),
                 ],
               ),
               const SizedBox(height: 4),

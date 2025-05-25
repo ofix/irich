@@ -40,6 +40,7 @@ abstract class BatchApiTask extends Task<void> {
 
   /// 在子线程中运行
   Future<void> doJob() async {
+    responses = [];
     List<Map<String, dynamic>> safeParams = params.cast<Map<String, dynamic>>();
     for (final item in safeParams) {
       item['TaskId'] = taskId;
@@ -86,11 +87,7 @@ abstract class BatchApiTask extends Task<void> {
     }
     if (status.status == RichStatus.ok) {
       // 任务完成，直接保存结果到文件
-      if (responses != null) {
-        responses = [...responses!, ...response];
-      } else {
-        responses = [...response];
-      }
+      responses = [...responses!, ...response];
     }
   }
 

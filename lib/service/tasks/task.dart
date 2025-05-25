@@ -11,6 +11,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
 
+import 'package:flutter/material.dart';
 import 'package:irich/global/config.dart';
 import 'package:irich/service/task_events.dart';
 import 'package:irich/service/tasks/task_sync_share_concept.dart';
@@ -95,6 +96,11 @@ enum TaskStatus {
       default:
         throw ArgumentError('Invalid task status value: $value');
     }
+  }
+
+  String get name {
+    const names = {1: '等待中', 2: '运行中', 3: '已暂停', 4: '已完成', 5: '已取消', 6: '失败', 7: '已退出', 0: '未知状态'};
+    return names[status] ?? '未知状态';
   }
 }
 
@@ -305,6 +311,7 @@ abstract class Task<T> implements Comparable<Task<T>> {
   } // 任务恢复回调，子线程中完成
 
   void onStartedUi(TaskStartedEvent event) {
+    debugPrint("任务 ${event.taskId} 已启动！");
     status = TaskStatus.running;
     startTime = event.timestamp;
   } // 任务已开始回调函数，UI层

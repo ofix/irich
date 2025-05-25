@@ -196,6 +196,9 @@ class TaskScheduler {
     Task? task = _searchTask(event);
     if (task != null) {
       task.status = TaskStatus.failed;
+      debugPrint("+++++ task error ++++++");
+      debugPrint("${task.taskId}: ${task.status.name}, ${event.error}");
+      debugPrint(event.stackTrace.toString());
       task.isProcessing = false;
       _removeRunningTask(task.taskId);
       IsolateWorker? isolateWorker = getIsolateWorker(task.threadId);

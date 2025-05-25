@@ -82,8 +82,8 @@ class FileTool {
   static Future<String> loadFile(String filePath) async {
     try {
       final file = File(filePath);
-      final bytes = await file.readAsBytes();
-      return String.fromCharCodes(bytes);
+      final result = await file.readAsString();
+      return result;
     } catch (e) {
       print('Error loading file: $e');
       return '';

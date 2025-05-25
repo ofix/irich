@@ -60,7 +60,7 @@ class TaskSyncShareRegion extends BatchApiTask {
     // 加载股票地域信息
     String filePath = await Config.pathMapFileProvince;
     String data = await FileTool.loadFile(filePath);
-    final provinces = jsonDecode(data);
+    List<Map<String, dynamic>> provinces = jsonDecode(data) as List<Map<String, dynamic>>;
     // 填充股票的province字段
     StoreQuote.fillShareProvince(provinces);
     // 通知UI更新

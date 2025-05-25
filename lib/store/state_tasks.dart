@@ -23,7 +23,7 @@ class StateTaskList extends StateNotifier<List<Task>> {
 
   void _updateState() {
     if (_scheduler != null) {
-      state = [..._scheduler!.taskList];
+      state = [..._scheduler.taskList];
     }
   }
 

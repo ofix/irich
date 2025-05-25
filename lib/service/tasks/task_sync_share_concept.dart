@@ -38,7 +38,7 @@ class TaskSyncShareConcept extends BatchApiTask {
 
   @override
   Future<void> run() async {
-    super.doJob();
+    await super.doJob();
     final bkJson = <Map<String, dynamic>>[];
     for (final item in responses!) {
       final bkItem = <String, dynamic>{};

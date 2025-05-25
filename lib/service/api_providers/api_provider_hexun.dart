@@ -81,7 +81,7 @@ class ApiProviderHexun extends ApiProvider {
       final data = response.body.replaceAll(RegExp(r'^\(|\);$'), '');
       return data;
     } else {
-      throw Exception('Failed to request market shares');
+      throw Exception('Failed to request market shares, $url');
     }
   }
 

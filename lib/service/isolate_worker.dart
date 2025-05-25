@@ -72,8 +72,10 @@ class IsolateWorker {
         } else if (event is ResumeTaskUiEvent) {
           // 任务恢复过程中，有可能当前任务是另外一个任务正在执行过程中
           // 如果任务当前任务不为空，我们就暂停当前任务，然后再恢复
-          currentTask!.status == TaskStatus.running;
-          await _handlePauseTask(currentTask);
+          if (currentTask != null) {
+            currentTask?.status == TaskStatus.running;
+            await _handlePauseTask(currentTask);
+          }
           // 恢复过程也有可能出错，比如任务暂存文件被删除(超过24小时被清理等情况)
           // 此函数不好封装，因为需要提前返回恢复的Task，在恢复过程中，有可能进程又发来消息，导致竞争
           currentTask = await Task.onResumedIsolate(event.taskId, threadId);
