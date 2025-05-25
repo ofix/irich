@@ -84,7 +84,9 @@ flutter:
     - lib/runtime/data/
     - lib/runtime/data/chinese_pinyin.dic
     - lib/runtime/data/holidays.json
-
+    - lib/runtime/data/industry.json
+    - lib/runtime/data/province.json
+    - lib/runtime/data/concept.json
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
