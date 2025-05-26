@@ -129,7 +129,7 @@ class ApiProviderHexun extends ApiProvider {
           market: _toMarket(market),
           priceYesterdayClose: item[4] / factor,
           priceNow: item[2] / factor,
-          changeRate: item[3] / 100,
+          changeRate: item[3] / 10000,
           priceOpen: item[5] / factor,
           priceMax: item[6] / factor,
           priceMin: item[7] / factor,
