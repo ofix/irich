@@ -213,6 +213,7 @@ abstract class Task<T> implements Comparable<Task<T>> {
   TaskType get type; // 任务类型
   dynamic params; // 任务参数
   String taskId;
+  String parentTaskId = ""; // 父任务ID，默认为空字符串
   TaskPriority priority; // 任务优先级
   DateTime submitTime; // 任务提交到调度中心的时间
   DateTime? startTime; // 任务开始时间
@@ -252,6 +253,7 @@ abstract class Task<T> implements Comparable<Task<T>> {
     "Type": type.val,
     "Priority": priority.val,
     "TaskId": taskId,
+    "ParentTaskId": parentTaskId,
     "ThreadId": threadId,
     "Status": status.val,
     "Params": jsonEncode(params),
@@ -264,6 +266,7 @@ abstract class Task<T> implements Comparable<Task<T>> {
   Task.build(Map<String, dynamic> json)
     : priority = TaskPriority.fromVal(json['Priority'] as int),
       taskId = json['TaskId'] as String,
+      parentTaskId = json['ParentTaskId'] as String,
       status = TaskStatus.fromVal(json['Status'] as int),
       params = jsonDecode(json['Params']),
       submitTime = DateTime.parse(json['SubmitTime']),
@@ -290,6 +293,8 @@ abstract class Task<T> implements Comparable<Task<T>> {
   }
 
   Future<T> run(); // 任务主体函数
+
+  bool get hasParentTask => parentTaskId.isNotEmpty; // 是否有父任务
 
   void onErrorUi(TaskErrorEvent event) {} // 任务执行失败回调函数
   void onCancelledIsolate() {} // 任务取消回调函数

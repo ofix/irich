@@ -18,6 +18,7 @@ import 'package:irich/service/isolate_worker.dart';
 import 'package:irich/service/request_log.dart';
 import 'package:irich/service/tasks/task.dart';
 import 'package:irich/service/task_events.dart';
+import 'package:irich/service/tasks/task_group.dart';
 import 'package:irich/utils/file_tool.dart';
 
 class TaskScheduler {
@@ -174,6 +175,11 @@ class TaskScheduler {
       if (log.url != "") {
         _isolateTaskLogs.putIfAbsent(task.taskId, () => []).add(event.requestLog); // 添加请求日志
       }
+      // 检查是否有父任务
+      if (task.hasParentTask) {
+        Task? parentTask = getTaskById(task.parentTaskId);
+        parentTask?.onProgressUi(event);
+      }
       task.onProgressUi(event);
     }
     notifyListeners();
@@ -203,6 +209,11 @@ class TaskScheduler {
       debugPrint("${task.taskId}: ${task.status.name}, ${event.error}");
       debugPrint(event.stackTrace.toString());
       task.isProcessing = false;
+      // 检查是否有父任务
+      if (task.hasParentTask) {
+        TaskGroup? parentTask = getTaskById(task.parentTaskId) as TaskGroup;
+        parentTask.dispatchTasks();
+      }
       _removeRunningTask(task.taskId);
       IsolateWorker? isolateWorker = getIsolateWorker(task.threadId);
       if (isolateWorker != null) {
@@ -216,6 +227,11 @@ class TaskScheduler {
   void _handleTaskCompleted(TaskCompletedEvent event) {
     Task? task = _searchTask(event);
     task?.onCompletedUi(event, null);
+    // 检查是否有父任务
+    if (task != null && task.hasParentTask) {
+      TaskGroup? parentTask = getTaskById(task.parentTaskId) as TaskGroup;
+      parentTask.dispatchTasks();
+    }
     _removeRunningTask(task!.taskId);
     IsolateWorker? isolateWorker = getIsolateWorker(task.threadId);
     if (isolateWorker != null) {
