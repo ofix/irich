@@ -19,6 +19,7 @@ import 'package:irich/service/request_log.dart';
 import 'package:irich/service/tasks/task.dart';
 import 'package:irich/service/task_events.dart';
 import 'package:irich/service/tasks/task_group.dart';
+import 'package:irich/utils/ansi_color.dart';
 import 'package:irich/utils/file_tool.dart';
 
 class TaskScheduler {
@@ -191,6 +192,7 @@ class TaskScheduler {
     if (task != null) {
       task.status = TaskStatus.paused;
       task.isProcessing = false;
+      debugPrint(">>> 任务 ${task.taskId} 成功暂停...".brightYellow);
       _removeRunningTask(task.taskId);
       final isolateWorker = getIsolateWorker(task.threadId);
       if (isolateWorker != null) {
@@ -206,7 +208,7 @@ class TaskScheduler {
     if (task != null) {
       task.status = TaskStatus.failed;
       debugPrint("+++++ task error ++++++");
-      debugPrint("${task.taskId}: ${task.status.name}, ${event.error}");
+      debugPrint("${task.taskId}: ${task.status.name}, ${event.error.brightRed}");
       debugPrint(event.stackTrace.toString());
       task.isProcessing = false;
       // 检查是否有父任务
@@ -454,7 +456,6 @@ class TaskScheduler {
 
     if (_idleWorkers.isEmpty) {
       _pendingTaskQueue.add(task); // 无可用k空闲线程，重新入队
-      debugPrint("无线程可用！");
       return;
     }
 
@@ -494,8 +495,9 @@ class TaskScheduler {
 
   // 创建新线程
   Future<void> _spawnWorker(int threadId) async {
-    final worker = await IsolateWorker.create(_mainRecvPort!.sendPort, threadId);
+    IsolateWorker worker = await IsolateWorker.create(_mainRecvPort!.sendPort, threadId);
     _idleWorkers.add(worker);
+    _workerMap[threadId] = worker;
   }
 
   void _onWorkerIdle(IsolateWorker worker) {
