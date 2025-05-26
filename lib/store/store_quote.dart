@@ -37,6 +37,7 @@ class StoreQuote {
   static String _pathIndexFileConcept = ""; // 股票=>概念索引文件[东方财富]
   static final StreamController<TaskProgress> _progressController =
       StreamController<TaskProgress>(); // 下载异步事件流
+  static bool _loaded = false;
 
   /// 私有构造函数防止实例化
   StoreQuote._();
@@ -103,6 +104,10 @@ class StoreQuote {
 
   /// 获取所有股票列表
   static Future<RichResult> load() async {
+    if (_loaded) {
+      return success();
+    }
+    _loaded = true;
     await _initializePaths();
     final scheduler = await TaskScheduler.getInstance();
     // 检查行情数据文件是否存在且没有过期
