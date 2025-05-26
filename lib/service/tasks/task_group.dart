@@ -31,13 +31,17 @@ enum SubTaskCategory {
   }
 }
 
-abstract class TaskGroup extends Task<void> {
+class TaskGroup extends Task<void> {
+  @override
+  TaskType type = TaskType.taskGroup;
   final List<List<Task>> subTasks; // 子任务列表
   late TaskScheduler taskScheduler; // 任务调度器
   int totalBarriers = 0; // 总的屏障数
   int currentBarrier = 0; // 当前屏障数
   int subTaskSize = 0; // 子任务集合的大小
   SubTaskCategory lastSubTaskCategory = SubTaskCategory.serial; // 上次添加的子任务类别;
+  Function()? _onComplete; // 完成回调函数
+  Function()? _onError; // 错误处理函数
   TaskGroup({
     super.params,
     super.priority,
@@ -61,6 +65,16 @@ abstract class TaskGroup extends Task<void> {
     }
   }
 
+  // 任务组完成回调函数
+  void onComplete(Function() callback) {
+    _onComplete = callback;
+  }
+
+  // 任务组出错处理函数
+  void onError(Function() callback) {
+    _onError = callback;
+  }
+
   Future<void> dispatchTasks() async {
     if (!isCurrentBarrierCompleted()) {
       return;
@@ -68,6 +82,7 @@ abstract class TaskGroup extends Task<void> {
     currentBarrier += 1; // 增加当前屏障数
     if (currentBarrier >= totalBarriers) {
       status = TaskStatus.completed; // 所有屏障已完成
+      _onComplete?.call(); // 调用完成回调
       return;
     }
     taskScheduler = await TaskScheduler.getInstance();
@@ -170,6 +185,12 @@ abstract class TaskGroup extends Task<void> {
       requestLog: event.requestLog,
     );
     notifyUi(progressEvent); // 通知UI更新进度
+  }
+
+  @override
+  void onErrorUi(TaskErrorEvent event) {
+    status = TaskStatus.failed; // 设置任务状态为失败
+    _onError?.call(); // 调用错误处理函数
   }
 
   @override

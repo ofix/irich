@@ -26,12 +26,11 @@ import 'package:irich/utils/trie.dart';
 
 class StoreQuote {
   static List<Share> _shares = []; // 股票行情数据，交易时间需要每隔1s定时刷新，非交易时间读取本地文件
-  static Map<String, Share> _shareMap = {}; // 股票代码映射表，App启动时映射一次即可
-  static Map<String, List<Share>> _industryShares = {}; // 按行业名称分类的股票集合
-  static Map<String, List<Share>> _conceptShares = {}; // 按概念分类的股票集合
-  static Map<String, List<Share>> _provinceShares = {}; // 按省份分类的股票集合
+  static final Map<String, Share> _shareMap = {}; // 股票代码映射表，App启动时映射一次即可
+  static final Map<String, List<Share>> _industryShares = {}; // 按行业名称分类的股票集合
+  static final Map<String, List<Share>> _conceptShares = {}; // 按概念分类的股票集合
+  static final Map<String, List<Share>> _provinceShares = {}; // 按省份分类的股票集合
   static final Trie _trie = Trie(); // 股票Trie树，支持模糊查询
-  static bool _indexed = false; // 是否已经建立索引文件
   static String _pathDataFileQuote = "";
   static String _pathIndexFileProvince = ""; // 股票=>省份索引文件[东方财富]
   static String _pathIndexFileIndustry = ""; // 股票=>行业索引文件[东方财富]

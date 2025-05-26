@@ -10,7 +10,6 @@
 // ignore_for_file: avoid_print
 import "dart:convert";
 
-import "package:flutter/material.dart";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_providers/api_provider.dart";
 import "package:irich/global/stock.dart";

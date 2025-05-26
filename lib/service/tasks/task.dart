@@ -123,6 +123,8 @@ enum TaskType implements Comparable<TaskType> {
   syncIndexMinuteKline(15), // 同步最新全量指数分时图数据
   // 耗时任务
   smartShareAnalysis(100), // 股票智选
+  //
+  taskGroup(200), // 任务组
   unknown(255);
 
   final int type;
@@ -176,6 +178,8 @@ enum TaskType implements Comparable<TaskType> {
       // 分析任务
       case 100:
         return smartShareAnalysis;
+      case 200:
+        return taskGroup;
 
       // 未知类型
       case 255:
@@ -203,6 +207,7 @@ enum TaskType implements Comparable<TaskType> {
       14: '指数日K线(增量)',
       15: '指数分时图(全量)',
       100: '智能选股分析',
+      200: '任务组',
       255: '未知类型',
     };
     return names[type] ?? '未知任务类型';
