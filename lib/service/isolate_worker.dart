@@ -9,6 +9,7 @@
 
 import 'dart:isolate';
 
+import 'package:flutter/services.dart';
 import 'package:irich/service/tasks/task.dart';
 import 'package:irich/service/task_events.dart';
 
@@ -28,8 +29,15 @@ class IsolateWorker {
   }
 
   Future<void> _initialize() async {
+    // 获取主 Isolate 的 token
+    final rootIsolateToken = RootIsolateToken.instance!;
     final initPort = ReceivePort();
-    _isolate = await Isolate.spawn(_isolateEntry, [mainSendPort, threadId, initPort.sendPort]);
+    _isolate = await Isolate.spawn(_isolateEntry, [
+      mainSendPort,
+      threadId,
+      initPort.sendPort,
+      rootIsolateToken,
+    ]);
     // 等待子线程返回消息发送端口
     _isolateSendPort = await initPort.first as SendPort;
     initPort.close();
@@ -48,9 +56,16 @@ class IsolateWorker {
   }
 
   static void _isolateEntry(List<dynamic> args) {
+    // 初始化 BackgroundIsolateBinaryMessenger
+
     final SendPort mainSendPort = args[0] as SendPort;
     final int threadId = args[1] as int;
     final SendPort initPort = args[2] as SendPort;
+    final RootIsolateToken rootIsolateToken = args[3] as RootIsolateToken;
+
+    // 初始化 BackgroundIsolateBinaryMessenger,否则在子进程中无法调用 getApplicationDocumentsDirectory 等方法
+    BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+
     final receivePort = ReceivePort();
     // 返回子线程消息发送端口
     initPort.send(receivePort.sendPort);
