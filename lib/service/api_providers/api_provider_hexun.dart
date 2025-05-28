@@ -135,8 +135,8 @@ class ApiProviderHexun extends ApiProvider {
           priceMin: item[7] / factor,
           volume: (item[8] / 100).toInt(),
           amount: ((item[10] as num).toDouble()),
-          turnoverRate: item[11] / 100,
-          priceAmplitude: item[12] / 100,
+          turnoverRate: item[11] / 10000,
+          priceAmplitude: item[12] / 10000,
           qrr: item[13] / 100,
         );
 
