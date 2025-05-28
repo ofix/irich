@@ -3,12 +3,14 @@
 // Purpose:     irich application main entry
 // Author:      songhuabiao
 // Created:     2025-04-26 20:30
-// Copyright:   (C) Copyright 2024, Wealth Corporation, All Rights Reserved.
+// Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:irich/components/share_search_panel.dart';
 import 'package:irich/router/router_provider.dart';
 import 'package:irich/service/sql_service.dart';
 import 'package:irich/service/trading_calendar.dart';
@@ -24,7 +26,7 @@ void main() async {
   await TradingCalendar().initialize();
   // 初始化数据库SQLite
   await initDatabase();
-  runApp(const ProviderScope(child: RichApp()));
+  runApp(ProviderScope(child: RichApp()));
 }
 
 Future<void> initDatabase() async {
@@ -38,18 +40,34 @@ Future<void> initDatabase() async {
 }
 
 class RichApp extends ConsumerWidget {
-  const RichApp({super.key});
+  final _shareSearchPanel = ShareSearchPanel();
+  RichApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    return MaterialApp.router(
-      title: '东方价值',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.getLightTheme(),
-      darkTheme: AppTheme.getDarkTheme(),
-      themeMode: ThemeMode.dark,
-      routerConfig: router,
+    return KeyboardListener(
+      focusNode: FocusNode(),
+      onKeyEvent: (event) {
+        if (event is RawKeyDownEvent) {
+          // 监听F1键打开面板
+          if (event.logicalKey == LogicalKeyboardKey.f1) {
+            _shareSearchPanel.show(context);
+          }
+          // 监听ESC键关闭面板
+          else if (event.logicalKey == LogicalKeyboardKey.escape) {
+            _shareSearchPanel.hide();
+          }
+        }
+      },
+      child: MaterialApp.router(
+        title: '东方价值',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.getLightTheme(),
+        darkTheme: AppTheme.getDarkTheme(),
+        themeMode: ThemeMode.dark,
+        routerConfig: router,
+      ),
     );
   }
 }
