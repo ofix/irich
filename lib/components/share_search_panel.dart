@@ -8,37 +8,66 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/store_quote.dart';
 
+class OverlayManager {
+  static var _overlayKey = GlobalKey<OverlayState>();
+
+  static void init(GlobalKey<OverlayState> key) {
+    _overlayKey = key;
+  }
+
+  static OverlayState? get overlayState {
+    try {
+      return _overlayKey.currentState;
+    } catch (e) {
+      return null;
+    }
+  }
+}
+
 class ShareSearchPanel {
-  late OverlayEntry _overlayEntry;
+  static OverlayEntry? _entry;
+  static bool visible = false;
+  static void show(String? keyword) {
+    if (visible) {
+      return;
+    }
+    final overlay = OverlayManager.overlayState;
+    if (overlay == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => ShareSearchPanel.show(keyword));
+      return;
+    }
 
-  ShareSearchPanel(); // 你已经实现的Trie树
-
-  void show(BuildContext context) {
-    _overlayEntry?.remove(); // 先移除已有面板
-    _overlayEntry = OverlayEntry(
+    debugPrint("显示股票搜索面板，关键词: $keyword");
+    _entry = OverlayEntry(
       builder:
           (context) => Positioned(
             right: 2,
             bottom: 2,
-            child: Material(child: _ShortcutPanelContent(onDismiss: hide)),
+            child: Material(
+              child: _ShortcutPanelContent(keyword: keyword, onDismiss: ShareSearchPanel.hide),
+            ),
           ),
     );
-    Overlay.of(context).insert(_overlayEntry);
+    overlay.insert(_entry!);
+    visible = true;
   }
 
-  void hide() {
-    _overlayEntry?.remove();
+  static void hide() {
+    if (!visible || _entry == null) return; // 防止 onDismiss 重复调用 hide 导致异常
+    _entry?.remove();
+    _entry = null;
+    visible = false;
   }
 }
 
 class _ShortcutPanelContent extends StatefulWidget {
   final VoidCallback onDismiss;
+  final String? keyword;
 
-  const _ShortcutPanelContent({required this.onDismiss});
+  const _ShortcutPanelContent({required this.keyword, required this.onDismiss});
 
   @override
   _ShortcutPanelContentState createState() => _ShortcutPanelContentState();
@@ -48,62 +77,119 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
   String _keyword = '';
   List<Share> _shares = [];
 
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _keyword = widget.keyword ?? '';
+    _searchController.text = _keyword;
+    _searchShares();
+
+    // 关键修改：确保面板完全显示后再请求焦点
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusScope.of(context).requestFocus(_searchFocusNode);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _searchShares() async {
+    if (_keyword.isEmpty) {
+      setState(() => _shares = []);
+      return;
+    }
+
+    final result = StoreQuote.searchShares(_keyword);
+    setState(() => _shares = result);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return RawKeyboardListener(
-      focusNode: FocusNode(),
-      onKey: _handleKeyEvent,
-      child: Column(
-        children: [
-          // 输入显示区
-          Text(_keyword, style: TextStyle(fontSize: 24)),
-          // 搜索结果列表
-          SizedBox(
-            height: 300,
-            child: ListView.builder(
-              itemCount: _shares.length,
-              itemBuilder: (ctx, index) {
-                final share = _shares[index];
-                return StockItem(
-                  code: share.code,
-                  name: share.name,
-                  market: share.market.name,
-                  onTap: () => _handleStockSelect(share),
-                );
-              },
+    return Material(
+      elevation: 8,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 320, // 固定宽度防止无限扩展
+        constraints: BoxConstraints(maxHeight: 500), // 限制最大高度
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // 防止垂直无限扩展
+          children: [
+            // 标题栏
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+              ),
+              child: Row(
+                children: [
+                  Text('键盘精灵', style: TextStyle(color: Colors.white)),
+                  Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.close, color: Colors.white),
+                    onPressed: widget.onDismiss,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+
+            // 搜索框
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                autofocus: true, //
+                decoration: InputDecoration(
+                  hintText: '请输入股票名称或代码',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                ),
+                onChanged: (text) {
+                  setState(() => _keyword = text.trim());
+                  _searchShares();
+                },
+              ),
+            ),
+
+            // 分隔线
+            Divider(height: 1),
+
+            // 结果列表
+            Expanded(
+              child: SizedBox(
+                width: double.infinity, // 关键修复：确保宽度填满
+                child: ListView.builder(
+                  itemCount: _shares.length,
+                  itemBuilder: (context, index) {
+                    final share = _shares[index];
+                    return StockItem(
+                      code: share.code,
+                      name: share.name,
+                      market: share.market.name,
+                      onTap: () => _handleStockSelect(share),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   // 用户需要搜索的股票
   void _handleStockSelect(Share share) {
-    debugPrint("用户选中了股票: ${share.code}, ${share.name}");
-  }
-
-  void _handleKeyEvent(RawKeyEvent event) {
-    if (event is RawKeyDownEvent) {
-      // 处理字母输入
-      if (event.logicalKey.keyLabel.length == 1) {
-        setState(() {
-          _keyword += event.logicalKey.keyLabel.toLowerCase();
-          _shares = StoreQuote.searchShares(_keyword);
-        });
-      }
-      // 处理删除键
-      else if (event.logicalKey == LogicalKeyboardKey.backspace) {
-        setState(() {
-          _keyword = _keyword.substring(0, _keyword.length - 1);
-          _shares = StoreQuote.searchShares(_keyword);
-        });
-      }
-      // 处理ESC键关闭
-      else if (event.logicalKey == LogicalKeyboardKey.escape) {
-        widget.onDismiss();
-      }
-    }
+    // debugPrint("用户选中了股票: ${share.code}, ${share.name}");
   }
 }
 

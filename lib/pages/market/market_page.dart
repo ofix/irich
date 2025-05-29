@@ -14,7 +14,6 @@ import 'package:irich/components/progress_popup.dart';
 import 'package:irich/components/trina_column_type_stock.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/store_quote.dart';
-import 'package:irich/utils/helper.dart';
 import 'package:trina_grid/trina_grid.dart';
 
 class MarketPage extends StatefulWidget {

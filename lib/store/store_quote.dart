@@ -74,6 +74,7 @@ class StoreQuote {
 
   /// 根据用户输入的前缀字符返回对应的股票列表
   static List<Share> searchShares(String prefix) {
+    List<Share> shares = []; // 防止和全局变量冲突，导致过滤失败
     List<String> shareCodes = _trie.listPrefixWith(prefix);
     for (final shareCode in shareCodes) {
       final share = _shareMap[shareCode];

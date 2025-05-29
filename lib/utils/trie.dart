@@ -30,11 +30,8 @@ class Trie {
   // 支持中英文混合
   void insert(String chinese, String shareCode) {
     TrieNode node = root;
-    var words = chinese.characters;
-    for (var letter in words) {
-      if (!node.children.containsKey(letter)) {
-        node.children[letter] = TrieNode(node.depth + 1);
-      }
+    for (final letter in chinese.characters) {
+      node.children.putIfAbsent(letter, () => TrieNode(node.depth + 1));
       node = node.children[letter]!;
     }
     node.isWord = true;
@@ -56,8 +53,8 @@ class Trie {
 
   void remove(String chinese) {
     TrieNode? node = root;
-    var words = chinese.characters;
-    for (var letter in words) {
+    final words = chinese.characters;
+    for (final letter in words) {
       if (!node!.children.containsKey(letter)) {
         return;
       }
@@ -68,8 +65,8 @@ class Trie {
 
   void removePrefixWith(String chinese) {
     TrieNode? node = root;
-    var words = chinese.characters;
-    for (var letter in words) {
+    final words = chinese.characters;
+    for (final letter in words) {
       if (!node!.children.containsKey(letter)) {
         return;
       }
@@ -84,8 +81,7 @@ class Trie {
   List<String> listPrefixWith(String chinese) {
     final List<String> result = [];
     TrieNode node = root;
-    var words = chinese.characters;
-    for (var letter in words) {
+    for (var letter in chinese.characters) {
       if (!node.children.containsKey(letter)) {
         return result;
       }

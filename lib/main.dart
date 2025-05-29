@@ -27,10 +27,24 @@ void main() async {
   // 初始化数据库SQLite
   await initDatabase();
   runApp(ProviderScope(child: RichApp()));
+  // 注册全局键盘监听回调
+  registerGlobalKeyEventListener();
 }
 
+// 全局键盘事件监听
+void registerGlobalKeyEventListener() {
+  HardwareKeyboard.instance.addHandler((event) {
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      ShareSearchPanel.hide();
+      return true; // 阻止事件继续传播
+    }
+    ShareSearchPanel.show(event.character);
+    return false; // 允许事件继续传播
+  });
+}
+
+// 初始化数据库
 Future<void> initDatabase() async {
-  // 初始化数据库
   try {
     await SqlService.instance.database;
     debugPrint('Database initialized successfully');
@@ -40,34 +54,22 @@ Future<void> initDatabase() async {
 }
 
 class RichApp extends ConsumerWidget {
-  final _shareSearchPanel = ShareSearchPanel();
   RichApp({super.key});
-
+  final _appOverlayKey = GlobalKey<OverlayState>();
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    return KeyboardListener(
-      focusNode: FocusNode(),
-      onKeyEvent: (event) {
-        if (event is RawKeyDownEvent) {
-          // 监听F1键打开面板
-          if (event.logicalKey == LogicalKeyboardKey.f1) {
-            _shareSearchPanel.show(context);
-          }
-          // 监听ESC键关闭面板
-          else if (event.logicalKey == LogicalKeyboardKey.escape) {
-            _shareSearchPanel.hide();
-          }
-        }
+    OverlayManager.init(_appOverlayKey); // 初始化
+    return MaterialApp.router(
+      title: '东方价值',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.getLightTheme(),
+      darkTheme: AppTheme.getDarkTheme(),
+      themeMode: ThemeMode.dark,
+      routerConfig: router,
+      builder: (context, child) {
+        return Overlay(key: _appOverlayKey, initialEntries: [OverlayEntry(builder: (_) => child!)]);
       },
-      child: MaterialApp.router(
-        title: '东方价值',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.getLightTheme(),
-        darkTheme: AppTheme.getDarkTheme(),
-        themeMode: ThemeMode.dark,
-        routerConfig: router,
-      ),
     );
   }
 }
