@@ -52,6 +52,16 @@ class StoreQuote {
     return _conceptShares[concept] ?? [];
   }
 
+  /// 获取用户自选股列表
+  static List<Share> get favoriteShareList {
+    // return _shares.where((share) => share.isFavorite).toList();
+    return _shares;
+  }
+
+  static List<Share> get marketShareList {
+    return _shares;
+  }
+
   /// 获取某个省份的所有股票
   static List<Share> getByProvince(String province) {
     return _provinceShares[province] ?? [];
