@@ -40,7 +40,6 @@ class ShareSearchPanel {
       return;
     }
 
-    debugPrint("显示股票搜索面板，关键词: $keyword");
     _entry = OverlayEntry(
       builder:
           (context) => Positioned(

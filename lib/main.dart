@@ -34,12 +34,18 @@ void main() async {
 // 全局键盘事件监听
 void registerGlobalKeyEventListener() {
   HardwareKeyboard.instance.addHandler((event) {
-    if (event.logicalKey == LogicalKeyboardKey.escape) {
-      ShareSearchPanel.hide();
-      return true; // 阻止事件继续传播
+    if (event is KeyDownEvent) {
+      // 仅处理按下事件
+      if (event.logicalKey == LogicalKeyboardKey.escape) {
+        ShareSearchPanel.hide();
+        return true; // 拦截 Escape
+      }
+      // 仅当有字符输入时才显示面板（排除功能键）
+      if (event.character != null && event.character!.isNotEmpty) {
+        ShareSearchPanel.show(event.character!);
+      }
     }
-    ShareSearchPanel.show(event.character);
-    return false; // 允许事件继续传播
+    return false; // 允许其他事件传播
   });
 }
 
