@@ -8,6 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/store_quote.dart';
 
@@ -78,6 +79,9 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
 
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+
+  int _selectedIndex = -1; // 当前选中行
 
   @override
   void initState() {
@@ -96,6 +100,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -111,122 +116,187 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      elevation: 8,
-      borderRadius: BorderRadius.circular(8),
+    return KeyboardListener(
+      focusNode: FocusNode(), // 捕获全局键盘事件
+      autofocus: true,
+      onKeyEvent: (event) {
+        if (event is KeyDownEvent) {
+          _handleKeyDown(event.logicalKey);
+        }
+      },
       child: Container(
-        width: 320, // 固定宽度防止无限扩展
-        constraints: BoxConstraints(maxHeight: 500), // 限制最大高度
-        child: Column(
-          mainAxisSize: MainAxisSize.min, // 防止垂直无限扩展
-          children: [
-            // 标题栏
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-              ),
-              child: Row(
-                children: [
-                  Text('键盘精灵', style: TextStyle(color: Colors.white)),
-                  Spacer(),
-                  IconButton(
-                    icon: Icon(Icons.close, color: Colors.white),
-                    onPressed: widget.onDismiss,
-                  ),
-                ],
-              ),
-            ),
-
-            // 搜索框
-            Padding(
-              padding: EdgeInsets.all(8),
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                autofocus: true, //
-                decoration: InputDecoration(
-                  hintText: '请输入股票名称或代码',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                ),
-                onChanged: (text) {
-                  setState(() => _keyword = text.trim());
-                  _searchShares();
-                },
-              ),
-            ),
-
-            // 分隔线
-            Divider(height: 1),
-
-            // 结果列表
-            Expanded(
-              child: SizedBox(
-                width: double.infinity, // 关键修复：确保宽度填满
-                child: ListView.builder(
-                  itemCount: _shares.length,
-                  itemBuilder: (context, index) {
-                    final share = _shares[index];
-                    return StockItem(
-                      code: share.code,
-                      name: share.name,
-                      market: share.market.name,
-                      onTap: () => _handleStockSelect(share),
-                    );
-                  },
-                ),
-              ),
-            ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: Colors.blue.withOpacity(0.3), // 半透明蓝色边框
+            width: 1.5, // 边框粗细
+          ),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: Offset(0, 4)),
           ],
+        ),
+        child: Material(
+          elevation: 8,
+          child: Container(
+            width: 280, // 固定宽度防止无限扩展
+            constraints: BoxConstraints(maxHeight: 380), // 限制最大高度
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // 防止垂直无限扩展
+              children: [_shareSearchPanelHeader(), _shareSearchBox(), _shareList()],
+            ),
+          ),
         ),
       ),
     );
   }
 
+  // 标题栏
+  Widget _shareSearchPanelHeader() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+      ),
+      child: Row(
+        children: [
+          Text('键盘精灵', style: TextStyle(color: Colors.white, fontSize: 18)),
+          Spacer(),
+          IconButton(
+            icon: Icon(Icons.close, color: Colors.white, size: 16),
+            onPressed: widget.onDismiss,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 搜索框
+  Widget _shareSearchBox() {
+    // 搜索框
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 添加水平内边距
+      child: SizedBox(
+        height: 32,
+        child: Align(
+          alignment: Alignment.centerLeft, // 左对齐
+          child: TextField(
+            controller: _searchController,
+            focusNode: _searchFocusNode,
+            autofocus: true, //
+            style: TextStyle(fontSize: 16), // 统一文字大小
+            decoration: InputDecoration(
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(bottom: 12), // 微调图标位置
+                child: Icon(Icons.search, size: 24), // 固定图标大小
+              ),
+              border: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey[300]!), // 更细的边框
+              ),
+              contentPadding: const EdgeInsets.only(bottom: 12), // 调整文字垂直位置
+              isDense: true, // 关键参数：减少内部padding
+            ),
+            onChanged: (text) {
+              setState(() => _keyword = text.trim());
+              _searchShares();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 结果列表
+  Widget _shareList() {
+    return Expanded(
+      child: SizedBox(
+        width: double.infinity, // 关键修复：确保宽度填满
+        child: ListView.builder(
+          controller: _scrollController, // 确保控制器附加
+          itemCount: _shares.length,
+          itemBuilder: (context, index) {
+            final share = _shares[index];
+            return GestureDetector(
+              onTap: () => _onShareSelect(share),
+              child: Container(
+                color: _selectedIndex == index ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+                child: StockItem(share: share),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _handleKeyDown(LogicalKeyboardKey key) {
+    if (_shares.isEmpty || !_scrollController.hasClients) return;
+
+    setState(() {
+      // 上下方向键选择
+      if (key == LogicalKeyboardKey.arrowDown) {
+        _selectedIndex = (_selectedIndex + 1).clamp(0, _shares.length - 1);
+        _scrollToSelected();
+      } else if (key == LogicalKeyboardKey.arrowUp) {
+        _selectedIndex = (_selectedIndex - 1).clamp(0, _shares.length - 1);
+        _scrollToSelected();
+      }
+      // Enter键确认选择
+      else if (key == LogicalKeyboardKey.enter && _selectedIndex != -1) {
+        _onShareSelect(_shares[_selectedIndex]);
+      }
+    });
+  }
+
+  // 自动滚动到选中行
+  // 延迟确保ListView已构建
+  void _scrollToSelected() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _selectedIndex * 28.0,
+          duration: Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   // 用户需要搜索的股票
-  void _handleStockSelect(Share share) {
+  void _onShareSelect(Share share) {
     // debugPrint("用户选中了股票: ${share.code}, ${share.name}");
+    widget.onDismiss();
   }
 }
 
 class StockItem extends StatelessWidget {
-  final String code; // 股票代码
-  final String name; // 股票名称
-  final String market; // 所属市场（如: 沪市/深市/港股等）
-  final VoidCallback onTap;
+  final Share share;
 
-  const StockItem({
-    required this.code,
-    required this.name,
-    required this.market,
-    required this.onTap,
-    super.key,
-  });
+  const StockItem({super.key, required this.share});
 
   @override
   Widget build(BuildContext context) {
+    Color marketColor = getMarketColor(share.market);
     return InkWell(
-      onTap: onTap,
       splashColor: Colors.blue.withOpacity(0.1), // 浅色水波纹
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey[200]!))),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // 股票代码（加粗显示）
             SizedBox(
               width: 80, // 固定宽度对齐
-              child: Text(code, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              child: Text(
+                share.code,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
             ),
 
             // 股票名称（自动换行）
             Expanded(
               child: Text(
-                name,
+                share.name,
                 style: const TextStyle(fontSize: 16),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -234,15 +304,23 @@ class StockItem extends StatelessWidget {
             // 市场标签（灰色小字）
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(market, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(4), color: marketColor),
+              child: Text(share.market.name, style: TextStyle(color: Colors.white, fontSize: 12)),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Color getMarketColor(Market market) {
+    if (market == Market.shenZhen) {
+      return Color.fromARGB(255, 4, 141, 210);
+    } else if (market == Market.chuangYeBan) {
+      return Color.fromARGB(255, 205, 8, 182);
+    } else if (market == Market.shangHai) {
+      return Color.fromARGB(255, 231, 119, 27);
+    }
+    return Color.fromARGB(255, 183, 29, 57);
   }
 }
