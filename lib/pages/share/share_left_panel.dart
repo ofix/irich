@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:irich/global/stock.dart';
-import 'package:irich/pages/share/share_page.dart';
 import 'package:irich/store/store_quote.dart';
 
 class ShareLeftPanel extends StatefulWidget {
@@ -23,8 +22,8 @@ class _ShareLeftPanelState extends State<ShareLeftPanel> {
 
   Future<void> _loadData() async {
     // 模拟数据加载
-    _favoriteshares = StoreQuote.favoriteShareList;
-    _marketShares = StoreQuote.marketShareList;
+    _favoriteshares = StoreQuote.favoriteShares;
+    _marketShares = StoreQuote.marketShares;
     _sortShares();
   }
 
@@ -107,19 +106,19 @@ class _ShareLeftPanelState extends State<ShareLeftPanel> {
                 style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
               ),
               Text(
-                '${share.changeRate >= 0 ? '+' : ''}${share.changeRate.toStringAsFixed(2)}%',
+                '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
                 style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
               ),
             ],
           ),
-          onTap: () => _onStockSelected(share),
+          onTap: () => _onShareSelected(context, share.code),
         );
       },
     );
   }
 
-  void _onStockSelected(Share share) {
-    // 通知右侧面板更新
-    context.findAncestorStateOfType<SharePageState>()?.showShare(share);
+  // 通知右侧面板更新股票日K线
+  void _onShareSelected(BuildContext context, String shareCode) {
+    Navigator.pushNamed(context, '/share/$shareCode');
   }
 }

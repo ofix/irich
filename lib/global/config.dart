@@ -35,6 +35,12 @@ class Config {
     return p.join(appRootDir, 'data', 'quote.json');
   }
 
+  // 用户自选股列表文件路径
+  static Future<String> get pathFavoriteShares async {
+    String appRootDir = await FileTool.getAppRootDir();
+    return p.join(appRootDir, 'data', 'favorite_shares.json');
+  }
+
   // 节假日数据文件路径
   static Future<String> get pathDataFileHoliday async {
     String appRootDir = await FileTool.getAppRootDir();

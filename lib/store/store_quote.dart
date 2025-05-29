@@ -26,6 +26,7 @@ import 'package:irich/utils/trie.dart';
 
 class StoreQuote {
   static List<Share> _shares = []; // 股票行情数据，交易时间需要每隔1s定时刷新，非交易时间读取本地文件
+  static final List<Share> _favoriteShares = [];
   static final Map<String, Share> _shareMap = {}; // 股票代码映射表，App启动时映射一次即可
   static final Map<String, List<Share>> _industryShares = {}; // 按行业名称分类的股票集合
   static final Map<String, List<Share>> _conceptShares = {}; // 按概念分类的股票集合
@@ -53,12 +54,61 @@ class StoreQuote {
   }
 
   /// 获取用户自选股列表
-  static List<Share> get favoriteShareList {
-    // return _shares.where((share) => share.isFavorite).toList();
-    return _shares;
+  static List<Share> get favoriteShares {
+    return _favoriteShares;
   }
 
-  static List<Share> get marketShareList {
+  /// 添加股票到自选股
+  static void addFavoriteShare(String shareCode) {
+    Share? share = query(shareCode);
+    if (share != null) {
+      _favoriteShares.add(share);
+      saveFavoriteShares();
+    }
+  }
+
+  /// 从自选股中删除股票
+  static void removeFavoriteShare(String shareCode) {
+    _favoriteShares.removeWhere((share) => share.code == shareCode);
+    saveFavoriteShares();
+  }
+
+  /// 从文件中加载最选股列表
+  static Future<bool> loadFavoriteShares() async {
+    final pathFavoriteShares = await Config.pathFavoriteShares;
+    if (await FileTool.isFileExist(pathFavoriteShares)) {
+      try {
+        _favoriteShares.clear();
+        String data = await FileTool.loadFile(pathFavoriteShares);
+        List<dynamic> rawList = jsonDecode(data) as List<dynamic>;
+        List<String> shareCodes = rawList.cast<String>();
+        for (final shareCode in shareCodes) {
+          Share? share = _shareMap[shareCode];
+          if (share != null) {
+            _favoriteShares.add(share);
+          }
+        }
+        return true;
+      } catch (e, stackTrace) {
+        debugPrint("Error load favorite shares: $e");
+        debugPrint(stackTrace.toString());
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // 保存最选股列表
+  static Future<bool> saveFavoriteShares() async {
+    List<String> shareCodes = [];
+    for (final share in _favoriteShares) {
+      shareCodes.add(share.code);
+    }
+    String data = jsonEncode(shareCodes);
+    return FileTool.saveFile(await Config.pathFavoriteShares, data);
+  }
+
+  static List<Share> get marketShares {
     return _shares;
   }
 
@@ -148,6 +198,8 @@ class StoreQuote {
       _buildShareTrie(_shares);
       return success();
     }
+    // 加载自选股列表
+    await loadFavoriteShares();
 
     final responseBk = await scheduler.addTask(TaskSyncShareBk(params: {}));
     // 如果本地地域板块文件不存在或者过期，则创建下载任务，否则直接加载本地数据

@@ -13,6 +13,7 @@ import 'package:irich/pages/market/market_page.dart';
 import 'package:irich/pages/portfolio/portfolio_page.dart';
 import 'package:irich/pages/favorite/favorite_page.dart';
 import 'package:irich/pages/settings/settings_page.dart';
+import 'package:irich/pages/share/share_page.dart';
 
 // 禁用GoRouter默认页面切换动画
 final appRouter = GoRouter(
@@ -35,6 +36,16 @@ final appRouter = GoRouter(
       pageBuilder:
           (context, state) =>
               NoTransitionPage(key: state.pageKey, child: const FavoritePage(title: '自选')),
+    ),
+    GoRoute(
+      path: '/share/:shareCode', // 动态参数
+      pageBuilder: (context, state) {
+        final shareCode = state.pathParameters['shareCode']!; // 获取参数
+        return NoTransitionPage(
+          key: state.pageKey,
+          child: SharePage(shareCode: shareCode), // 传递参数
+        );
+      },
     ),
     GoRoute(
       path: '/discovery',
