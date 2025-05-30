@@ -242,6 +242,7 @@ class _MarketPageState extends State<MarketPage> {
         width: (field[2] as int).toDouble(),
         readOnly: true,
         titleTextAlign: field[3] as TrinaColumnTextAlign,
+        enableContextMenu: false,
         renderer: (TrinaColumnRendererContext ctx) {
           // 获取列的类型
           Color greyColor = const Color.fromARGB(255, 249, 240, 240);
