@@ -44,10 +44,13 @@ class ShareSearchPanel {
     _entry = OverlayEntry(
       builder:
           (context) => Positioned(
-            right: 2,
-            bottom: 2,
-            child: Material(
-              child: _ShortcutPanelContent(keyword: keyword, onDismiss: ShareSearchPanel.hide),
+            top: 8,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Material(
+                child: _ShortcutPanelContent(keyword: keyword, onDismiss: ShareSearchPanel.hide),
+              ),
             ),
           ),
     );
@@ -142,7 +145,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
             constraints: BoxConstraints(maxHeight: 380), // 限制最大高度
             child: Column(
               mainAxisSize: MainAxisSize.min, // 防止垂直无限扩展
-              children: [_shareSearchPanelHeader(), _shareSearchBox(), _shareList()],
+              children: [_buildSearchPanelHeader(), _buildSearchBox(), _buildSearchPanelBody()],
             ),
           ),
         ),
@@ -151,7 +154,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
   }
 
   // 标题栏
-  Widget _shareSearchPanelHeader() {
+  Widget _buildSearchPanelHeader() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -172,7 +175,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
   }
 
   // 搜索框
-  Widget _shareSearchBox() {
+  Widget _buildSearchBox() {
     // 搜索框
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 添加水平内边距
@@ -207,7 +210,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
   }
 
   // 结果列表
-  Widget _shareList() {
+  Widget _buildSearchPanelBody() {
     return Expanded(
       child: SizedBox(
         width: double.infinity, // 关键修复：确保宽度填满
