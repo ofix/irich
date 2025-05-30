@@ -70,6 +70,7 @@ class _MarketPageState extends State<MarketPage> {
                         activatedColor: Color(0xff284468),
                         borderColor: const Color.fromARGB(255, 39, 38, 38),
                         cellCheckedColor: Colors.transparent,
+                        cellActiveColor: Colors.transparent,
                         columnTextStyle: TextStyle(color: Color(0xFFFFFFFF)),
                         cellTextStyle: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
                         rowHeight: 28,
@@ -79,8 +80,8 @@ class _MarketPageState extends State<MarketPage> {
                     rows: rows,
                     onLoaded: (TrinaGridOnLoadedEvent event) {
                       stateManager = event.stateManager;
-                      debugPrint("TrinaGrid inited");
                     },
+                    mode: TrinaGridMode.readOnly,
                   ),
                 ),
       ),
