@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/store_quote.dart';
 
@@ -42,12 +43,11 @@ class _ShareLeftPanelState extends State<ShareLeftPanel> {
   Widget build(BuildContext context) {
     return Container(
       width: 300,
-      color: Colors.grey[100],
+      color: Color(0xff000000),
       child: Column(
         children: [
           // 自选股标题
           _buildSectionHeader('自选股', Icons.star),
-
           // 自选股列表
           Expanded(flex: 3, child: _buildShareList(_favoriteshares)),
 
@@ -111,14 +111,14 @@ class _ShareLeftPanelState extends State<ShareLeftPanel> {
               ),
             ],
           ),
-          onTap: () => _onShareSelected(context, share.code),
+          onTap: () => _onShareSelected(share.code),
         );
       },
     );
   }
 
   // 通知右侧面板更新股票日K线
-  void _onShareSelected(BuildContext context, String shareCode) {
-    Navigator.pushNamed(context, '/share/$shareCode');
+  void _onShareSelected(String shareCode) {
+    GoRouter.of(context).push('/share/$shareCode');
   }
 }

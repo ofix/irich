@@ -40,6 +40,9 @@ void registerGlobalKeyEventListener() {
         ShareSearchPanel.hide();
         return true; // 拦截 Escape
       }
+      if (event.logicalKey == LogicalKeyboardKey.enter) {
+        return false; // 允许 Enter 继续传播
+      }
       // 仅当有字符输入时才显示面板（排除功能键）
       if (event.character != null && event.character!.isNotEmpty) {
         ShareSearchPanel.show(event.character!);

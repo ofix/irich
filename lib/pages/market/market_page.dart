@@ -9,6 +9,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:irich/components/desktop_layout.dart';
 import 'package:irich/components/progress_popup.dart';
 import 'package:irich/components/trina_column_type_stock.dart';
@@ -80,6 +81,12 @@ class _MarketPageState extends State<MarketPage> {
                     rows: rows,
                     onLoaded: (TrinaGridOnLoadedEvent event) {
                       stateManager = event.stateManager;
+                    },
+                    onRowDoubleTap: (TrinaGridOnRowDoubleTapEvent event) {
+                      String shareCode = (event.row.cells['code']?.value) as String;
+                      if (shareCode.isNotEmpty) {
+                        context.push('/share/$shareCode');
+                      }
                     },
                     mode: TrinaGridMode.readOnly,
                   ),

@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/store_quote.dart';
 
@@ -267,7 +268,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
 
   // 用户需要搜索的股票
   void _onShareSelect(Share share) {
-    // debugPrint("用户选中了股票: ${share.code}, ${share.name}");
+    GoRouter.of(context).push('/share/${share.code}');
     widget.onDismiss();
   }
 }
