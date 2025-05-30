@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:irich/global/stock.dart';
-import 'package:irich/store/store_quote.dart';
+import 'package:irich/pages/share/favorite_share_tab.dart';
+import 'package:irich/pages/share/market_share_tab.dart';
 
 class ShareLeftPanel extends StatefulWidget {
   const ShareLeftPanel({super.key});
@@ -10,115 +9,93 @@ class ShareLeftPanel extends StatefulWidget {
   State<ShareLeftPanel> createState() => _ShareLeftPanelState();
 }
 
-class _ShareLeftPanelState extends State<ShareLeftPanel> {
-  List<Share> _favoriteshares = []; // 自选股
-  List<Share> _marketShares = []; // 市场股票
-  bool _sortDescending = true; // 排序方式
+class _ShareLeftPanelState extends State<ShareLeftPanel> with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  Color? _selectedColor;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _tabController = TabController(length: 2, vsync: this);
   }
 
-  Future<void> _loadData() async {
-    // 模拟数据加载
-    _favoriteshares = StoreQuote.favoriteShares;
-    _marketShares = StoreQuote.marketShares;
-    _sortShares();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _selectedColor = Theme.of(context).primaryColor;
   }
 
-  void _sortShares() {
-    setState(() {
-      _marketShares.sort(
-        (a, b) =>
-            _sortDescending
-                ? b.changeRate.compareTo(a.changeRate)
-                : a.changeRate.compareTo(b.changeRate),
-      );
-    });
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 300,
-      color: Color(0xff000000),
+      color: const Color(0xff000000),
       child: Column(
         children: [
-          // 自选股标题
-          _buildSectionHeader('自选股', Icons.star),
-          // 自选股列表
-          Expanded(flex: 3, child: _buildShareList(_favoriteshares)),
-
-          Divider(height: 1),
-
-          // 市场股标题+排序按钮
-          _buildSectionHeader(
-            '市场行情',
-            Icons.trending_up,
-            trailing: IconButton(
-              icon: Icon(_sortDescending ? Icons.arrow_downward : Icons.arrow_upward),
-              onPressed: () {
-                setState(() => _sortDescending = !_sortDescending);
-                _sortShares();
-              },
-            ),
-          ),
-
-          // 市场股列表
-          Expanded(flex: 7, child: _buildShareList(_marketShares)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon, {Widget? trailing}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      child: Row(
-        children: [
-          Icon(icon, size: 20),
-          SizedBox(width: 8),
-          Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
-          Spacer(),
-          if (trailing != null) trailing,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShareList(List<Share> shares) {
-    return ListView.builder(
-      itemCount: shares.length,
-      itemExtent: 56, // 固定高度提升性能
-      itemBuilder: (context, index) {
-        final share = shares[index];
-        return ListTile(
-          title: Text(share.name),
-          subtitle: Text(share.code),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              Text(
-                share.priceNow.toStringAsFixed(2),
-                style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+              _buildTab(
+                icon: Icons.trending_up,
+                label: '市场行情',
+                isSelected: _tabController.index == 0,
+                onTap: () => _tabController.animateTo(1),
               ),
-              Text(
-                '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
-                style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+              _buildTab(
+                icon: Icons.star,
+                label: '自选股',
+                isSelected: _tabController.index == 1,
+                onTap: () => _tabController.animateTo(0),
               ),
             ],
           ),
-          onTap: () => _onShareSelected(share.code),
-        );
-      },
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: const [MarektShareTab(), FavoriteShareTab()],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  // 通知右侧面板更新股票日K线
-  void _onShareSelected(String shareCode) {
-    GoRouter.of(context).push('/share/$shareCode');
+  Widget _buildTab({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? _selectedColor : const Color.fromARGB(255, 81, 80, 80),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: isSelected ? _selectedColor : Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? _selectedColor : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
