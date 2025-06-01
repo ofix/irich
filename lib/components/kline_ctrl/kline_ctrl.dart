@@ -31,8 +31,8 @@ class KlineState {
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
   List<List<UiIndicator>> indicators; // 0:日/周/月/季/年K线技术指标列表,1:分时图技术指标列表,2:五日分时图技术指标列表
   int crossLineIndex; // 十字线位置
-  int klineWidth; // K线宽度
-  int klineInnerWidth; // K线内部宽度
+  double klineWidth; // K线宽度
+  double klineInnerWidth; // K线内部宽度
   int visibleKlineCount; // 可视区域K线数量
   double width; // K线图宽度
   double klineChartHeight; // K线图高度
@@ -47,8 +47,8 @@ class KlineState {
     List<List<UiIndicator>>? indicators,
     UiKlineRange? klineRng,
     this.crossLineIndex = -1,
-    this.klineWidth = 7,
-    this.klineInnerWidth = 5,
+    this.klineWidth = 17,
+    this.klineInnerWidth = 15,
     this.visibleKlineCount = 120,
     this.width = 800,
     this.klineChartHeight = 600,
@@ -71,8 +71,8 @@ class KlineState {
     List<List<UiIndicator>>? indicators,
     int? visibleIndicatorIndex,
     int? crossLineIndex,
-    int? klineWidth,
-    int? klineInnerWidth,
+    double? klineWidth,
+    double? klineInnerWidth,
     int? visibleKlineCount,
     double? width,
     double? klineChartHeight,
@@ -213,9 +213,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    setSize(size); // 计算K线图宽高,当前显示的K线图范围
-    debugPrint("setSize: ${size.width},${size.height}");
+    // final parentWidth = MediaQuery.of(context).size.width; 此方法获取的是屏幕宽度
     return KeyboardListener(
       focusNode: _focusNode,
       onKeyEvent: _handleKeyEvent,
@@ -224,20 +222,24 @@ class _KlineCtrlState extends State<KlineCtrl> {
         onPointerHover: _handleMouseMove,
         child: GestureDetector(
           onTapDown: _handleTapDown,
-          child: Transform.scale(
-            scale: 1.0,
-            child: Column(
-              children: [
-                // K线类型切换
-                _buildKlineTypeTabs(),
-                // EMA加权平均线
-                _buildEmaCurveButtons(context, emaCurveMap),
-                // K线主图
-                KlineChart(klineState: klineState),
-                // 技术指标图
-                // ..._buildIndicators(context, klineState),
-              ],
-            ),
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              // final parentWidth = constraints.maxWidth; // 父容器可用宽度
+              Size size = Size(constraints.maxWidth, constraints.maxHeight);
+              setSize(size); // 计算K线图宽高,当前显示的K线图范围
+              return Column(
+                children: [
+                  // K线类型切换
+                  _buildKlineTypeTabs(),
+                  // EMA加权平均线
+                  _buildEmaCurveButtons(context, emaCurveMap),
+                  // K线主图
+                  KlineChart(klineState: klineState),
+                  // 技术指标图
+                  // ..._buildIndicators(context, klineState),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -538,17 +540,15 @@ class _KlineCtrlState extends State<KlineCtrl> {
       return;
     }
     List<UiKline> klines = klineState.klines;
-    debugPrint("width: ${size.width}, height:${size.height}");
-    debugPrint("klines count : ${klines.length}");
-    int klineWidth;
+    double klineWidth;
     int klineInnerWidth;
     if (klines.length < 20) {
       klineWidth = 10;
       klineState.visibleKlineCount = klines.length;
       klineInnerWidth = 7;
     } else {
-      klineWidth = (size.width / klineState.visibleKlineCount).ceil();
-      klineInnerWidth = (klineWidth * 0.8).ceil();
+      klineWidth = (size.width / klineState.visibleKlineCount).floor().toDouble();
+      klineInnerWidth = (klineWidth * 0.8).floor();
       if (klineWidth > 1 && klineInnerWidth % 2 == 0) {
         klineInnerWidth = klineInnerWidth;
         klineInnerWidth -= 1;
@@ -557,7 +557,9 @@ class _KlineCtrlState extends State<KlineCtrl> {
         }
       }
     }
+    debugPrint("window Size: ${size.width}, visibleKlineCount = ${klineState.visibleKlineCount}");
     klineState.klineWidth = klineWidth;
+    klineState.klineInnerWidth = klineInnerWidth.toDouble();
 
     // 根据K线宽度计算起始坐标和放大坐标
     UiKlineRange klineRng = UiKlineRange(begin: 0, end: 0);

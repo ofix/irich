@@ -15,8 +15,8 @@ class AmountIndicator extends StatefulWidget {
   final double height;
   final List<UiKline> klines;
   final UiKlineRange klineRange;
-  final int klineWidth;
-  final int klineInnerWidth;
+  final double klineWidth;
+  final double klineInnerWidth;
   final int crossLineIndex;
   const AmountIndicator({
     super.key,
@@ -70,8 +70,8 @@ class _AmountIndicatorPainter extends CustomPainter {
   final List<UiKline> klines;
   final UiKlineRange klineRng;
   final int crossLineIndex;
-  final int klineWidth;
-  final int klineInnerWidth;
+  final double klineWidth;
+  final double klineInnerWidth;
   final List<bool> isUpList;
 
   _AmountIndicatorPainter({
@@ -152,8 +152,8 @@ class _AmountIndicatorPainter extends CustomPainter {
 
     double maxAmount = _calcMaxAmount();
     for (int i = klineRng.begin; i < klineRng.end; i++) {
-      final x = i * klineWidth.toDouble();
-      final barWidth = klineInnerWidth.toDouble();
+      final x = i * klineWidth;
+      final barWidth = klineInnerWidth;
       final barHeight = (klines[i].amount / maxAmount) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 

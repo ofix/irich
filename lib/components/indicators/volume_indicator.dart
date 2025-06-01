@@ -15,8 +15,8 @@ class VolumeIndicator extends StatefulWidget {
   final double height;
   final List<UiKline> klines;
   final UiKlineRange klineRange;
-  final int klineWidth;
-  final int klineInnerWidth;
+  final double klineWidth;
+  final double klineInnerWidth;
   final int crossLineIndex;
 
   const VolumeIndicator({
@@ -65,8 +65,8 @@ class _VolumeIndicatorPainter extends CustomPainter {
   final List<UiKline> klines; // 绘制K线
   final UiKlineRange klineRng; // 可视K线范围
   final int crossLineIndex; // 当前光标所在K线位置
-  final int klineWidth; // K线宽度
-  final int klineInnerWidth; // K线内部宽度
+  final double klineWidth; // K线宽度
+  final double klineInnerWidth; // K线内部宽度
   final List<bool> isUpList; // 红绿盘列表
 
   _VolumeIndicatorPainter({
@@ -147,8 +147,8 @@ class _VolumeIndicatorPainter extends CustomPainter {
     BigInt maxVolume = _calcMaxVolume();
 
     for (int i = klineRng.begin; i < klineRng.end; i++) {
-      final x = i * klineWidth.toDouble();
-      final barWidth = klineInnerWidth.toDouble();
+      final x = i * klineWidth;
+      final barWidth = klineInnerWidth;
       final barHeight = (klines[i].volume / maxVolume) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 

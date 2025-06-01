@@ -18,8 +18,8 @@ class KlinePainter extends CustomPainter {
   UiKlineRange klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
   int crossLineIndex; // 十字线位置
-  int klineWidth; // K线宽度
-  int klineInnerWidth; // K线内部宽度
+  double klineWidth; // K线宽度
+  double klineInnerWidth; // K线内部宽度
 
   double minKlinePrice = 0.0; // 可视区域K线最低价
   double maxKlinePrice = 0.0; // 可视区域K线最高价
@@ -150,7 +150,6 @@ class KlinePainter extends CustomPainter {
   }
 
   void _drawDayKlines(Canvas canvas, Size size) {
-    debugPrint("绘制日K线");
     _calcRectMaxPrice(klines, klineRng.begin, klineRng.end);
     _calcRectMinPrice(klines, klineRng.begin, klineRng.end);
 
@@ -158,12 +157,11 @@ class KlinePainter extends CustomPainter {
     final priceRatio = size.height / priceRange;
 
     final maxPrice = maxRectPrice;
-
     // 绘制K线
     int nKline = 0; // 第几根K线
-    for (var i = klineRng.begin; i < klineRng.end; i++) {
+    for (var i = klineRng.begin; i <= klineRng.end; i++) {
       final kline = klines[i];
-      final x = nKline * klineWidth.toDouble();
+      final x = nKline * klineWidth;
       final centerX = x + klineInnerWidth / 2;
 
       // 计算坐标
@@ -186,10 +184,8 @@ class KlinePainter extends CustomPainter {
           Paint()
             ..color = color
             ..strokeWidth = 1;
-      // 绘制日K线上影线
-      canvas.drawLine(Offset(centerX, highY), Offset(centerX, isUp ? closeY : openY), shadowPaint);
-      // 绘制日K线下影线
-      canvas.drawLine(Offset(centerX, isUp ? openY : closeY), Offset(centerX, lowY), shadowPaint);
+      // 绘制日K线中心线
+      canvas.drawLine(Offset(centerX, highY), Offset(centerX, lowY), shadowPaint);
 
       // 绘制日K线实体
       final klinePaint =

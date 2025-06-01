@@ -27,7 +27,6 @@ class _KlineChartState extends State<KlineChart> {
       height: widget.klineState.klineChartHeight,
       color: const Color(0xFF1E1E1E),
       child: CustomPaint(
-        size: Size.infinite,
         painter: KlinePainter(
           klineType: widget.klineState.klineType,
           klines: widget.klineState.klines,
