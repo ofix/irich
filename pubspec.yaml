@@ -49,6 +49,8 @@ dependencies:
   timezone: ^0.10.1
   uuid: ^4.5.1
   flutter_svg: ^2.1.0
+  window_manager: ^0.5.0
+  screen_retriever: ^0.2.0
 
 dev_dependencies:
   flutter_test:

@@ -141,7 +141,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
   @override
   void initState() {
     super.initState();
-    debugPrint("重新构造KlineCtrl ");
     klineState = KlineState(shareCode: widget.shareCode, klineType: KlineType.day);
     klineState.klineWidth = 7;
     klineState.klineInnerWidth = 5;

@@ -16,6 +16,8 @@ import 'package:irich/service/sql_service.dart';
 import 'package:irich/service/trading_calendar.dart';
 import 'package:irich/theme/app_theme.dart';
 import 'package:irich/utils/file_tool.dart';
+import 'package:screen_retriever/screen_retriever.dart';
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
   // 确保WidgetsBinding已初始化
@@ -26,9 +28,36 @@ void main() async {
   await TradingCalendar().initialize();
   // 初始化数据库SQLite
   await initDatabase();
+  // 最大化窗口
+  await maximizeWnd();
   runApp(ProviderScope(child: RichApp()));
   // 注册全局键盘监听回调
   registerGlobalKeyEventListener();
+}
+
+// 启动的时候最大化窗口
+Future<void> maximizeWnd() async {
+  // 初始化窗口管理器
+  await windowManager.ensureInitialized();
+
+  // 设置窗口大小（屏幕的 80%）
+  // 获取主屏幕尺寸
+  final screenSize = await ScreenRetriever.instance.getPrimaryDisplay().then(
+    (display) => display.size,
+  );
+  final windowWidth = screenSize.width * 1;
+  final windowHeight = screenSize.height * 1;
+
+  WindowOptions windowOptions = WindowOptions(
+    size: Size(windowWidth, windowHeight),
+    center: true, // 居中显示
+    title: "东方价值",
+  );
+
+  await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
 }
 
 // 全局键盘事件监听
