@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/router/app_router.dart';
 import 'package:irich/store/store_quote.dart';
 
 class OverlayManager {
@@ -125,7 +126,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
       autofocus: true,
       onKeyEvent: (event) {
         if (event is KeyDownEvent) {
-          _handleKeyDown(event.logicalKey);
+          _handleKeyDown(event.logicalKey, context);
         }
       },
       child: Container(
@@ -146,7 +147,11 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
             constraints: BoxConstraints(maxHeight: 380), // 限制最大高度
             child: Column(
               mainAxisSize: MainAxisSize.min, // 防止垂直无限扩展
-              children: [_buildSearchPanelHeader(), _buildSearchBox(), _buildSearchPanelBody()],
+              children: [
+                _buildSearchPanelHeader(context),
+                _buildSearchBox(context),
+                _buildSearchPanelBody(context),
+              ],
             ),
           ),
         ),
@@ -155,7 +160,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
   }
 
   // 标题栏
-  Widget _buildSearchPanelHeader() {
+  Widget _buildSearchPanelHeader(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -176,7 +181,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
   }
 
   // 搜索框
-  Widget _buildSearchBox() {
+  Widget _buildSearchBox(BuildContext context) {
     // 搜索框
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 添加水平内边距
@@ -211,7 +216,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
   }
 
   // 结果列表
-  Widget _buildSearchPanelBody() {
+  Widget _buildSearchPanelBody(BuildContext context) {
     return Expanded(
       child: SizedBox(
         width: double.infinity, // 关键修复：确保宽度填满
@@ -221,7 +226,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
           itemBuilder: (context, index) {
             final share = _shares[index];
             return GestureDetector(
-              onTap: () => _onShareSelect(share),
+              onTap: () => _onShareSelect(share, context),
               child: Container(
                 color: _selectedIndex == index ? Colors.blue.withOpacity(0.1) : Colors.transparent,
                 child: StockItem(share: share),
@@ -233,7 +238,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
     );
   }
 
-  void _handleKeyDown(LogicalKeyboardKey key) {
+  void _handleKeyDown(LogicalKeyboardKey key, BuildContext context) {
     if (_shares.isEmpty || !_scrollController.hasClients) return;
 
     setState(() {
@@ -247,7 +252,7 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
       }
       // Enter键确认选择
       else if (key == LogicalKeyboardKey.enter && _selectedIndex != -1) {
-        _onShareSelect(_shares[_selectedIndex]);
+        _onShareSelect(_shares[_selectedIndex], context);
       }
     });
   }
@@ -267,8 +272,8 @@ class _ShortcutPanelContentState extends State<_ShortcutPanelContent> {
   }
 
   // 用户需要搜索的股票
-  void _onShareSelect(Share share) {
-    GoRouter.of(context).push('/share/${share.code}');
+  void _onShareSelect(Share share, BuildContext context) {
+    GoRouter.of(rootNavigatorKey.currentContext!).push('/share/${share.code}');
     widget.onDismiss();
   }
 }

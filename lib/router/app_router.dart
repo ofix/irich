@@ -7,6 +7,7 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:irich/pages/discovery/discovery_page.dart';
 import 'package:irich/pages/market/market_page.dart';
@@ -15,9 +16,12 @@ import 'package:irich/pages/favorite/favorite_page.dart';
 import 'package:irich/pages/settings/settings_page.dart';
 import 'package:irich/pages/share/share_page.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 // 禁用GoRouter默认页面切换动画
 final appRouter = GoRouter(
   initialLocation: '/market',
+  navigatorKey: rootNavigatorKey,
   routes: [
     GoRoute(
       path: '/portfolio',
