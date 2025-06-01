@@ -8,6 +8,8 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 // ignore_for_file: avoid_print
+import "dart:convert";
+
 import "package:flutter/material.dart";
 import "package:irich/global/stock.dart";
 import "package:irich/service/api_providers/api_provider.dart";
@@ -74,23 +76,17 @@ class ApiProviderBaidu extends ApiProvider {
     }
   }
 
-  // 分时K线
-  Future<ApiResult> fetchMinuteKline(Map<String, dynamic> params) async {
-    final url = klineUrlFinanceBaiduMinute(params['ShareCode']);
-    try {
-      return await getJson(url);
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  // 五日分时均线数据
-  Future<ApiResult> fetchFiveDayKline(Map<String, dynamic> params) async {
-    final url = klineUrlFinanceBaiduFiveDay(params['ShareCode'], params['ShareCode']);
-    try {
-      return await getJson(url);
-    } catch (e) {
-      rethrow;
+  // 根据请求类型解析响应数据
+  @override
+  dynamic parseResponse(ProviderApiType apiType, dynamic response) {
+    switch (apiType) {
+      case ProviderApiType.dayKline:
+        return parseDayKline(response); // 日K线数据
+      case ProviderApiType.fiveDayKline:
+      case ProviderApiType.minuteKline:
+        return parseMinuteKline(response); // 分时K线数据，5日K线分时数据
+      default:
+        throw UnimplementedError('Unsupported API type: $ProviderApiType');
     }
   }
 
@@ -133,7 +129,98 @@ class ApiProviderBaidu extends ApiProvider {
     }
   }
 
-  // 根据请求类型解析响应数据
-  @override
-  void parseResponse(ProviderApiType apiType, dynamic response) {}
+  // 处理数值转换（Dart 无 stod，用 tryParse 替代）
+  double parseField(String str) => double.tryParse(str) ?? 0.0;
+
+  List<UiKline> parseDayKline(ApiResult result) {
+    final List<UiKline> uiKlines = [];
+    // 解析JSON数据
+    try {
+      final dynamic response = jsonDecode(result.response);
+      final data = response["Result"]["newMarketData"]['marketData'] as String? ?? '';
+
+      if (data.isNotEmpty) {
+        final rows = data.split(';');
+        for (final row in rows) {
+          if (row.isEmpty) continue;
+
+          final fields = row.split(',');
+          if (fields.length < 11) continue;
+
+          final uiKline = UiKline(
+            day: fields[1],
+            priceOpen: parseField(fields[2]),
+            priceClose: parseField(fields[3]),
+            volume: (BigInt.tryParse(fields[4]) ?? BigInt.zero) ~/ BigInt.from(100),
+            priceMax: parseField(fields[5]),
+            priceMin: parseField(fields[6]),
+            amount: parseField(fields[7]),
+            changeAmount: parseField(fields[8]),
+            changeRate: parseField(fields[9]),
+            turnoverRate: parseField(fields[10]),
+          );
+          uiKlines.add(uiKline);
+        }
+      }
+    } catch (e) {
+      print('Error parsing day kline: $e');
+    }
+    return uiKlines;
+  }
+
+  // 分时K线
+  Future<ApiResult> fetchMinuteKline(Map<String, dynamic> params) async {
+    final url = klineUrlFinanceBaiduMinute(params['ShareCode']);
+    try {
+      return await getJson(url);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // 解析分时K线数据
+  List<MinuteKline?> parseMinuteKline(ApiResult result) {
+    final minuteKlines = <MinuteKline>[];
+    // 解析JSON数据
+    final response = jsonDecode(result.response);
+    final days = response['Result']['newMarketData']['marketData'] as List<dynamic>? ?? [];
+    for (final day in days) {
+      final data = day['p'] as String? ?? '';
+      if (data.isEmpty) continue;
+
+      final rows = data.split(';');
+      for (final row in rows) {
+        if (row.isEmpty) continue;
+
+        final fields = row.split(',');
+        if (fields.length < 10) continue;
+
+        final minuteKline = MinuteKline(
+          timestamp: DateTime.parse(fields[1]),
+          time: fields[1],
+          price: parseField(fields[2]),
+          avgPrice: parseField(fields[3]),
+          changeAmount: parseField(fields[4]),
+          changeRate: parseField(fields[5]),
+          volume: (BigInt.tryParse(fields[6]) ?? BigInt.zero),
+          amount: parseField(fields[7]),
+          totalVolume: (BigInt.tryParse(fields[8]) ?? BigInt.zero),
+          totalAmount: parseField(fields[9]),
+        );
+
+        minuteKlines.add(minuteKline);
+      }
+    }
+    return minuteKlines;
+  }
+
+  // 五日分时均线数据
+  Future<ApiResult> fetchFiveDayKline(Map<String, dynamic> params) async {
+    final url = klineUrlFinanceBaiduFiveDay(params['ShareCode'], params['ShareCode']);
+    try {
+      return await getJson(url);
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
