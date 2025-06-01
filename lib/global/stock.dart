@@ -76,11 +76,8 @@ enum KlineType {
   month, // 月K线
   quarter, // 季度K线
   year, // 年K线
-  all, // 以上所有K线
-}
+  all; // 以上所有K线
 
-// 在KlineType枚举中添加扩展方法
-extension KlineTypeExtension on KlineType {
   bool get isMinuteType => this == KlineType.minute || this == KlineType.fiveDay;
 }
 
@@ -409,8 +406,7 @@ enum UiIndicatorType {
 class UiIndicator {
   UiIndicatorType type; // 技术指标类别
   bool visible; // 是否显示
-  int height; // 指标的高度
-  UiIndicator({required this.type, this.visible = false, this.height = 200});
+  UiIndicator({required this.type, this.visible = true});
 }
 
 // K线数据

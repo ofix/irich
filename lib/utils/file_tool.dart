@@ -70,8 +70,25 @@ class FileTool {
   }
 
   static Future<bool> isFileExist(String path) async {
-    final file = File(path);
-    return await file.exists(); // 返回布尔值
+    try {
+      // 1. 基础校验
+      if (path.trim().isEmpty) return false;
+      // 2. 标准化路径（处理./、../等）
+      final normalizedPath = p.normalize(path);
+      debugPrint(normalizedPath);
+      // 3. 直接检查目标路径（不检查父目录）
+      final result = await FileSystemEntity.type(normalizedPath).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('路径检查超时: $normalizedPath');
+          return FileSystemEntityType.notFound; // 关键修复：返回枚举而非bool
+        },
+      );
+      return result != FileSystemEntityType.notFound;
+    } catch (e) {
+      debugPrint(e.toString());
+      return false;
+    }
   }
 
   /// Loads entire file into memory as a String
@@ -181,7 +198,7 @@ class FileTool {
   }
 
   /// 检查每周需要更新的本地数据文件是否过期
-  static Future<bool> isWeekFileExpired(String filePath, {int days = 5}) async {
+  static Future<bool> isWeekFileExpired(String filePath, {int days = 100}) async {
     // 获取本地行情数据文件修改时间
     final file = File(filePath);
     final stat = await file.stat();
