@@ -18,8 +18,8 @@ class KlinePainter extends CustomPainter {
   UiKlineRange klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
   int crossLineIndex; // 十字线位置
-  double klineWidth; // K线宽度
-  double klineInnerWidth; // K线内部宽度
+  int klineWidth; // K线宽度
+  int klineInnerWidth; // K线内部宽度
 
   double minKlinePrice = 0.0; // 可视区域K线最低价
   double maxKlinePrice = 0.0; // 可视区域K线最高价
@@ -41,6 +41,11 @@ class KlinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (!klineType.isMinuteType) {
+      if (klines.isEmpty) {
+        return;
+      }
+    }
     // 绘制背景
     _drawBackground(canvas, size);
 
@@ -145,7 +150,7 @@ class KlinePainter extends CustomPainter {
   }
 
   void _drawDayKlines(Canvas canvas, Size size) {
-    if (klines.isEmpty) return;
+    debugPrint("绘制日K线");
     _calcRectMaxPrice(klines, klineRng.begin, klineRng.end);
     _calcRectMinPrice(klines, klineRng.begin, klineRng.end);
 
@@ -155,9 +160,10 @@ class KlinePainter extends CustomPainter {
     final maxPrice = maxRectPrice;
 
     // 绘制K线
+    int nKline = 0; // 第几根K线
     for (var i = klineRng.begin; i < klineRng.end; i++) {
       final kline = klines[i];
-      final x = i * klineWidth;
+      final x = nKline * klineWidth.toDouble();
       final centerX = x + klineInnerWidth / 2;
 
       // 计算坐标
@@ -195,23 +201,23 @@ class KlinePainter extends CustomPainter {
         Rect.fromLTRB(x, isUp ? closeY : openY, x + klineInnerWidth, isUp ? openY : closeY),
         klinePaint,
       );
+      nKline++;
     }
 
     // 绘制EMA曲线
     for (final ema in emaCurves) {
       if (ema.visible) {
-        _drawEmaCurve(canvas, ema, size, maxPrice, priceRatio);
+        _drawEmaCurve(canvas, ema, maxPrice, priceRatio);
       }
     }
   }
 
-  void _drawEmaCurve(
-    Canvas canvas,
-    ShareEmaCurve ema,
-    Size size,
-    double maxPrice,
-    double priceRatio,
-  ) {
+  /// 绘制EMA曲线
+  /// [canvas] 画布
+  /// [ema] EMA曲线数据
+  /// [maxPrice] 最大价格
+  /// [priceRatio] 价格比例
+  void _drawEmaCurve(Canvas canvas, ShareEmaCurve ema, double maxPrice, double priceRatio) {
     // 少于2条K线数据无法绘制EMA曲线
     if (klines.length <= 2) return;
     final path = Path();
@@ -220,8 +226,9 @@ class KlinePainter extends CustomPainter {
           ..color = ema.color
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
+    int nKline = 0;
     for (int i = klineRng.begin; i <= klineRng.end; i++) {
-      final x = i * klineWidth;
+      final x = nKline * klineWidth.toDouble();
       final y = (maxPrice - ema.emaPrice[i]) * priceRatio;
 
       if (i == klineRng.begin) {
@@ -229,6 +236,7 @@ class KlinePainter extends CustomPainter {
       } else {
         path.lineTo(x, y);
       }
+      nKline++;
     }
     canvas.drawPath(path, paint);
   }

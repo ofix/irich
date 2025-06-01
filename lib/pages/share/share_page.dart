@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:irich/components/desktop_layout.dart';
-import 'package:irich/global/stock.dart';
 import 'package:irich/pages/share/share_left_panel.dart';
 import 'package:irich/pages/share/share_right_panel.dart';
-import 'package:irich/store/store_quote.dart';
 
 // 个股面板，左侧（自选股+市场个股），右侧日/周/月K线图
 class SharePage extends StatefulWidget {
@@ -16,9 +14,11 @@ class SharePage extends StatefulWidget {
 }
 
 class SharePageState extends State<SharePage> {
+  late String currentShareCode;
   @override
   void initState() {
     super.initState();
+    currentShareCode = widget.shareCode;
   }
 
   @override
@@ -27,14 +27,23 @@ class SharePageState extends State<SharePage> {
   }
 
   @override
+  void didUpdateWidget(SharePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.shareCode != widget.shareCode) {
+      setState(() {
+        currentShareCode = widget.shareCode;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    Share? share = StoreQuote.query(widget.shareCode);
     return DesktopLayout(
       child: Row(
         children: [
           ShareLeftPanel(),
           VerticalDivider(width: 1),
-          ShareRightPanel(currentShare: share),
+          ShareRightPanel(shareCode: currentShareCode),
         ],
       ),
     );

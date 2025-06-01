@@ -11,11 +11,12 @@ import 'package:flutter/material.dart';
 import 'package:irich/global/stock.dart';
 
 class AmountIndicator extends StatefulWidget {
+  final double width;
   final double height;
   final List<UiKline> klines;
   final UiKlineRange klineRange;
-  final double klineWidth;
-  final double klineInnerWidth;
+  final int klineWidth;
+  final int klineInnerWidth;
   final int crossLineIndex;
   const AmountIndicator({
     super.key,
@@ -24,7 +25,8 @@ class AmountIndicator extends StatefulWidget {
     required this.klineWidth,
     required this.klineInnerWidth,
     required this.crossLineIndex,
-    this.height = 100,
+    required this.width,
+    required this.height,
   });
   @override
   State<AmountIndicator> createState() => _AmountIndicatorState();
@@ -40,12 +42,12 @@ class _AmountIndicatorState extends State<AmountIndicator> {
     }
 
     return SizedBox(
+      width: widget.width,
       height: widget.height,
       child: CustomPaint(
         painter: _AmountIndicatorPainter(
           klines: widget.klines,
           klineRng: widget.klineRange,
-
           klineWidth: widget.klineWidth,
           klineInnerWidth: widget.klineInnerWidth,
           crossLineIndex: widget.crossLineIndex,
@@ -68,8 +70,8 @@ class _AmountIndicatorPainter extends CustomPainter {
   final List<UiKline> klines;
   final UiKlineRange klineRng;
   final int crossLineIndex;
-  final double klineWidth;
-  final double klineInnerWidth;
+  final int klineWidth;
+  final int klineInnerWidth;
   final List<bool> isUpList;
 
   _AmountIndicatorPainter({
@@ -150,8 +152,8 @@ class _AmountIndicatorPainter extends CustomPainter {
 
     double maxAmount = _calcMaxAmount();
     for (int i = klineRng.begin; i < klineRng.end; i++) {
-      final x = i * klineWidth;
-      final barWidth = klineInnerWidth;
+      final x = i * klineWidth.toDouble();
+      final barWidth = klineInnerWidth.toDouble();
       final barHeight = (klines[i].amount / maxAmount) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 

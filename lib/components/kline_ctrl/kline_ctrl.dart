@@ -17,43 +17,52 @@ import 'package:irich/components/indicators/turnoverrate_indicator.dart';
 import 'package:irich/components/indicators/volume_indicator.dart';
 import 'package:irich/components/kline_ctrl/kline_chart.dart';
 import 'package:irich/components/text_radio_button_group.dart';
+import 'package:irich/formula/formula_ema.dart';
 import 'package:irich/store/store_klines.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/utils/rich_result.dart';
 
 class KlineState {
   String shareCode; // 股票代码
-  KlineType type = KlineType.day; // 当前绘制的K线类型
-  late List<UiKline> klines; // 前复权日K线数据
-  late List<MinuteKline> minuteKlines; // 分时K线数据
-  late UiKlineRange klineRng; // 可视K线范围
-  late List<ShareEmaCurve> emaCurves; // EMA曲线数据
-  late List<List<UiIndicator>> indicators; // 0:日/周/月/季/年K线技术指标列表,1:分时图技术指标列表,2:五日分时图技术指标列表
-  late int visibleIndicatorIndex; // 需要显示的技术指标索引
-  late int crossLineIndex; // 十字线位置
-  late double klineWidth; // K线宽度
-  late double klineInnerWidth; // K线内部宽度
-  late int visibleKlineCount; // 可视区域K线数量
+  KlineType klineType = KlineType.day; // 当前绘制的K线类型
+  List<UiKline> klines; // 前复权日K线数据
+  List<MinuteKline> minuteKlines; // 分时K线数据
+  UiKlineRange? klineRng; // 可视K线范围
+  List<ShareEmaCurve> emaCurves; // EMA曲线数据
+  List<List<UiIndicator>> indicators; // 0:日/周/月/季/年K线技术指标列表,1:分时图技术指标列表,2:五日分时图技术指标列表
+  int crossLineIndex; // 十字线位置
+  int klineWidth; // K线宽度
+  int klineInnerWidth; // K线内部宽度
+  int visibleKlineCount; // 可视区域K线数量
+  double width; // K线图宽度
+  double klineChartHeight; // K线图高度
+  double indicatorChartHeight; // 指标附图高度
 
   KlineState({
     required this.shareCode,
-    required this.type,
-    required this.klines,
-    required this.minuteKlines,
-    required this.klineRng,
-    required this.emaCurves,
-    required this.indicators,
-    required this.visibleIndicatorIndex,
-    required this.crossLineIndex,
-    required this.klineWidth,
-    required this.klineInnerWidth,
-    required this.visibleKlineCount,
-  });
+    required this.klineType,
+    List<UiKline>? klines,
+    List<MinuteKline>? minuteKlines,
+    List<ShareEmaCurve>? emaCurves,
+    List<List<UiIndicator>>? indicators,
+    UiKlineRange? klineRng,
+    this.crossLineIndex = -1,
+    this.klineWidth = 7,
+    this.klineInnerWidth = 5,
+    this.visibleKlineCount = 120,
+    this.width = 800,
+    this.klineChartHeight = 600,
+    this.indicatorChartHeight = 80,
+  }) : klines = klines ?? [], // 使用const空列表避免共享引用
+       minuteKlines = minuteKlines ?? [],
+       klineRng = klineRng ?? UiKlineRange(begin: 0, end: 0),
+       emaCurves = emaCurves ?? [],
+       indicators = indicators ?? [];
 
   // 深拷贝方法（可选）
   KlineState copyWith({
     String? shareCode,
-    KlineType? type,
+    KlineType? klineType,
     List<UiKline>? klines,
     List<MinuteKline>? minuteKlines,
     List<MinuteKline>? fiveDayMinuteKlines,
@@ -62,37 +71,42 @@ class KlineState {
     List<List<UiIndicator>>? indicators,
     int? visibleIndicatorIndex,
     int? crossLineIndex,
-    double? klineWidth,
-    double? klineInnerWidth,
+    int? klineWidth,
+    int? klineInnerWidth,
     int? visibleKlineCount,
+    double? width,
+    double? klineChartHeight,
+    double? indicatorChartHeight,
   }) {
     return KlineState(
       shareCode: shareCode ?? this.shareCode,
-      type: type ?? this.type,
+      klineType: klineType ?? this.klineType,
       klines: klines ?? this.klines,
       minuteKlines: minuteKlines ?? this.minuteKlines,
       klineRng: klineRng ?? this.klineRng,
       emaCurves: emaCurves ?? this.emaCurves,
       indicators: indicators ?? this.indicators,
-      visibleIndicatorIndex: visibleIndicatorIndex ?? this.visibleIndicatorIndex,
       crossLineIndex: crossLineIndex ?? this.crossLineIndex,
       klineWidth: klineWidth ?? this.klineWidth,
       klineInnerWidth: klineInnerWidth ?? this.klineInnerWidth,
       visibleKlineCount: visibleKlineCount ?? this.visibleKlineCount,
+      width: width ?? this.width,
+      klineChartHeight: klineChartHeight ?? this.klineChartHeight,
+      indicatorChartHeight: indicatorChartHeight ?? this.indicatorChartHeight,
     );
   }
 }
 
 class KlineCtrl extends StatefulWidget {
-  const KlineCtrl({super.key});
+  final String shareCode;
+  const KlineCtrl({super.key, required this.shareCode});
   @override
   State<KlineCtrl> createState() => _KlineCtrlState();
 }
 
 class _KlineCtrlState extends State<KlineCtrl> {
-  int activeKlineType = 1;
   late KlineState klineState;
-  final FocusNode _focusNode = FocusNode();
+  late final FocusNode _focusNode;
 
   // K线类型
   static const Map<String, KlineType> klineTypeMap = {
@@ -114,42 +128,82 @@ class _KlineCtrlState extends State<KlineCtrl> {
     'EMA255': 255,
     'EMA905': 905,
   };
-  // 日/周/月/季/年K线的技术指标附图
-  static const Map<String, UiIndicatorType> indicatorKline = {
-    "成交量": UiIndicatorType.volume,
-    "成交额": UiIndicatorType.amount,
-    "换手率": UiIndicatorType.turnoverRate,
+
+  // 指标附图高度动态比例(最多4个指标附图)
+  static const Map<int, double> chartHeightMap = {
+    0: 1, // K线主图+0个指标附图
+    1: 0.8, // K线主图+1个指标附图
+    2: 0.7, // K线主图+2个指标附图
+    3: 0.6, // K线主图+3个指标附图
+    4: 0.5, // K线主图+4个指标附图
   };
-  // 分时图技术指标附图
-  static const Map<String, UiIndicatorType> indicatorMinute = {
-    "分时成交量": UiIndicatorType.minuteVolume,
-    "分时成交额": UiIndicatorType.minuteAmount,
-  };
-  // 五日分时图技术指标附图
-  static const Map<String, UiIndicatorType> indicatorFiveDay = {
-    "五日分时成交量": UiIndicatorType.fiveDayMinuteVolume,
-    "五日分时成交额": UiIndicatorType.fiveDayMinuteAmount,
-  };
-  // 获取当前页面显示的技术指标附图
-  Map<String, UiIndicatorType> getIndicators(KlineType klineType) {
-    if (klineType == KlineType.day ||
-        klineType == KlineType.week ||
-        klineType == KlineType.month ||
-        klineType == KlineType.quarter ||
-        klineType == KlineType.year) {
-      return indicatorKline;
-    } else if (klineType == KlineType.minute) {
-      return indicatorMinute;
-    } else {
-      return indicatorFiveDay;
-    }
-  }
 
   @override
-  void initState() async {
+  void initState() {
     super.initState();
-    await loadKlines();
+    debugPrint("重新构造KlineCtrl ");
+    klineState = KlineState(shareCode: widget.shareCode, klineType: KlineType.day);
+    klineState.klineWidth = 7;
+    klineState.klineInnerWidth = 5;
+    _focusNode = FocusNode();
     _focusNode.requestFocus();
+    loadKlines(); // 加载K线数据
+  }
+
+  // 初始化附图指标，有可能需要从文件中加载
+  void initIndicators() {
+    klineState.indicators = [
+      [
+        UiIndicator(type: UiIndicatorType.amount),
+        UiIndicator(type: UiIndicatorType.volume),
+        UiIndicator(type: UiIndicatorType.turnoverRate),
+      ],
+      [
+        UiIndicator(type: UiIndicatorType.minuteAmount),
+        UiIndicator(type: UiIndicatorType.minuteVolume),
+      ],
+      [
+        UiIndicator(type: UiIndicatorType.fiveDayMinuteAmount),
+        UiIndicator(type: UiIndicatorType.fiveDayMinuteVolume),
+      ],
+    ];
+  }
+
+  // 加载K线数据
+  Future<void> loadKlines() async {
+    try {
+      debugPrint("加载日K线数据！");
+      final store = StoreKlines();
+      final result = await _queryKlines(store, klineState.shareCode, klineState.klineType);
+      if (!result.ok()) {
+        debugPrint("日K线加载失败! ${result.desc}");
+        return;
+      }
+
+      klineState.emaCurves.clear();
+      // 添加 EMA 曲线的时候会自动计算相关数据
+      KlineType klineType = klineState.klineType;
+      if (klineType == KlineType.day ||
+          klineType == KlineType.week ||
+          klineType == KlineType.month ||
+          klineType == KlineType.quarter ||
+          klineType == KlineType.year) {
+        addEmaCurve(10, Color.fromARGB(255, 255, 255, 255));
+        addEmaCurve(20, Color.fromARGB(255, 239, 72, 111));
+        addEmaCurve(30, Color.fromARGB(255, 255, 159, 26));
+        addEmaCurve(60, Color.fromARGB(255, 201, 243, 240));
+        addEmaCurve(99, Color.fromARGB(255, 255, 0, 255));
+        addEmaCurve(255, Color.fromARGB(255, 255, 255, 0));
+        addEmaCurve(905, Color.fromARGB(255, 0, 255, 0));
+      }
+      initIndicators(); // 初始化附图指标
+      debugPrint("K线数据加载完成");
+      setState(() {});
+    } catch (e, stackTrace) {
+      debugPrint(e.toString());
+      debugPrint(stackTrace.toString());
+      logError('Failed to load klines', error: e, stackTrace: stackTrace);
+    }
   }
 
   @override
@@ -160,6 +214,9 @@ class _KlineCtrlState extends State<KlineCtrl> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    setSize(size); // 计算K线图宽高,当前显示的K线图范围
+    debugPrint("setSize: ${size.width},${size.height}");
     return KeyboardListener(
       focusNode: _focusNode,
       onKeyEvent: _handleKeyEvent,
@@ -170,24 +227,16 @@ class _KlineCtrlState extends State<KlineCtrl> {
           onTapDown: _handleTapDown,
           child: Transform.scale(
             scale: 1.0,
-            child: Row(
+            child: Column(
               children: [
-                // K线分组
-                TextRadioButtonGroup(
-                  options: ["日K", "周K", "月K", "季K", "年K", "分时", "五日"],
-                  onChanged: (value) {
-                    _onKlineTypeChanged(value);
-                  },
-                ),
+                // K线类型切换
+                _buildKlineTypeTabs(),
                 // EMA加权平均线
-                SizedBox(
-                  height: 20,
-                  child: Column(children: _buildEmaCurveButtons(context, emaCurveMap)),
-                ),
+                _buildEmaCurveButtons(context, emaCurveMap),
                 // K线主图
-                KlineChart(shareCode: klineState.shareCode),
+                KlineChart(klineState: klineState),
                 // 技术指标图
-                ..._buildIndicators(context, klineState, getIndicators(klineState.type)),
+                // ..._buildIndicators(context, klineState),
               ],
             ),
           ),
@@ -196,16 +245,140 @@ class _KlineCtrlState extends State<KlineCtrl> {
     );
   }
 
-  // 加载K线数据
-  Future<bool> loadKlines() async {
-    try {
-      final store = StoreKlines();
-      final result = await _queryKlines(store, klineState.shareCode, klineState.type);
-      return result.ok();
-    } catch (e) {
-      logError('Failed to load klines', error: e, stackTrace: StackTrace.current);
-      return false;
+  Widget _buildKlineTypeTabs() {
+    return TextRadioButtonGroup(
+      options: ["日K", "周K", "月K", "季K", "年K", "分时", "五日"],
+      onChanged: (value) {
+        _onKlineTypeChanged(value);
+      },
+    );
+  }
+
+  // 绘制EMA曲线按钮组
+  Widget _buildEmaCurveButtons(BuildContext context, Map<String, int> emaCurveMap) {
+    List<Widget> widgets = [];
+    for (final entry in emaCurveMap.entries) {
+      Color emaColor = _getEmaColor(entry.value);
+      TextButton button = TextButton(
+        style: TextButton.styleFrom(foregroundColor: emaColor),
+        onPressed: () => {},
+        child: Text(entry.key),
+      );
+      widgets.add(button);
     }
+
+    return Row(children: widgets);
+  }
+
+  // 获取EMA曲线颜色
+  Color _getEmaColor(int period) {
+    return switch (period) {
+      5 => Colors.white,
+      10 => const Color.fromARGB(255, 236, 9, 202),
+      20 => const Color.fromARGB(255, 72, 105, 239),
+      30 => const Color(0xFFFF9F1A),
+      60 => const Color.fromARGB(255, 11, 180, 218),
+      255 => const Color.fromARGB(255, 245, 16, 16),
+      905 => const Color.fromARGB(255, 7, 131, 75),
+      _ => Colors.purple,
+    };
+  }
+
+  // 绘制技术指标附图
+  List<Widget> _buildIndicators(BuildContext context, KlineState klienState) {
+    final klineType = klineState.klineType;
+    final indicators = klineState.indicators;
+    if (indicators.isEmpty) {
+      return [];
+    }
+    List<Widget> widgets = [];
+    List<UiIndicator> currentIndicators = [];
+    if (klineType == KlineType.day ||
+        klineType == KlineType.week ||
+        klineType == KlineType.month ||
+        klineType == KlineType.quarter ||
+        klineType == KlineType.year) {
+      currentIndicators = indicators[0];
+    } else if (klineType == KlineType.minute) {
+      currentIndicators = indicators[1];
+    } else if (klineType == KlineType.fiveDay) {
+      currentIndicators = indicators[2];
+    }
+
+    for (int i = 0; i < currentIndicators.length; i++) {
+      final type = currentIndicators[i].type;
+      if (type == UiIndicatorType.amount) {
+        widgets.add(
+          AmountIndicator(
+            klines: klineState.klines,
+            klineRange: klineState.klineRng!,
+            klineWidth: klineState.klineWidth,
+            klineInnerWidth: klineState.klineInnerWidth,
+            crossLineIndex: klineState.crossLineIndex,
+            width: klineState.width,
+            height: klineState.indicatorChartHeight,
+          ),
+        );
+      } else if (type == UiIndicatorType.volume) {
+        widgets.add(
+          VolumeIndicator(
+            klines: klineState.klines,
+            klineRange: klineState.klineRng!,
+            klineWidth: klineState.klineWidth,
+            klineInnerWidth: klineState.klineInnerWidth,
+            crossLineIndex: klineState.crossLineIndex,
+            width: klineState.width,
+            height: klineState.indicatorChartHeight,
+          ),
+        );
+      } else if (type == UiIndicatorType.turnoverRate) {
+        widgets.add(
+          TurnoverRateIndicator(
+            klines: klineState.klines,
+            klineRange: klineState.klineRng!,
+            klineWidth: klineState.klineWidth,
+            klineInnerWidth: klineState.klineInnerWidth,
+            crossLineIndex: klineState.crossLineIndex,
+            width: klineState.width,
+            height: klineState.indicatorChartHeight,
+          ),
+        );
+      } else if (type == UiIndicatorType.minuteAmount ||
+          type == UiIndicatorType.fiveDayMinuteAmount) {
+        widgets.add(
+          MinuteAmountIndicator(
+            minuteKlines: klineState.minuteKlines,
+            klineType: klineState.klineType,
+            crossLineIndex: klineState.crossLineIndex,
+          ),
+        );
+      } else if (type == UiIndicatorType.minuteVolume ||
+          type == UiIndicatorType.fiveDayMinuteVolume) {
+        widgets.add(
+          MinuteVolumeIndicator(
+            minuteKlines: klineState.minuteKlines,
+            klineType: klineState.klineType,
+            crossLineIndex: klineState.crossLineIndex,
+          ),
+        );
+      }
+    }
+    return widgets;
+  }
+
+  void setSize(Size size) {
+    double ratio = 1;
+    if (klineState.indicators.length <= 4) {
+      ratio = chartHeightMap[klineState.indicators.length]!;
+    }
+    double height = size.height - 103;
+
+    klineState.width = size.width;
+    klineState.klineChartHeight = height * ratio;
+    klineState.indicatorChartHeight =
+        klineState.indicators.isEmpty ? 0 : height * (1 - ratio) / klineState.indicators.length;
+
+    calcVisibleKlineWidth(size);
   }
 
   Future<RichResult> _queryKlines(StoreKlines store, String stockCode, KlineType type) async {
@@ -221,12 +394,12 @@ class _KlineCtrlState extends State<KlineCtrl> {
     };
   }
 
-  List<dynamic> _getKlinesListForType(KlineType type) {
-    return type.isMinuteType ? klineState.minuteKlines : klineState.klines;
+  List<dynamic> _getKlinesListForType(KlineType klineType) {
+    return klineType.isMinuteType ? klineState.minuteKlines : klineState.klines;
   }
 
   void _onKlineTypeChanged(String value) async {
-    klineState.type = klineTypeMap[value]!;
+    klineState.klineType = klineTypeMap[value]!;
     await loadKlines();
     setState(() {});
   }
@@ -249,7 +422,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     final RenderBox box = context.findRenderObject() as RenderBox;
     final localPosition = box.globalToLocal(details.globalPosition);
     // 计算点击的K线索引
-    final index = (localPosition.dx / klineState.klineWidth).floor();
+    final index = (localPosition.dx / klineState.klineWidth!).floor();
     klineState.crossLineIndex = index;
     setState(() {});
   }
@@ -296,111 +469,112 @@ class _KlineCtrlState extends State<KlineCtrl> {
     }
   }
 
-  // 绘制EMA曲线按钮组
-  List<Widget> _buildEmaCurveButtons(BuildContext context, emaCurveMap) {
-    List<Widget> widgets = [];
-    for (final ema in emaCurveMap) {
-      Color emaColor = _getEmaColor(ema.value);
-      TextButton button = TextButton(
-        style: TextButton.styleFrom(foregroundColor: emaColor),
-        onPressed: () => {},
-        child: Text(ema.key),
-      );
-      widgets.add(button);
+  // 添加技术指标
+  void addIndicator(UiIndicator indicator, int i) {
+    klineState.indicators[i].add(indicator);
+  }
+
+  // 添加EMA曲线
+  bool addEmaCurve(int period, Color color) {
+    if (klineState.emaCurves.length >= 8) {
+      // 一个界面最多显示8条EMA平滑移动价格曲线
+      return false;
     }
 
-    return widgets;
+    ShareEmaCurve curve = ShareEmaCurve(color: color, period: period, visible: true, emaPrice: []);
+    curve.emaPrice = FormulaEma.calculateEma(klineState.klines, period);
+    klineState.emaCurves.add(curve);
+    // 刷新
+    return true;
   }
 
-  // 获取EMA曲线颜色
-  Color _getEmaColor(int period) {
-    return switch (period) {
-      5 => Colors.white,
-      10 => const Color.fromARGB(255, 236, 9, 202),
-      20 => const Color.fromARGB(255, 72, 105, 239),
-      30 => const Color(0xFFFF9F1A),
-      60 => const Color.fromARGB(255, 11, 180, 218),
-      255 => const Color.fromARGB(255, 245, 16, 16),
-      905 => const Color.fromARGB(255, 7, 131, 75),
-      _ => Colors.purple,
-    };
+  // 移除所有匹配指定周期的曲线
+  bool removeEmaCurve(int period) {
+    final originalLength = klineState.emaCurves.length;
+    klineState.emaCurves.removeWhere((curve) => curve.period == period);
+    return klineState.emaCurves.length != originalLength;
   }
 
-  // 绘制技术指标附图
-  List<Widget> _buildIndicators(
-    BuildContext context,
-    KlineState klineState,
-    Map<String, UiIndicatorType> indicatorMap,
-  ) {
-    List<Widget> widgets = [];
-    for (final indicator in indicatorMap.entries) {
-      if (indicator.value == UiIndicatorType.amount) {
-        widgets.add(
-          AmountIndicator(
-            klines: klineState.klines,
-            klineRange: klineState.klineRng,
-            klineWidth: klineState.klineWidth,
-            klineInnerWidth: klineState.klineInnerWidth,
-            crossLineIndex: klineState.crossLineIndex,
-            height: 100,
-          ),
-        );
-      } else if (indicator.value == UiIndicatorType.volume) {
-        widgets.add(
-          VolumeIndicator(
-            klines: klineState.klines,
-            klineRange: klineState.klineRng,
-            klineWidth: klineState.klineWidth,
-            klineInnerWidth: klineState.klineInnerWidth,
-            crossLineIndex: klineState.crossLineIndex,
-            height: 100,
-          ),
-        );
-      } else if (indicator.value == UiIndicatorType.turnoverRate) {
-        widgets.add(
-          TurnoverRateIndicator(
-            klines: klineState.klines,
-            klineRange: klineState.klineRng,
-            klineWidth: klineState.klineWidth,
-            klineInnerWidth: klineState.klineInnerWidth,
-            crossLineIndex: klineState.crossLineIndex,
-            height: 100,
-          ),
-        );
-      } else if (indicator.value == UiIndicatorType.minuteAmount) {
-        widgets.add(
-          MinuteAmountIndicator(
-            minuteKlines: klineState.minuteKlines,
-            klineType: klineState.type,
-            crossLineIndex: klineState.crossLineIndex,
-          ),
-        );
-      } else if (indicator.value == UiIndicatorType.minuteVolume) {
-        widgets.add(
-          MinuteVolumeIndicator(
-            minuteKlines: klineState.minuteKlines,
-            klineType: klineState.type,
-            crossLineIndex: klineState.crossLineIndex,
-          ),
-        );
-      } else if (indicator.value == UiIndicatorType.fiveDayMinuteAmount) {
-        widgets.add(
-          MinuteAmountIndicator(
-            minuteKlines: klineState.minuteKlines,
-            klineType: klineState.type,
-            crossLineIndex: klineState.crossLineIndex,
-          ),
-        );
-      } else if (indicator.value == UiIndicatorType.fiveDayMinuteVolume) {
-        widgets.add(
-          MinuteVolumeIndicator(
-            minuteKlines: klineState.minuteKlines,
-            klineType: klineState.type,
-            crossLineIndex: klineState.crossLineIndex,
-          ),
-        );
+  // 处理放大逻辑
+  void zoomIn(Size size) {
+    int crossLineIndex = klineState.crossLineIndex;
+    UiKlineRange klineRng = klineState.klineRng!;
+    if (crossLineIndex == -1) {
+      klineState.crossLineIndex = klineState.klines.length - 1; // 放大中心为最右边K线
+    }
+    // 可见K线数量少于8，不再放大
+    if (klineRng.end <= klineRng.begin + 8) {
+      return;
+    }
+
+    // 计算放大中心两边的K线数量
+    int leftKlineCount = crossLineIndex - klineRng.begin;
+    int rightKlineCount = klineRng.end - crossLineIndex;
+    // 取中心点左右两侧K线较多的一边进行延展，保住中心的地位
+    int count = leftKlineCount > rightKlineCount ? leftKlineCount : rightKlineCount;
+    klineRng.begin = crossLineIndex - count ~/ 2;
+    klineRng.end = crossLineIndex + count ~/ 2;
+
+    if (klineRng.begin > klineRng.end) {
+      klineRng.begin = klineRng.end - 8;
+    }
+    // 边界处理
+    if (klineRng.begin < 0) {
+      klineRng.begin = 0;
+    }
+    if (klineRng.end > klineState.klines.length - 1) {
+      klineRng.end = klineState.klines.length - 1;
+    }
+    klineState = klineState.copyWith(
+      klineRng: klineRng,
+      visibleKlineCount: klineRng.end - klineRng.begin + 1,
+    );
+    calcVisibleKlineWidth(size);
+    setState(() {});
+  }
+
+  // 计算可视范围K线自适应宽度
+  void calcVisibleKlineWidth(Size size) {
+    if (klineState.klines.isEmpty) {
+      return;
+    }
+    List<UiKline> klines = klineState.klines;
+    debugPrint("width: ${size.width}, height:${size.height}");
+    debugPrint("klines count : ${klines.length}");
+    int klineWidth;
+    int klineInnerWidth;
+    if (klines.length < 20) {
+      klineWidth = 10;
+      klineState.visibleKlineCount = klines.length;
+      klineInnerWidth = 7;
+    } else {
+      klineWidth = (size.width / klineState.visibleKlineCount).ceil();
+      klineInnerWidth = (klineWidth * 0.8).ceil();
+      if (klineWidth > 1 && klineInnerWidth % 2 == 0) {
+        klineInnerWidth = klineInnerWidth;
+        klineInnerWidth -= 1;
+        if (klineInnerWidth < 1) {
+          klineInnerWidth = 1;
+        }
       }
     }
-    return widgets;
+    klineState.klineWidth = klineWidth;
+
+    // 根据K线宽度计算起始坐标和放大坐标
+    UiKlineRange klineRng = UiKlineRange(begin: 0, end: 0);
+    klineRng.begin = klines.length - klineState.visibleKlineCount;
+    klineRng.end = klines.length - 1;
+    if (klineRng.begin < 0) {
+      klineRng.begin = 0;
+    }
+    klineState.klineRng = klineRng;
+  }
+
+  // 实现缩小逻辑
+  void zoomOut() {}
+
+  // 处理十字线移动
+  void moveCrossLine(int index) {
+    // state = copyWith(crossLineIndex: index);
   }
 }

@@ -11,11 +11,12 @@ import 'package:flutter/material.dart';
 import 'package:irich/global/stock.dart';
 
 class VolumeIndicator extends StatefulWidget {
+  final double width;
   final double height;
   final List<UiKline> klines;
   final UiKlineRange klineRange;
-  final double klineWidth;
-  final double klineInnerWidth;
+  final int klineWidth;
+  final int klineInnerWidth;
   final int crossLineIndex;
 
   const VolumeIndicator({
@@ -25,7 +26,8 @@ class VolumeIndicator extends StatefulWidget {
     required this.klineWidth,
     required this.klineInnerWidth,
     required this.crossLineIndex,
-    this.height = 100,
+    required this.width,
+    required this.height,
   });
   @override
   State<VolumeIndicator> createState() => _VolumeIndicatorState();
@@ -35,10 +37,11 @@ class _VolumeIndicatorState extends State<VolumeIndicator> {
   @override
   Widget build(BuildContext context) {
     if (widget.klines.isEmpty) {
-      return SizedBox(height: widget.height);
+      return SizedBox(width: widget.width, height: widget.height);
     }
 
     return SizedBox(
+      width: widget.width,
       height: widget.height,
       child: CustomPaint(
         painter: _VolumeIndicatorPainter(
@@ -62,8 +65,8 @@ class _VolumeIndicatorPainter extends CustomPainter {
   final List<UiKline> klines; // 绘制K线
   final UiKlineRange klineRng; // 可视K线范围
   final int crossLineIndex; // 当前光标所在K线位置
-  final double klineWidth; // K线宽度
-  final double klineInnerWidth; // K线内部宽度
+  final int klineWidth; // K线宽度
+  final int klineInnerWidth; // K线内部宽度
   final List<bool> isUpList; // 红绿盘列表
 
   _VolumeIndicatorPainter({
@@ -109,7 +112,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
     // 绘制昨日成交量
     final yesterdayText = TextPainter(
       text: TextSpan(
-        text: '昨: ${_formatVolume(klines.isNotEmpty ? klines[0].volume as double : 0)}',
+        text: '昨: ${_formatVolume(klines.isNotEmpty ? klines[0].volume.toDouble() : 0)}',
         style: textStyle.copyWith(color: Colors.grey),
       ),
       textDirection: TextDirection.ltr,
@@ -119,7 +122,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
     // 绘制今日成交量
     final todayText = TextPainter(
       text: TextSpan(
-        text: '今: ${_formatVolume(klines.isNotEmpty ? klines.last.volume as double : 0)}',
+        text: '今: ${_formatVolume(klines.isNotEmpty ? klines.last.volume.toDouble() : 0)}',
         style: textStyle.copyWith(color: Colors.white),
       ),
       textDirection: TextDirection.ltr,
@@ -144,8 +147,8 @@ class _VolumeIndicatorPainter extends CustomPainter {
     BigInt maxVolume = _calcMaxVolume();
 
     for (int i = klineRng.begin; i < klineRng.end; i++) {
-      final x = i * klineWidth;
-      final barWidth = klineInnerWidth;
+      final x = i * klineWidth.toDouble();
+      final barWidth = klineInnerWidth.toDouble();
       final barHeight = (klines[i].volume / maxVolume) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 

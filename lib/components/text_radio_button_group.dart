@@ -33,7 +33,7 @@ class _TextRadioButtonGroupState extends State<TextRadioButtonGroup> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       children:
           widget.options.map((option) {
             return TextRadioButton(
