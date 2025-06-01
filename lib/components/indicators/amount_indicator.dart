@@ -8,26 +8,12 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:irich/components/kline_ctrl/kline_ctrl.dart';
 import 'package:irich/global/stock.dart';
 
 class AmountIndicator extends StatefulWidget {
-  final double width;
-  final double height;
-  final List<UiKline> klines;
-  final UiKlineRange klineRange;
-  final double klineWidth;
-  final double klineInnerWidth;
-  final int crossLineIndex;
-  const AmountIndicator({
-    super.key,
-    required this.klines,
-    required this.klineRange,
-    required this.klineWidth,
-    required this.klineInnerWidth,
-    required this.crossLineIndex,
-    required this.width,
-    required this.height,
-  });
+  final KlineState klineState;
+  const AmountIndicator({super.key, required this.klineState});
   @override
   State<AmountIndicator> createState() => _AmountIndicatorState();
 }
@@ -35,23 +21,22 @@ class AmountIndicator extends StatefulWidget {
 class _AmountIndicatorState extends State<AmountIndicator> {
   @override
   Widget build(BuildContext context) {
-    // final klineState = ref.watch(klineProvider);
-
-    if (widget.klines.isEmpty) {
-      return SizedBox(height: widget.height);
+    KlineState state = widget.klineState;
+    if (state.klines.isEmpty) {
+      return SizedBox(height: state.indicatorChartHeight);
     }
 
     return SizedBox(
-      width: widget.width,
-      height: widget.height,
+      width: state.width,
+      height: state.indicatorChartHeight,
       child: CustomPaint(
         painter: _AmountIndicatorPainter(
-          klines: widget.klines,
-          klineRng: widget.klineRange,
-          klineWidth: widget.klineWidth,
-          klineInnerWidth: widget.klineInnerWidth,
-          crossLineIndex: widget.crossLineIndex,
-          isUpList: _getIsUpList(widget.klines, widget.klineRange),
+          klines: state.klines,
+          klineRng: state.klineRng!,
+          klineWidth: state.klineWidth,
+          klineInnerWidth: state.klineInnerWidth,
+          crossLineIndex: state.crossLineIndex,
+          isUpList: _getIsUpList(state.klines, state.klineRng!),
         ),
       ),
     );
@@ -151,16 +136,18 @@ class _AmountIndicatorPainter extends CustomPainter {
           ..style = PaintingStyle.fill;
 
     double maxAmount = _calcMaxAmount();
+    int nKline = 0;
     for (int i = klineRng.begin; i < klineRng.end; i++) {
-      final x = i * klineWidth;
+      final x = nKline * klineWidth;
       final barWidth = klineInnerWidth;
       final barHeight = (klines[i].amount / maxAmount) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 
       // 根据涨跌决定颜色
-      final paint = isUpList[i] ? redPaint : greenPaint;
+      final paint = isUpList[nKline] ? redPaint : greenPaint;
 
       canvas.drawRect(Rect.fromLTWH(x, y, barWidth, barHeight), paint);
+      nKline++;
     }
   }
 

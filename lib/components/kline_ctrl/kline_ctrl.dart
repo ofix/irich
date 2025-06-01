@@ -236,7 +236,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
                   // K线主图
                   KlineChart(klineState: klineState),
                   // 技术指标图
-                  // ..._buildIndicators(context, klineState),
+                  ..._buildIndicators(context, klineState),
                 ],
               );
             },
@@ -309,41 +309,11 @@ class _KlineCtrlState extends State<KlineCtrl> {
     for (int i = 0; i < currentIndicators.length; i++) {
       final type = currentIndicators[i].type;
       if (type == UiIndicatorType.amount) {
-        widgets.add(
-          AmountIndicator(
-            klines: klineState.klines,
-            klineRange: klineState.klineRng!,
-            klineWidth: klineState.klineWidth,
-            klineInnerWidth: klineState.klineInnerWidth,
-            crossLineIndex: klineState.crossLineIndex,
-            width: klineState.width,
-            height: klineState.indicatorChartHeight,
-          ),
-        );
+        widgets.add(AmountIndicator(klineState: klineState));
       } else if (type == UiIndicatorType.volume) {
-        widgets.add(
-          VolumeIndicator(
-            klines: klineState.klines,
-            klineRange: klineState.klineRng!,
-            klineWidth: klineState.klineWidth,
-            klineInnerWidth: klineState.klineInnerWidth,
-            crossLineIndex: klineState.crossLineIndex,
-            width: klineState.width,
-            height: klineState.indicatorChartHeight,
-          ),
-        );
+        widgets.add(VolumeIndicator(klineState: klineState));
       } else if (type == UiIndicatorType.turnoverRate) {
-        widgets.add(
-          TurnoverRateIndicator(
-            klines: klineState.klines,
-            klineRange: klineState.klineRng!,
-            klineWidth: klineState.klineWidth,
-            klineInnerWidth: klineState.klineInnerWidth,
-            crossLineIndex: klineState.crossLineIndex,
-            width: klineState.width,
-            height: klineState.indicatorChartHeight,
-          ),
-        );
+        widgets.add(TurnoverRateIndicator(klineState: klineState));
       } else if (type == UiIndicatorType.minuteAmount ||
           type == UiIndicatorType.fiveDayMinuteAmount) {
         widgets.add(

@@ -8,26 +8,12 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:irich/components/kline_ctrl/kline_ctrl.dart';
 import 'package:irich/global/stock.dart';
 
 class TurnoverRateIndicator extends StatefulWidget {
-  final double width;
-  final double height;
-  final List<UiKline> klines;
-  final UiKlineRange klineRange;
-  final double klineWidth;
-  final double klineInnerWidth;
-  final int crossLineIndex;
-  const TurnoverRateIndicator({
-    super.key,
-    required this.klines,
-    required this.klineRange,
-    required this.klineWidth,
-    required this.klineInnerWidth,
-    required this.crossLineIndex,
-    required this.width,
-    required this.height,
-  });
+  final KlineState klineState;
+  const TurnoverRateIndicator({super.key, required this.klineState});
 
   @override
   State<TurnoverRateIndicator> createState() => _TurnoverRateIndicatorState();
@@ -36,21 +22,22 @@ class TurnoverRateIndicator extends StatefulWidget {
 class _TurnoverRateIndicatorState extends State<TurnoverRateIndicator> {
   @override
   Widget build(BuildContext context) {
-    if (widget.klines.isEmpty) {
-      return SizedBox(height: widget.height);
+    KlineState state = widget.klineState;
+    if (state.klines.isEmpty) {
+      return SizedBox(height: state.indicatorChartHeight);
     }
 
     return SizedBox(
-      width: widget.width,
-      height: widget.height,
+      width: state.width,
+      height: state.indicatorChartHeight,
       child: CustomPaint(
         painter: _TurnoverRatePainter(
-          klines: widget.klines,
-          klineRng: widget.klineRange,
-          crossLineIndex: widget.crossLineIndex,
-          klineWidth: widget.klineWidth,
-          klineInnerWidth: widget.klineInnerWidth,
-          isUpList: _getIsUpList(widget.klines),
+          klines: state.klines,
+          klineRng: state.klineRng!,
+          crossLineIndex: state.crossLineIndex,
+          klineWidth: state.klineWidth,
+          klineInnerWidth: state.klineInnerWidth,
+          isUpList: _getIsUpList(state.klines),
         ),
       ),
     );
@@ -145,8 +132,9 @@ class _TurnoverRatePainter extends CustomPainter {
           ..style = PaintingStyle.fill;
 
     double maxTurnoverRate = _calcMaxTurnoverRate();
+    int nKline = 0;
     for (int i = klineRng.begin; i < klineRng.end; i++) {
-      final x = i * klineWidth;
+      final x = nKline * klineWidth;
       final barWidth = klineInnerWidth;
       final barHeight = (klines[i].turnoverRate / maxTurnoverRate) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
@@ -155,9 +143,10 @@ class _TurnoverRatePainter extends CustomPainter {
       double effectiveHeight = barHeight < 2 ? 2 : barHeight;
 
       // 根据涨跌决定颜色
-      final paint = isUpList[i] ? redPaint : greenPaint;
+      final paint = isUpList[nKline] ? redPaint : greenPaint;
 
       canvas.drawRect(Rect.fromLTWH(x, y, barWidth, effectiveHeight), paint);
+      nKline++;
     }
   }
 

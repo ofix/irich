@@ -8,27 +8,14 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:irich/components/kline_ctrl/kline_ctrl.dart';
 import 'package:irich/global/stock.dart';
 
 class VolumeIndicator extends StatefulWidget {
-  final double width;
-  final double height;
-  final List<UiKline> klines;
-  final UiKlineRange klineRange;
-  final double klineWidth;
-  final double klineInnerWidth;
-  final int crossLineIndex;
+  final KlineState klineState;
 
-  const VolumeIndicator({
-    super.key,
-    required this.klines,
-    required this.klineRange,
-    required this.klineWidth,
-    required this.klineInnerWidth,
-    required this.crossLineIndex,
-    required this.width,
-    required this.height,
-  });
+  const VolumeIndicator({super.key, required this.klineState});
+
   @override
   State<VolumeIndicator> createState() => _VolumeIndicatorState();
 }
@@ -36,21 +23,22 @@ class VolumeIndicator extends StatefulWidget {
 class _VolumeIndicatorState extends State<VolumeIndicator> {
   @override
   Widget build(BuildContext context) {
-    if (widget.klines.isEmpty) {
-      return SizedBox(width: widget.width, height: widget.height);
+    KlineState state = widget.klineState;
+    if (state.klines.isEmpty) {
+      return SizedBox(width: state.width, height: state.indicatorChartHeight);
     }
 
     return SizedBox(
-      width: widget.width,
-      height: widget.height,
+      width: state.width,
+      height: state.indicatorChartHeight,
       child: CustomPaint(
         painter: _VolumeIndicatorPainter(
-          klines: widget.klines,
-          klineRng: widget.klineRange,
-          crossLineIndex: widget.crossLineIndex,
-          klineWidth: widget.klineWidth,
-          klineInnerWidth: widget.klineInnerWidth,
-          isUpList: _getIsUpList(widget.klines),
+          klines: state.klines,
+          klineRng: state.klineRng!,
+          crossLineIndex: state.crossLineIndex,
+          klineWidth: state.klineWidth,
+          klineInnerWidth: state.klineInnerWidth,
+          isUpList: _getIsUpList(state.klines),
         ),
       ),
     );
@@ -146,16 +134,18 @@ class _VolumeIndicatorPainter extends CustomPainter {
 
     BigInt maxVolume = _calcMaxVolume();
 
+    int nKline = 0;
     for (int i = klineRng.begin; i < klineRng.end; i++) {
-      final x = i * klineWidth;
+      final x = nKline * klineWidth;
       final barWidth = klineInnerWidth;
       final barHeight = (klines[i].volume / maxVolume) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 
       // 根据涨跌决定颜色
-      final paint = isUpList[i] ? redPaint : greenPaint;
+      final paint = isUpList[nKline] ? redPaint : greenPaint;
 
       canvas.drawRect(Rect.fromLTWH(x, y, barWidth, barHeight), paint);
+      nKline++;
     }
   }
 
