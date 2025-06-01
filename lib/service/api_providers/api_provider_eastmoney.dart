@@ -10,6 +10,7 @@
 // ignore_for_file: avoid_print
 import "dart:convert";
 import "dart:math";
+import "package:flutter/material.dart";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_providers/api_provider.dart";
 import "package:irich/global/stock.dart";
@@ -208,7 +209,10 @@ class ApiProviderEastMoney extends ApiProvider {
   // 获取日K线数据
   Future<ApiResult> fetchDayKline(Map<String, dynamic> params) async {
     // 日K线
-    final url = klineUrlEastMoney(params['ShareCode'], 0, 1);
+    int marketCode = getMarketCode(params['Market']);
+    int klineType = getKlineType(KlineType.day);
+    final url = klineUrlEastMoney(params['ShareCode'], marketCode, klineType);
+    debugPrint("加载东方财富日K线: $url");
     try {
       return getJson(url);
     } catch (e) {
@@ -216,11 +220,41 @@ class ApiProviderEastMoney extends ApiProvider {
     }
   }
 
-  List<UiKline> parseDayKline(String response) {
+  int getMarketCode(Market market) {
+    if (market == Market.shenZhen) {
+      return 0;
+    } else if (market == Market.shangHai) {
+      return 1;
+    } else if (market == Market.chuangYeBan) {
+      return 0;
+    } else if (market == Market.keChuangBan) {
+      return 1;
+    } else if (market == Market.beiJiaoSuo) {
+      return 0;
+    }
+    return 0;
+  }
+
+  int getKlineType(KlineType klineType) {
+    if (klineType == KlineType.day) {
+      return 101;
+    } else if (klineType == KlineType.week) {
+      return 102;
+    } else if (klineType == KlineType.month) {
+      return 103;
+    } else if (klineType == KlineType.quarter) {
+      return 104;
+    } else if (klineType == KlineType.year) {
+      return 106;
+    }
+    return 0;
+  }
+
+  List<UiKline> parseDayKline(ApiResult result) {
     final List<UiKline> uiKlines = [];
     // 解析JSON数据
-    final dynamic result = jsonDecode(response);
-    final List<dynamic> klines = result["data"]["klines"];
+    final dynamic response = jsonDecode(result.response);
+    final List<dynamic> klines = response["data"]["klines"];
     for (final row in klines) {
       final List<String> fields = row.split(',');
       // 处理数值转换（Dart 无 stod，用 tryParse 替代）
@@ -245,7 +279,8 @@ class ApiProviderEastMoney extends ApiProvider {
 
   // 获取分时K线数据
   Future<ApiResult> fetchMinuteKline(Map<String, dynamic> params) async {
-    final url = klineUrlEastMoneyMinute(params['ShareCode'], 3);
+    int marketCode = getMarketCode(params['Market']);
+    final url = klineUrlEastMoneyMinute(params['ShareCode'], marketCode);
     try {
       return getJson(url);
     } catch (e) {

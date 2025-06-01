@@ -8,6 +8,8 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 // ignore_for_file: avoid_print
+import "package:flutter/material.dart";
+import "package:irich/global/stock.dart";
 import "package:irich/service/api_providers/api_provider.dart";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/request_log.dart";
@@ -74,7 +76,7 @@ class ApiProviderBaidu extends ApiProvider {
 
   // 分时K线
   Future<ApiResult> fetchMinuteKline(Map<String, dynamic> params) async {
-    final url = klineUrlFinanceBaiduMinute(params['shareCode']);
+    final url = klineUrlFinanceBaiduMinute(params['ShareCode']);
     try {
       return await getJson(url);
     } catch (e) {
@@ -84,7 +86,7 @@ class ApiProviderBaidu extends ApiProvider {
 
   // 五日分时均线数据
   Future<ApiResult> fetchFiveDayKline(Map<String, dynamic> params) async {
-    final url = klineUrlFinanceBaiduFiveDay(params['shareCode'], params['shareCode']);
+    final url = klineUrlFinanceBaiduFiveDay(params['ShareCode'], params['ShareCode']);
     try {
       return await getJson(url);
     } catch (e) {
@@ -92,13 +94,38 @@ class ApiProviderBaidu extends ApiProvider {
     }
   }
 
+  String getKlineType(KlineType klineType) {
+    if (klineType == KlineType.day) {
+      return "day";
+    } else if (klineType == KlineType.week) {
+      return "week";
+    } else if (klineType == KlineType.month) {
+      return "month";
+    } else if (klineType == KlineType.quarter) {
+      return "quarter";
+    } else if (klineType == KlineType.year) {
+      return "year";
+    } else if (klineType == KlineType.minute) {
+      return "minute";
+    } else if (klineType == KlineType.fiveDay) {
+      return "five_day";
+    }
+    return "";
+  }
+
   // 日K线数据
   Future<ApiResult> fetchDayKline(Map<String, dynamic> params) async {
+    String extra = "";
+    if (params.containsKey("EndDate") && params['EndDate'] != "") {
+      extra = "&end_time= ${params['EndDate']}&count=${params['Count']}";
+    }
+
     final url = klineUrlFinanceBaidu(
-      params['shareCode'],
-      "day", // 日K线
-      "",
+      params['ShareCode'],
+      getKlineType(KlineType.day), // 日K线
+      extra,
     );
+    debugPrint("加载百度财经日K线: $url");
     try {
       return await getJson(url);
     } catch (e) {
