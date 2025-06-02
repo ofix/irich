@@ -82,6 +82,8 @@ flutter:
     - images/东方财富.svg
     - images/和讯网.svg
     - images/同花顺.svg
+    - images/irich.svg
+    - images/skymoney.png
     - lib/runtime/
     - lib/runtime/data/
     - lib/runtime/data/chinese_pinyin.dic

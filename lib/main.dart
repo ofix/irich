@@ -14,6 +14,7 @@ import 'package:irich/components/share_search_panel.dart';
 import 'package:irich/router/router_provider.dart';
 import 'package:irich/service/sql_service.dart';
 import 'package:irich/service/trading_calendar.dart';
+import 'package:irich/store/state_share_search.dart';
 import 'package:irich/theme/app_theme.dart';
 import 'package:irich/utils/file_tool.dart';
 import 'package:screen_retriever/screen_retriever.dart';
@@ -28,25 +29,31 @@ void main() async {
   await TradingCalendar().initialize();
   // 初始化数据库SQLite
   await initDatabase();
+  // 隐藏原生标题栏
+  await hideOriginTitleBar();
   // 最大化窗口
   await maximizeWnd();
   runApp(ProviderScope(child: RichApp()));
   // 注册全局键盘监听回调
-  registerGlobalKeyEventListener();
+  // registerGlobalKeyEventListener();
+}
+
+// 隐藏原生标题栏
+Future<void> hideOriginTitleBar() async {
+  // 初始化窗口管理器
+  await windowManager.ensureInitialized();
+  // 隐藏原生标题栏
+  await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
 }
 
 // 启动的时候最大化窗口
 Future<void> maximizeWnd() async {
-  // 初始化窗口管理器
-  await windowManager.ensureInitialized();
-
-  // 设置窗口大小（屏幕的 80%）
   // 获取主屏幕尺寸
   final screenSize = await ScreenRetriever.instance.getPrimaryDisplay().then(
     (display) => display.size,
   );
-  final windowWidth = screenSize.width * 1;
-  final windowHeight = screenSize.height * 1;
+  final windowWidth = screenSize.width * 0.5;
+  final windowHeight = screenSize.height * 0.5;
 
   WindowOptions windowOptions = WindowOptions(
     size: Size(windowWidth, windowHeight),
@@ -93,11 +100,14 @@ Future<void> initDatabase() async {
 
 class RichApp extends ConsumerWidget {
   RichApp({super.key});
-  final _appOverlayKey = GlobalKey<OverlayState>();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    OverlayManager.init(_appOverlayKey); // 初始化
+    // 初始化Overlay和键盘监听
+    OverlayManager.ensureInitialized();
+    // 激活键盘监听（不关心返回值），保持Provider引用
+    ref.watch(globalKeyboardListenerProvider);
     return MaterialApp.router(
       title: '东方价值',
       debugShowCheckedModeBanner: false,
@@ -106,7 +116,19 @@ class RichApp extends ConsumerWidget {
       themeMode: ThemeMode.dark,
       routerConfig: router,
       builder: (context, child) {
-        return Overlay(key: _appOverlayKey, initialEntries: [OverlayEntry(builder: (_) => child!)]);
+        return Overlay(
+          key: OverlayManager.overlayKey,
+          initialEntries: [
+            OverlayEntry(
+              builder:
+                  (_) => KeyboardListener(
+                    focusNode: FocusNode(), // 全局监听
+                    onKeyEvent: (event) => KeyEventResult.ignored,
+                    child: child!,
+                  ),
+            ),
+          ],
+        );
       },
     );
   }

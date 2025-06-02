@@ -19,6 +19,7 @@ class DesktopLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: null, // 禁用默认AppBar
       body: Column(
         children: [
           // 顶部菜单栏 (macOS风格)

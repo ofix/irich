@@ -7,61 +7,189 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'package:flutter/material.dart';
+import 'dart:io';
 
-class DesktopAppBar extends StatelessWidget implements PreferredSizeWidget {
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
+import 'package:irich/components/desktop_app_buttons.dart';
+import 'package:irich/components/share_search_panel.dart';
+import 'package:irich/global/stock.dart';
+import 'package:irich/store/state_share_search.dart';
+import 'package:irich/store/store_quote.dart';
+import 'package:window_manager/window_manager.dart';
+
+class DesktopAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const DesktopAppBar({super.key});
 
   @override
   Size get preferredSize => const Size.fromHeight(48);
 
+  void _scrollToSelected(WidgetRef ref) {
+    final scrollController = ref.read(globalScrollContrllerProvider);
+    final selectedIndex = ref.read(globalSelectedShareIndexProvider);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (scrollController.hasClients) {
+        scrollController.animateTo(
+          selectedIndex * 28.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void onShareSelect(Share share, BuildContext context) {
+    context.push('/share/${share.code}');
+    ShareSearchPanel.hide();
+  }
+
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      // color: Color.fromARGB(255, 24, 22, 22),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1)),
-      ),
-      child: Row(
-        children: [
-          // 品牌Logo
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: FlutterLogo(size: 32),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final inputController = ref.watch(globalInputControllerProvider);
+    final scrollController = ref.watch(globalScrollContrllerProvider);
+    final inputFocusNode = ref.watch(globalSearchFocusNodeProvider);
+    final shares = ref.watch(globalSearchSharesProvider);
+    final selectedIndex = ref.watch(globalSelectedShareIndexProvider);
+
+    void handleKeyDown(LogicalKeyboardKey key, BuildContext context) {
+      if (shares.isEmpty || !scrollController.hasClients) return;
+
+      if (key == LogicalKeyboardKey.arrowDown) {
+        ref.read(globalSelectedShareIndexProvider.notifier).state = (selectedIndex + 1).clamp(
+          0,
+          shares.length - 1,
+        );
+        _scrollToSelected(ref);
+      } else if (key == LogicalKeyboardKey.arrowUp) {
+        ref.read(globalSelectedShareIndexProvider.notifier).state = (selectedIndex - 1).clamp(
+          0,
+          shares.length - 1,
+        );
+        _scrollToSelected(ref);
+      } else if (key == LogicalKeyboardKey.enter && selectedIndex != -1) {
+        // 清除输入框内容
+        inputController.text = "";
+        inputController.selection = TextSelection.collapsed(offset: inputController.text.length);
+        onShareSelect(shares[selectedIndex], context);
+      }
+    }
+
+    return KeyboardListener(
+      focusNode: FocusNode(), // 捕获全局键盘事件
+      autofocus: true,
+      onKeyEvent: (event) {
+        if (event is KeyDownEvent) {
+          handleKeyDown(event.logicalKey, context);
+        }
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onPanStart: (_) => windowManager.startDragging(),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0xFF333436),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          // 顶部菜单项
-          _buildMenuButton(context, '文件'),
-          _buildMenuButton(context, '编辑'),
-          _buildMenuButton(context, '查看'),
-          _buildMenuButton(context, '帮助'),
-          const Spacer(),
-          // 右侧控制按钮
-          _buildWindowControlButton(Icons.minimize),
-          _buildWindowControlButton(Icons.crop_square),
-          _buildWindowControlButton(Icons.close),
-        ],
+          child: Stack(
+            children: [
+              // Mac风格左侧按钮
+              if (Platform.isMacOS) const Positioned(left: 12, child: DesktopAppButtons()),
+
+              // 品牌Logo
+              if (!Platform.isMacOS) _buildLogo(),
+
+              // 居中搜索框
+              _buildSearchBox(ref, inputController, inputFocusNode),
+
+              // Windows风格右侧按钮
+              if (!Platform.isMacOS) const Positioned(right: 12, child: DesktopAppButtons()),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildMenuButton(BuildContext context, String text) {
-    return TextButton(
-      style: TextButton.styleFrom(
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+  Widget _buildLogo() {
+    return Positioned(
+      left: 12,
+      top: 8,
+      child: SizedBox(
+        width: 280, // 设置足够宽度
+        height: 48, // 设置足够高度
+        child: Stack(
+          clipBehavior: Clip.none, // 允许子元素溢出
+          children: [
+            Positioned(
+              left: 12,
+              child: SvgPicture.asset('images/irich.svg', width: 32, height: 32),
+            ),
+            Positioned(
+              left: 16, // 根据SVG宽度调整
+              top: -8, // 微调垂直位置
+              child: Image.asset('images/skymoney.png', height: 42, fit: BoxFit.fitHeight),
+            ),
+          ],
+        ),
       ),
-      onPressed: () {},
-      child: Text(text),
     );
   }
 
-  Widget _buildWindowControlButton(IconData icon) {
-    return SizedBox(
-      width: 48,
-      height: 48,
-      child: IconButton(icon: Icon(icon, size: 16), onPressed: () {}),
+  Widget _buildSearchBox(WidgetRef ref, TextEditingController controller, FocusNode focusNode) {
+    return Center(
+      child: SizedBox(
+        width: 320,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: InputDecoration(
+              hintText: '搜索股票/代码...',
+              hintStyle: const TextStyle(color: Color(0xFFC0C0C0)),
+              contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFFC0C0C0)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.2),
+            ),
+            style: const TextStyle(color: Colors.white),
+            onChanged: (text) {
+              ref.read(globalSearchKeywordProvider.notifier).state = text;
+              _searchShares(ref, text);
+              if (text.isNotEmpty && !ShareSearchPanel.visible) {
+                ShareSearchPanel.show(text);
+              }
+            },
+            onSubmitted: (text) {
+              _searchShares(ref, text);
+            },
+          ),
+        ),
+      ),
     );
+  }
+
+  void _searchShares(WidgetRef ref, String keyword) {
+    if (keyword.isEmpty) {
+      ref.read(globalSearchSharesProvider.notifier).state = [];
+      return;
+    }
+    final result = StoreQuote.searchShares(keyword);
+    ref.read(globalSearchSharesProvider.notifier).state = result;
   }
 }

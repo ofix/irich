@@ -171,11 +171,9 @@ class _KlineCtrlState extends State<KlineCtrl> {
   // 加载K线数据
   Future<void> loadKlines() async {
     try {
-      debugPrint("加载日K线数据！");
       final store = StoreKlines();
       final result = await _queryKlines(store, klineState.shareCode, klineState.klineType);
       if (!result.ok()) {
-        debugPrint("日K线加载失败! ${result.desc}");
         return;
       }
 
@@ -196,7 +194,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
         addEmaCurve(905, Color.fromARGB(255, 0, 255, 0));
       }
       initIndicators(); // 初始化附图指标
-      debugPrint("K线数据加载完成");
       setState(() {});
     } catch (e, stackTrace) {
       debugPrint(e.toString());
