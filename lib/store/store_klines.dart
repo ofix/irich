@@ -150,7 +150,6 @@ class StoreKlines {
     RichResult result;
     if (await FileTool.isFileExist(filePath)) {
       if (await FileTool.isDailyFileExpired(filePath)) {
-        debugPrint("加载本地日K线数据！");
         result = await _fetchIncrementalDayKlines(shareCode, newestDayKlines); // 增量爬取
         if (!result.ok()) {
           // 爬取增量K线数据失败
@@ -162,25 +161,23 @@ class StoreKlines {
           return result;
         }
       }
-      result = await _loadLocalDayKlines(shareCode, dayKlines); // 加载全量数据
+      result = await _loadLocalDayKlines(shareCode, newestDayKlines); // 加载全量数据
     } else {
-      debugPrint("加载远程日K线数据！");
-      (result, dayKlines as List<UiKline>) = await ApiService(
+      (result, newestDayKlines as List<UiKline>) = await ApiService(
         ProviderApiType.dayKline,
       ).fetch(shareCode); // 全量爬取
       if (!result.ok()) {
-        debugPrint("加载远程日K线数据失败!");
         return result; // 全量爬取失败
       }
-      result = await _saveShareDayKline(shareCode, dayKlines); // 保存到文件
+      result = await _saveShareDayKline(shareCode, newestDayKlines); // 保存到文件
     }
     if (!result.ok()) {
       return result;
     }
-    _dayKlines.add(shareCode, dayKlines); // 缓存到内存
+    _dayKlines.add(shareCode, newestDayKlines); // 缓存到内存
     dayKlines
       ..clear()
-      ..addAll(_dayKlines.query(shareCode)!);
+      ..addAll(newestDayKlines);
     return result;
   }
 
