@@ -12,6 +12,7 @@ import 'package:irich/global/stock.dart';
 import 'dart:math';
 
 class KlinePainter extends CustomPainter {
+  Share share; // 当前股票
   List<UiKline> klines; // 前复权日K线数据
   KlineType klineType; // 当前绘制的K线类型
   List<MinuteKline> minuteKlines; // 分时K线数据
@@ -29,6 +30,7 @@ class KlinePainter extends CustomPainter {
   int maxRectPriceIndex = 0; // 可见K险种最高价K线位置
 
   KlinePainter({
+    required this.share,
     required this.klineType,
     required this.klines,
     required this.minuteKlines,
@@ -157,6 +159,35 @@ class KlinePainter extends CustomPainter {
     final priceRatio = size.height / priceRange;
 
     final maxPrice = maxRectPrice;
+    // 红盘一字板画笔
+    final redPen =
+        Paint()
+          ..color = Colors.red
+          ..strokeWidth = 1
+          ..style = PaintingStyle.stroke;
+    // 绿盘一字板画笔
+    final greenPen =
+        Paint()
+          ..color = Colors.green
+          ..strokeWidth = 1
+          ..style = PaintingStyle.stroke;
+    // 收盘十字形画笔
+    final greyPen =
+        Paint()
+          ..color = Colors.grey
+          ..strokeWidth = 1
+          ..style = PaintingStyle.stroke;
+
+    // 红盘画笔
+    final klineRedPen =
+        Paint()
+          ..color = Colors.red
+          ..style = PaintingStyle.fill;
+    final klineGreenPen =
+        Paint()
+          ..color = Colors.green
+          ..style = PaintingStyle.fill;
+    // 绿盘画笔
     // 绘制K线
     int nKline = 0; // 第几根K线
     for (var i = klineRng.begin; i <= klineRng.end; i++) {
@@ -170,33 +201,27 @@ class KlinePainter extends CustomPainter {
       final openY = (maxPrice - kline.priceOpen) * priceRatio;
       final closeY = (maxPrice - kline.priceClose) * priceRatio;
 
-      // 决定颜色
       final isUp = kline.priceClose > kline.priceOpen;
-      final color =
-          isUp
-              ? Colors.red
-              : kline.priceClose == kline.priceOpen
-              ? Colors.grey
-              : Colors.green;
 
-      // 绘制上下影线
-      final shadowPaint =
-          Paint()
-            ..color = color
-            ..strokeWidth = 1;
       // 绘制日K线中心线
-      canvas.drawLine(Offset(centerX, highY), Offset(centerX, lowY), shadowPaint);
+      canvas.drawLine(Offset(centerX, highY), Offset(centerX, lowY), isUp ? redPen : greenPen);
 
-      // 绘制日K线实体
-      final klinePaint =
-          Paint()
-            ..color = color
-            ..style = PaintingStyle.fill;
-
-      canvas.drawRect(
-        Rect.fromLTRB(x, isUp ? closeY : openY, x + klineInnerWidth, isUp ? openY : closeY),
-        klinePaint,
-      );
+      // 非一字板情况
+      if (kline.priceClose != kline.priceOpen) {
+        canvas.drawRect(
+          Rect.fromLTRB(x, isUp ? closeY : openY, x + klineInnerWidth, isUp ? openY : closeY),
+          isUp ? klineRedPen : klineGreenPen,
+        );
+      } else {
+        // 一字板情况
+        if (isUpLimitPrice(kline, share)) {
+          canvas.drawLine(Offset(x, closeY), Offset(centerX, closeY), redPen);
+        } else if (isDownLimitPrice(kline, share)) {
+          canvas.drawLine(Offset(x, closeY), Offset(centerX, closeY), greenPen);
+        } else {
+          canvas.drawLine(Offset(x, closeY), Offset(centerX, closeY), greyPen);
+        }
+      }
       nKline++;
     }
 
@@ -223,8 +248,9 @@ class KlinePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
     int nKline = 0;
+    double initialX = klineInnerWidth / 2;
     for (int i = klineRng.begin; i <= klineRng.end; i++) {
-      final x = nKline * klineWidth.toDouble();
+      final x = nKline * klineWidth.toDouble() + initialX;
       final y = (maxPrice - ema.emaPrice[i]) * priceRatio;
 
       if (i == klineRng.begin) {
