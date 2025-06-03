@@ -11,7 +11,6 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:irich/components/indicators/amount_indicator.dart';
 import 'package:irich/components/indicators/minute_amount_indicator.dart';
@@ -110,7 +109,6 @@ class KlineCtrl extends StatefulWidget {
 class _KlineCtrlState extends State<KlineCtrl> {
   late KlineState klineState;
   late final FocusNode _focusNode;
-  Timer? _holdTimer;
 
   // K线类型
   static const Map<String, KlineType> klineTypeMap = {
@@ -153,25 +151,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
     loadKlines(); // 加载K线数据
   }
 
-  // 初始化附图指标，有可能需要从文件中加载
-  void initIndicators() {
-    klineState.indicators = [
-      [
-        UiIndicator(type: UiIndicatorType.amount),
-        UiIndicator(type: UiIndicatorType.volume),
-        UiIndicator(type: UiIndicatorType.turnoverRate),
-      ],
-      [
-        UiIndicator(type: UiIndicatorType.minuteAmount),
-        UiIndicator(type: UiIndicatorType.minuteVolume),
-      ],
-      [
-        UiIndicator(type: UiIndicatorType.fiveDayMinuteAmount),
-        UiIndicator(type: UiIndicatorType.fiveDayMinuteVolume),
-      ],
-    ];
-  }
-
   // 加载K线数据
   Future<void> loadKlines() async {
     try {
@@ -197,6 +176,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
         addEmaCurve(255, Color.fromARGB(255, 255, 255, 0));
         addEmaCurve(905, Color.fromARGB(255, 0, 255, 0));
       }
+      initKlineRange(); // 初始化可见K线范围
       initIndicators(); // 初始化附图指标
       setState(() {});
     } catch (e, stackTrace) {
@@ -204,6 +184,41 @@ class _KlineCtrlState extends State<KlineCtrl> {
       debugPrint(stackTrace.toString());
       logError('Failed to load klines', error: e, stackTrace: stackTrace);
     }
+  }
+
+  // 初始化可见K线范围和数量
+  void initKlineRange() {
+    if (klineState.klines.length < 120) {
+      klineState.visibleKlineCount = klineState.klines.length;
+      klineState.klineRng!.begin = 0;
+      klineState.klineRng!.end = klineState.klines.length - 1;
+    } else {
+      klineState.visibleKlineCount = 120; // 默认显示120根K线
+      klineState.klineRng!.begin = klineState.klines.length - klineState.visibleKlineCount;
+      if (klineState.klineRng!.begin < 0) {
+        klineState.klineRng!.begin = 0;
+      }
+      klineState.klineRng!.end = klineState.klines.length - 1;
+    }
+  }
+
+  // 初始化附图指标，有可能需要从文件中加载
+  void initIndicators() {
+    klineState.indicators = [
+      [
+        UiIndicator(type: UiIndicatorType.amount),
+        UiIndicator(type: UiIndicatorType.volume),
+        UiIndicator(type: UiIndicatorType.turnoverRate),
+      ],
+      [
+        UiIndicator(type: UiIndicatorType.minuteAmount),
+        UiIndicator(type: UiIndicatorType.minuteVolume),
+      ],
+      [
+        UiIndicator(type: UiIndicatorType.fiveDayMinuteAmount),
+        UiIndicator(type: UiIndicatorType.fiveDayMinuteVolume),
+      ],
+    ];
   }
 
   @override
@@ -378,33 +393,35 @@ class _KlineCtrlState extends State<KlineCtrl> {
   }
 
   void onKeyDownArrowLeft() {
-    final index = klineState.crossLineIndex;
-    final klineRng = klineState.klineRng!;
-    if (index == -1) {
+    int crossLineIndex = klineState.crossLineIndex;
+    UiKlineRange klineRng = klineState.klineRng!;
+    if (crossLineIndex == -1) {
       // 如果十字线未设置，默认设置为最后一根K线
-      klineState.crossLineIndex = klineState.klines.length - 1;
-    } else if (index == klineState.klineRng!.begin && klineRng.begin > 0) {
-      klineState.klineRng!.begin -= 1;
-      klineState.klineRng!.end -= 1;
-      klineState.crossLineIndex -= 1;
+      crossLineIndex = klineState.klines.length - 1;
+    } else if ((crossLineIndex == klineRng.begin) && (klineRng.begin > 0)) {
+      klineRng.begin -= 1;
+      klineRng.end -= 1;
+      crossLineIndex -= 1;
     } else {
-      klineState.crossLineIndex -= 1; // 向左移动十字线
+      crossLineIndex -= 1; // 向左移动十字线
     }
+    klineState = klineState.copyWith(klineRng: klineRng, crossLineIndex: crossLineIndex);
     setState(() {});
   }
 
   void onKeyDownArrowRight() {
-    final index = klineState.crossLineIndex;
+    final crossLineIndex = klineState.crossLineIndex;
     final klineRng = klineState.klineRng!;
-    if (index == -1) {
+    if (crossLineIndex == -1) {
       // 如果十字线未设置，默认设置为最后一根K线
       klineState.crossLineIndex = klineState.klines.length - 1;
-    } else if (index == klineState.klineRng!.end && klineRng.end < klineState.klines.length - 1) {
+    } else if ((crossLineIndex >= klineState.klineRng!.end) &&
+        (klineRng.end < klineState.klines.length - 1)) {
       // 如果十字线在可视范围的最后一根K线上，向右移动时需要扩展可视范围
       klineState.klineRng!.begin += 1;
       klineState.klineRng!.end += 1;
       klineState.crossLineIndex += 1;
-    } else if (index >= klineState.klines.length - 1) {
+    } else if (crossLineIndex >= klineState.klines.length - 1) {
       return; // 已经是最后一根K线了,界面不需要刷新
     } else {
       klineState.crossLineIndex += 1; // 向右移动十字线
@@ -412,45 +429,13 @@ class _KlineCtrlState extends State<KlineCtrl> {
     setState(() {});
   }
 
-  void detectKeyArrowLeftDown() {
-    final pressed = HardwareKeyboard.instance.logicalKeysPressed.contains(
-      LogicalKeyboardKey.arrowLeft,
-    );
-    if (!pressed) {
-      _holdTimer?.cancel();
-    } else {
-      _focusNode.requestFocus(); // 保持焦点
-      onKeyDownArrowLeft();
-    }
-  }
-
-  void detectKeyArrowRightDown() {
-    final pressed = HardwareKeyboard.instance.logicalKeysPressed.contains(
-      LogicalKeyboardKey.arrowRight,
-    );
-    if (!pressed) {
-      _holdTimer?.cancel();
-    } else {
-      _focusNode.requestFocus(); // 保持焦点
-      onKeyDownArrowRight();
-    }
-  }
-
   // 支持鼠标上/下/左/右方向键进行缩放
   KeyEventResult _onKeyEvent(FocusNode focosNode, KeyEvent event) {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
         onKeyDownArrowLeft();
-        _holdTimer?.cancel();
-        _holdTimer = Timer.periodic(Duration(milliseconds: 100), (_) {
-          detectKeyArrowLeftDown();
-        });
       } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
         onKeyDownArrowRight();
-        _holdTimer?.cancel();
-        _holdTimer = Timer.periodic(Duration(milliseconds: 100), (_) {
-          detectKeyArrowRightDown();
-        });
       } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
         zoomIn(); // 放大
       } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -465,13 +450,21 @@ class _KlineCtrlState extends State<KlineCtrl> {
       setState(() {});
       return KeyEventResult.handled;
     } else if (event is KeyUpEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+          event.logicalKey == LogicalKeyboardKey.arrowRight ||
+          event.logicalKey == LogicalKeyboardKey.arrowUp ||
+          event.logicalKey == LogicalKeyboardKey.arrowDown ||
+          event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.home ||
+          event.logicalKey == LogicalKeyboardKey.end) {
+        return KeyEventResult.handled;
+      }
+    } else if (event is KeyRepeatEvent) {
       if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        _focusNode.requestFocus(); // 保持焦点
-        _holdTimer?.cancel();
+        onKeyDownArrowLeft();
         return KeyEventResult.handled;
       } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        _focusNode.requestFocus(); // 保持焦点
-        _holdTimer?.cancel();
+        onKeyDownArrowRight();
         return KeyEventResult.handled;
       } else if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
           event.logicalKey == LogicalKeyboardKey.arrowDown ||
@@ -504,16 +497,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
   }
 
   void logError(String s, {required Object error, required StackTrace stackTrace}) {}
-
-  // 父子组件间通信
-  // 1. 父组件通过构造函数传递数据给子组件
-  // 2. 子组件通过回调函数将数据传递给父组件
-  // 定义回调函数，用于子组件修改状态
-  void notifyUpdate(UiKlineRange range) {
-    setState(() {
-      klineState.klineRng = range;
-    });
-  }
 
   void onMouseMove(PointerHoverEvent event) {}
 
@@ -634,43 +617,28 @@ class _KlineCtrlState extends State<KlineCtrl> {
     if (klineState.klines.isEmpty) {
       return;
     }
-    List<UiKline> klines = klineState.klines;
     double klineWidth;
     int klineInnerWidth;
-    if (klines.length < 20) {
-      klineWidth = 10;
-      klineState.visibleKlineCount = klines.length;
-      klineInnerWidth = 7;
-    } else {
-      klineWidth = (size.width / klineState.visibleKlineCount).floor().toDouble();
-      klineInnerWidth = (klineWidth * 0.8).floor();
-      if (klineWidth > 1 && klineInnerWidth % 2 == 0) {
-        klineInnerWidth = klineInnerWidth;
-        klineInnerWidth -= 1;
-        if (klineInnerWidth < 1) {
-          klineInnerWidth = 1;
-        }
-      }
+    klineWidth = (size.width / klineState.visibleKlineCount).floor().toDouble();
+    klineInnerWidth = (klineWidth * 0.8).floor();
+    if (klineWidth > 1 && klineInnerWidth % 2 == 0) {
+      klineInnerWidth = klineInnerWidth;
+      klineInnerWidth -= 1;
       if (klineInnerWidth < 1) {
         klineInnerWidth = 1;
       }
-      if (klineWidth < 1) {
-        klineWidth = 1;
-      }
     }
-    debugPrint(
-      "window Size: ${size.width}, klineWidth:$klineWidth, klineInnerWidth: $klineInnerWidth, visibleKlineCount: ${klineState.visibleKlineCount}",
-    );
+    if (klineInnerWidth < 1) {
+      klineInnerWidth = 1;
+    }
+    if (klineWidth < 1) {
+      klineWidth = 1; // k线宽度不能小于1
+    }
+    if (klineWidth > 30) {
+      klineWidth = 31;
+      klineInnerWidth = 23; // K线宽度不能太大(31*0.8取整)
+    }
     klineState.klineWidth = klineWidth;
     klineState.klineInnerWidth = klineInnerWidth.toDouble();
-
-    // 根据K线宽度计算起始坐标和放大坐标
-    UiKlineRange klineRng = UiKlineRange(begin: 0, end: 0);
-    klineRng.begin = klines.length - klineState.visibleKlineCount;
-    klineRng.end = klines.length - 1;
-    if (klineRng.begin < 0) {
-      klineRng.begin = 0;
-    }
-    klineState.klineRng = klineRng;
   }
 }
