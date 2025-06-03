@@ -32,6 +32,7 @@ class _KlineChartState extends State<KlineChart> {
           klineType: widget.klineState.klineType,
           klines: widget.klineState.klines,
           minuteKlines: widget.klineState.minuteKlines,
+          fiveDayMinuteKlines: widget.klineState.fiveDayMinuteKlines,
           klineRng: widget.klineState.klineRng!,
           emaCurves: widget.klineState.emaCurves,
           crossLineIndex: widget.klineState.crossLineIndex,

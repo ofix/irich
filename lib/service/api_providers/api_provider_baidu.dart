@@ -11,6 +11,7 @@
 import "dart:convert";
 
 import "package:flutter/material.dart";
+import "package:intl/intl.dart";
 import "package:irich/global/stock.dart";
 import "package:irich/service/api_providers/api_provider.dart";
 import "package:irich/service/api_provider_capabilities.dart";
@@ -196,7 +197,7 @@ class ApiProviderBaidu extends ApiProvider {
         if (fields.length < 10) continue;
 
         final minuteKline = MinuteKline(
-          timestamp: DateTime.parse(fields[1]),
+          timestamp: DateFormat("MM-dd HH:mm").parse(fields[1]),
           time: fields[1],
           price: parseField(fields[2]),
           avgPrice: parseField(fields[3]),

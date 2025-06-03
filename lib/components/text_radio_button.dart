@@ -26,25 +26,32 @@ class TextRadioButton extends StatelessWidget {
     required this.onTap,
     this.selectedColor = const Color(0xFF525A65),
     this.unselectedColor = const Color(0xFF2E343B),
-    this.textColor = Colors.white,
+    this.textColor = const Color.fromARGB(255, 7, 232, 244),
     this.borderRadius = 0,
     this.padding = 8,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: padding),
-        decoration: BoxDecoration(
-          color: isSelected ? selectedColor : unselectedColor,
-          borderRadius: BorderRadius.circular(borderRadius),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(color: isSelected ? textColor : Colors.black, fontSize: 16),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click, // 设置光标为可点击样式
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: padding),
+          decoration: BoxDecoration(
+            // color: isSelected ? selectedColor : unselectedColor,
+            borderRadius: BorderRadius.circular(borderRadius),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                backgroundColor: Colors.transparent,
+                color: isSelected ? textColor : const Color.fromARGB(255, 214, 211, 211),
+                fontSize: 16,
+              ),
+            ),
           ),
         ),
       ),

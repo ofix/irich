@@ -16,6 +16,7 @@ class KlinePainter extends CustomPainter {
   List<UiKline> klines; // 前复权日K线数据
   KlineType klineType; // 当前绘制的K线类型
   List<MinuteKline> minuteKlines; // 分时K线数据
+  List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
   UiKlineRange klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
   int crossLineIndex; // 十字线位置
@@ -34,6 +35,7 @@ class KlinePainter extends CustomPainter {
     required this.klineType,
     required this.klines,
     required this.minuteKlines,
+    required this.fiveDayMinuteKlines,
     required this.klineRng,
     required this.emaCurves,
     required this.crossLineIndex,
@@ -54,11 +56,17 @@ class KlinePainter extends CustomPainter {
     // 根据不同类型绘制K线
     switch (klineType) {
       case KlineType.minute:
-        _drawMinuteKlines(canvas, size);
-        break;
+        {
+          debugPrint("绘制分时图");
+          _drawMinuteKlines(canvas, size);
+          break;
+        }
       case KlineType.fiveDay:
-        _drawFiveDayMinuteKlines(canvas, size);
-        break;
+        {
+          debugPrint("绘制5日分时图");
+          _drawFiveDayMinuteKlines(canvas, size);
+          break;
+        }
       default:
         _drawDayKlines(canvas, size);
     }
@@ -486,12 +494,12 @@ class KlinePainter extends CustomPainter {
     double maxMinutePrice = double.negativeInfinity;
     double minMinutePrice = double.infinity;
 
-    for (final kline in minuteKlines) {
-      if (kline.price > maxMinutePrice) maxMinutePrice = kline.price;
-      if (kline.price < minMinutePrice) minMinutePrice = kline.price;
+    for (final minuteKline in fiveDayMinuteKlines) {
+      if (minuteKline.price > maxMinutePrice) maxMinutePrice = minuteKline.price;
+      if (minuteKline.price < minMinutePrice) minMinutePrice = minuteKline.price;
     }
 
-    final refClosePrice = minuteKlines.first.price - minuteKlines.first.changeAmount;
+    final refClosePrice = fiveDayMinuteKlines.first.price - fiveDayMinuteKlines.first.changeAmount;
 
     // 计算最大波动幅度
     double maxDelta = max(
@@ -510,7 +518,7 @@ class KlinePainter extends CustomPainter {
     _drawFiveDayMinuteKlineBackground(canvas, size, refClosePrice, maxPrice);
 
     // 限制最大绘制数量
-    final nTotalLine = minuteKlines.length > 1200 ? 1200 : minuteKlines.length;
+    final nTotalLine = fiveDayMinuteKlines.length > 1200 ? 1200 : fiveDayMinuteKlines.length;
     final w = size.width / 1200;
 
     // 准备绘制路径
@@ -521,7 +529,7 @@ class KlinePainter extends CustomPainter {
 
     // 计算所有点
     for (var i = 0; i < nTotalLine; i++) {
-      final kline = minuteKlines[i];
+      final kline = fiveDayMinuteKlines[i];
       final x = i * w;
       final y = (kline.price - maxPrice) * hZoomRatio;
       final yAvg = (kline.avgPrice - maxPrice) * hZoomRatio;

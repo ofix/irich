@@ -11,6 +11,7 @@
 import "dart:convert";
 import "dart:math";
 import "package:flutter/material.dart";
+import "package:intl/intl.dart";
 import "package:irich/service/api_provider_capabilities.dart";
 import "package:irich/service/api_providers/api_provider.dart";
 import "package:irich/global/stock.dart";
@@ -298,7 +299,7 @@ class ApiProviderEastMoney extends ApiProvider {
     for (final row in rows) {
       final fields = row.split(',');
       final kline = MinuteKline(
-        timestamp: DateTime.parse(fields[1]),
+        timestamp: DateFormat("MM-dd HH:mm").parse(fields[1]),
         time: fields[1],
         price: double.parse(fields[2]),
         avgPrice: double.parse(fields[3]),

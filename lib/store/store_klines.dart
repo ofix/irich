@@ -72,16 +72,15 @@ class StoreKlines {
       return success();
     }
     // 缓存不存在
-    List<MinuteKline> tempKlines = [];
-    final (result, response as List<MinuteKline>) = await ApiService(
+    final (result, newestMinuteKlines as List<MinuteKline>) = await ApiService(
       ProviderApiType.minuteKline,
     ).fetch(shareCode);
     if (result.ok()) {
-      _minuteKlines.add(shareCode, tempKlines); // 缓存最近300条记录
+      _minuteKlines.add(shareCode, newestMinuteKlines); // 缓存最近300条记录
     }
     minuteKlines
       ..clear()
-      ..addAll(tempKlines);
+      ..addAll(newestMinuteKlines);
     return result;
   }
 
@@ -98,16 +97,15 @@ class StoreKlines {
       return success();
     }
     // 缓存不存在
-    List<MinuteKline> tempKlines = [];
-    final (result, response as List<MinuteKline>) = await ApiService(
+    final (result, newestFiveDayMinuteKlines as List<MinuteKline>) = await ApiService(
       ProviderApiType.fiveDayKline,
     ).fetch(shareCode);
     if (result.ok()) {
-      _fiveDayKlines.add(shareCode, tempKlines); // 缓存最近300条记录
+      _fiveDayKlines.add(shareCode, newestFiveDayMinuteKlines); // 缓存最近300条记录
     }
     fiveDayMinuteKlines
       ..clear()
-      ..addAll(tempKlines);
+      ..addAll(newestFiveDayMinuteKlines);
     return result;
   }
 

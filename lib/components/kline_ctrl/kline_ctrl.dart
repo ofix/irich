@@ -29,6 +29,7 @@ class KlineState {
   KlineType klineType = KlineType.day; // 当前绘制的K线类型
   List<UiKline> klines; // 前复权日K线数据
   List<MinuteKline> minuteKlines; // 分时K线数据
+  List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
   UiKlineRange? klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
   List<List<UiIndicator>> indicators; // 0:日/周/月/季/年K线技术指标列表,1:分时图技术指标列表,2:五日分时图技术指标列表
@@ -45,6 +46,7 @@ class KlineState {
     required this.klineType,
     List<UiKline>? klines,
     List<MinuteKline>? minuteKlines,
+    List<MinuteKline>? fiveDayMinuteKlines,
     List<ShareEmaCurve>? emaCurves,
     List<List<UiIndicator>>? indicators,
     UiKlineRange? klineRng,
@@ -57,6 +59,7 @@ class KlineState {
     this.indicatorChartHeight = 80,
   }) : klines = klines ?? [], // 使用const空列表避免共享引用
        minuteKlines = minuteKlines ?? [],
+       fiveDayMinuteKlines = fiveDayMinuteKlines ?? [],
        klineRng = klineRng ?? UiKlineRange(begin: 0, end: 0),
        emaCurves = emaCurves ?? [],
        indicators = indicators ?? [];
@@ -85,6 +88,7 @@ class KlineState {
       klineType: klineType ?? this.klineType,
       klines: klines ?? this.klines,
       minuteKlines: minuteKlines ?? this.minuteKlines,
+      fiveDayMinuteKlines: fiveDayMinuteKlines ?? this.fiveDayMinuteKlines,
       klineRng: klineRng ?? this.klineRng,
       emaCurves: emaCurves ?? this.emaCurves,
       indicators: indicators ?? this.indicators,
@@ -157,10 +161,9 @@ class _KlineCtrlState extends State<KlineCtrl> {
       final store = StoreKlines();
       final result = await _queryKlines(store, klineState.share.code, klineState.klineType);
       if (!result.ok()) {
+        debugPrint("数据加载失败!,${klineState.klineType.name}");
         return;
       }
-
-      klineState.emaCurves.clear();
       // 添加 EMA 曲线的时候会自动计算相关数据
       KlineType klineType = klineState.klineType;
       if (klineType == KlineType.day ||
@@ -168,6 +171,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
           klineType == KlineType.month ||
           klineType == KlineType.quarter ||
           klineType == KlineType.year) {
+        klineState.emaCurves.clear();
         addEmaCurve(10, Color.fromARGB(255, 255, 255, 255));
         addEmaCurve(20, Color.fromARGB(255, 239, 72, 111));
         addEmaCurve(30, Color.fromARGB(255, 255, 159, 26));
@@ -175,8 +179,9 @@ class _KlineCtrlState extends State<KlineCtrl> {
         addEmaCurve(99, Color.fromARGB(255, 255, 0, 255));
         addEmaCurve(255, Color.fromARGB(255, 255, 255, 0));
         addEmaCurve(905, Color.fromARGB(255, 0, 255, 0));
+        initKlineRange(); // 初始化可见K线范围
       }
-      initKlineRange(); // 初始化可见K线范围
+
       initIndicators(); // 初始化附图指标
       setState(() {});
     } catch (e, stackTrace) {
@@ -247,7 +252,8 @@ class _KlineCtrlState extends State<KlineCtrl> {
               return Column(
                 children: [
                   // K线类型切换
-                  _buildKlineTypeTabs(),
+                  Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
+
                   // EMA加权平均线
                   _buildEmaCurveButtons(context, emaCurveMap),
                   // K线主图
@@ -263,10 +269,26 @@ class _KlineCtrlState extends State<KlineCtrl> {
     );
   }
 
+  Widget _buildKlineName() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8), // 左右各16像素
+      child: Text(
+        widget.share.name,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: const Color.fromARGB(255, 219, 137, 36),
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
   Widget _buildKlineTypeTabs() {
     return TextRadioButtonGroup(
       options: ["日K", "周K", "月K", "季K", "年K", "分时", "五日"],
       onChanged: (value) {
+        debugPrint("onclicked ：$value");
         _onKlineTypeChanged(value);
       },
     );
@@ -383,7 +405,15 @@ class _KlineCtrlState extends State<KlineCtrl> {
   }
 
   List<dynamic> _getKlinesListForType(KlineType klineType) {
-    return klineType.isMinuteType ? klineState.minuteKlines : klineState.klines;
+    if (klineType.isMinuteType) {
+      if (klineType == KlineType.minute) {
+        return klineState.minuteKlines;
+      } else {
+        return klineState.fiveDayMinuteKlines;
+      }
+    } else {
+      return klineState.klines;
+    }
   }
 
   void _onKlineTypeChanged(String value) async {
