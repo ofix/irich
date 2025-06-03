@@ -57,13 +57,11 @@ class KlinePainter extends CustomPainter {
     switch (klineType) {
       case KlineType.minute:
         {
-          debugPrint("绘制分时图");
           _drawMinuteKlines(canvas, size);
           break;
         }
       case KlineType.fiveDay:
         {
-          debugPrint("绘制5日分时图");
           _drawFiveDayMinuteKlines(canvas, size);
           break;
         }
@@ -272,7 +270,10 @@ class KlinePainter extends CustomPainter {
   }
 
   void _drawMinuteKlines(Canvas canvas, Size size) {
-    if (minuteKlines.isEmpty) return;
+    if (minuteKlines.isEmpty) {
+      debugPrint("分时图数据为空");
+      return;
+    }
 
     // 计算价格范围
     var minPrice = double.infinity;
@@ -490,6 +491,11 @@ class KlinePainter extends CustomPainter {
 
   // 绘制五日分时图
   void _drawFiveDayMinuteKlines(Canvas canvas, Size size) {
+    if (fiveDayMinuteKlines.isEmpty) {
+      debugPrint("五日线数据为空!");
+      return;
+    }
+
     // final nKlines = state.fiveDayMinuteKlines.length;
     double maxMinutePrice = double.negativeInfinity;
     double minMinutePrice = double.infinity;

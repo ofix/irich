@@ -128,9 +128,9 @@ class ApiProviderCapabilities {
     ProviderApiType.industry: [EnumApiProvider.eastMoney],
     ProviderApiType.concept: [EnumApiProvider.eastMoney],
     ProviderApiType.province: [EnumApiProvider.eastMoney],
-    ProviderApiType.minuteKline: [EnumApiProvider.eastMoney, EnumApiProvider.baiduFinance],
+    ProviderApiType.minuteKline: [EnumApiProvider.baiduFinance],
     ProviderApiType.dayKline: [EnumApiProvider.eastMoney, EnumApiProvider.baiduFinance],
-    ProviderApiType.fiveDayKline: [EnumApiProvider.eastMoney, EnumApiProvider.baiduFinance],
+    ProviderApiType.fiveDayKline: [EnumApiProvider.baiduFinance],
   };
 
   ApiProviderCapabilities();
