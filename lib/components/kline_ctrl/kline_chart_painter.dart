@@ -552,41 +552,18 @@ class KlinePainter extends CustomPainter {
   void _drawCrossLine(Canvas canvas, Size size) {
     final crossPaint =
         Paint()
-          ..color = Colors.white.withOpacity(0.7)
-          ..strokeWidth = 0.5
+          ..color = Colors.white
+          ..strokeWidth = 1
           ..style = PaintingStyle.stroke;
 
     // 获取当前K线数据
     final kline = klines[crossLineIndex];
-    final x = crossLineIndex * klineWidth + klineInnerWidth / 2;
-
+    final priceRange = maxRectPrice - minRectPrice;
+    final y = (1 - (kline.priceClose - minRectPrice) / priceRange) * size.height;
+    final x = (crossLineIndex - klineRng.begin) * klineWidth + klineInnerWidth / 2;
     // 水平线
-    canvas.drawLine(
-      Offset(0, (size.height) / 2),
-      Offset(size.width, (size.height) / 2),
-      crossPaint,
-    );
-
+    canvas.drawLine(Offset(0, y), Offset(size.width, y), crossPaint);
     // 垂直线
     canvas.drawLine(Offset(x, 0), Offset(x, size.height), crossPaint);
-
-    // 显示价格信息
-    _drawCrossLineInfo(canvas, size, kline, x);
-  }
-
-  void _drawCrossLineInfo(Canvas canvas, Size size, UiKline kline, double x) {
-    final textStyle = TextStyle(color: Colors.white, fontSize: 12);
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text:
-            'O:${kline.priceOpen.toStringAsFixed(2)} H:${kline.priceMax.toStringAsFixed(2)} '
-            'L:${kline.priceMin.toStringAsFixed(2)} C:${kline.priceClose.toStringAsFixed(2)}',
-        style: textStyle,
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    textPainter.paint(canvas, Offset(x - textPainter.width / 2, size.height - 20));
   }
 }

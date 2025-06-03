@@ -104,7 +104,7 @@ class DesktopAppBar extends ConsumerWidget implements PreferredSizeWidget {
           child: Stack(
             children: [
               // Mac风格左侧按钮
-              if (Platform.isMacOS) const Positioned(left: 12, child: DesktopAppButtons()),
+              // if (Platform.isMacOS) const Positioned(left: 12, child: DesktopAppButtons()),
 
               // 品牌Logo
               if (!Platform.isMacOS) _buildLogo(),

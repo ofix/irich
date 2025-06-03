@@ -1,3 +1,12 @@
+// /////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/pages/share/market_share_tab.dart
+// Purpose:     display market shares and favorite shares in tab view
+// Author:      songhuabiao
+// Created:     2025-06-03 20:30
+// Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// /////////////////////////////////////////////////////////////////////////
+
 import 'package:flutter/material.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/pages/share/share_page_common.dart';

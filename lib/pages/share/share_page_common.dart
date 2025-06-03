@@ -1,3 +1,12 @@
+// /////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/pages/share/share_page_common.dart
+// Purpose:     irich kline panel common functions
+// Author:      songhuabiao
+// Created:     2025-06-03 20:30
+// Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// /////////////////////////////////////////////////////////////////////////
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:irich/global/stock.dart';

@@ -211,14 +211,15 @@ class _KlineCtrlState extends State<KlineCtrl> {
   @override
   Widget build(BuildContext context) {
     // final parentWidth = MediaQuery.of(context).size.width; 此方法获取的是屏幕宽度
-    return KeyboardListener(
+    return Focus(
+      autofocus: true,
       focusNode: _focusNode,
-      onKeyEvent: _handleKeyEvent,
+      onKeyEvent: _onKeyEvent,
       child: Listener(
-        onPointerSignal: _handleScroll,
-        onPointerHover: _handleMouseMove,
+        onPointerSignal: _onMouseScroll,
+        onPointerHover: _onMouseMove,
         child: GestureDetector(
-          onTapDown: _handleTapDown,
+          onTapDown: _onTapDown,
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
               // final parentWidth = constraints.maxWidth; // 父容器可用宽度
@@ -346,7 +347,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     klineState.indicatorChartHeight =
         klineState.indicators.isEmpty ? 0 : height * (1 - ratio) / klineState.indicators.length;
 
-    calcVisibleKlineWidth(size);
+    calcVisibleKlineWidth();
   }
 
   Future<RichResult> _queryKlines(StoreKlines store, String stockCode, KlineType type) async {
@@ -373,32 +374,63 @@ class _KlineCtrlState extends State<KlineCtrl> {
   }
 
   // 支持鼠标上/下/左/右方向键进行缩放
-  void _handleKeyEvent(KeyEvent event) {
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+  KeyEventResult _onKeyEvent(FocusNode focosNode, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final index = klineState.crossLineIndex;
+      final klineRng = klineState.klineRng!;
+      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        if (index == -1) {
+          // 如果十字线未设置，默认设置为最后一根K线
+          klineState.crossLineIndex = klineState.klines.length - 1;
+        } else if (index == klineState.klineRng!.begin && klineRng.begin > 0) {
+          klineState.klineRng!.begin -= 1;
+          klineState.klineRng!.end -= 1;
+          klineState.crossLineIndex -= 1;
+        } else {
+          klineState.crossLineIndex -= 1; // 向左移动十字线
+        }
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        if (index == klineState.klineRng!.end && klineRng.end < klineState.klines.length - 1) {
+          // 如果十字线在可视范围的最后一根K线上，向右移动时需要扩展可视范围
+          klineState.klineRng!.begin += 1;
+          klineState.klineRng!.end += 1;
+          klineState.crossLineIndex += 1;
+        } else if (index >= klineState.klines.length - 1) {
+          return KeyEventResult.handled; // 已经是最后一根K线了,界面不需要刷新
+        } else {
+          klineState.crossLineIndex += 1; // 向右移动十字线
+        }
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        zoomIn(); // 放大
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        zoomOut(); // 缩小
+      } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+        klineState.crossLineIndex = -1; // 清除十字线
+      } else if (event.logicalKey == LogicalKeyboardKey.home) {
+        klineState.crossLineIndex = klineState.klineRng!.begin;
+      } else if (event.logicalKey == LogicalKeyboardKey.end) {
+        klineState.crossLineIndex = klineState.klineRng!.end;
+      }
       setState(() {});
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      setState(() {});
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      setState(() {});
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      setState(() {});
+      return KeyEventResult.handled;
     }
+    return KeyEventResult.ignored; // 其他按键不处理，比如字符按键
   }
 
   // 用户单击鼠标的时候也需要记住单击位置所在的K线下标，以此为中心点进行缩放
-  void _handleTapDown(TapDownDetails details) {
+  void _onTapDown(TapDownDetails details) {
     final RenderBox box = context.findRenderObject() as RenderBox;
     final localPosition = box.globalToLocal(details.globalPosition);
     // 计算点击的K线索引
-    final index = (localPosition.dx / klineState.klineWidth!).floor();
-    klineState.crossLineIndex = index;
+    final index = (localPosition.dx / klineState.klineWidth).floor();
+    klineState.crossLineIndex = index + klineState.klineRng!.begin;
     setState(() {});
   }
 
   // 鼠标移动的时候需要动态绘制十字光标
-  void _handleMouseMove(PointerHoverEvent event) {}
+  void _onMouseMove(PointerHoverEvent event) {}
 
-  void _handleScroll(PointerEvent event) {
+  void _onMouseScroll(PointerEvent event) {
     if (event is PointerScrollEvent) {
       setState(() {});
     }
@@ -416,20 +448,9 @@ class _KlineCtrlState extends State<KlineCtrl> {
     });
   }
 
-  void onKeyEvent(KeyEvent event) {
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      setState(() {});
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      setState(() {});
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      setState(() {});
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      setState(() {});
-    }
-  }
-
   void onMouseMove(PointerHoverEvent event) {}
 
+  // 鼠标滚轮事件处理,可以用来切换股票
   void onMouseScroll(PointerEvent event) {
     if (event is PointerScrollEvent) {
       if (event.scrollDelta.dy > 0) {
@@ -463,12 +484,12 @@ class _KlineCtrlState extends State<KlineCtrl> {
     return klineState.emaCurves.length != originalLength;
   }
 
-  // 处理放大逻辑
-  void zoomIn(Size size) {
+  // 处理放大逻辑,可见的K线数量变少
+  void zoomIn() {
     int crossLineIndex = klineState.crossLineIndex;
     UiKlineRange klineRng = klineState.klineRng!;
     if (crossLineIndex == -1) {
-      klineState.crossLineIndex = klineState.klines.length - 1; // 放大中心为最右边K线
+      crossLineIndex = klineState.klines.length - 1; // 放大中心为最右边K线
     }
     // 可见K线数量少于8，不再放大
     if (klineRng.end <= klineRng.begin + 8) {
@@ -478,15 +499,16 @@ class _KlineCtrlState extends State<KlineCtrl> {
     // 计算放大中心两边的K线数量
     int leftKlineCount = crossLineIndex - klineRng.begin;
     int rightKlineCount = klineRng.end - crossLineIndex;
-    // 取中心点左右两侧K线较多的一边进行延展，保住中心的地位
+    // 取中心点左右两侧K线较多的一边进行延展，保住缩放中心的位置
     int count = leftKlineCount > rightKlineCount ? leftKlineCount : rightKlineCount;
     klineRng.begin = crossLineIndex - count ~/ 2;
     klineRng.end = crossLineIndex + count ~/ 2;
 
+    // 左右边界处理
     if (klineRng.begin > klineRng.end) {
       klineRng.begin = klineRng.end - 8;
     }
-    // 边界处理
+
     if (klineRng.begin < 0) {
       klineRng.begin = 0;
     }
@@ -496,13 +518,52 @@ class _KlineCtrlState extends State<KlineCtrl> {
     klineState = klineState.copyWith(
       klineRng: klineRng,
       visibleKlineCount: klineRng.end - klineRng.begin + 1,
+      crossLineIndex: crossLineIndex,
     );
-    calcVisibleKlineWidth(size);
-    setState(() {});
+    calcVisibleKlineWidth();
+  }
+
+  // 实现缩放逻辑，显示的K线数量变多
+  void zoomOut() {
+    int crossLineIndex = klineState.crossLineIndex;
+    UiKlineRange klineRng = klineState.klineRng!;
+    if (crossLineIndex == -1) {
+      crossLineIndex = klineState.klines.length - 1; // 缩小中心为最右边K线
+    }
+    // 可见K线数量大于等于总K线数量，不再缩小
+    if (klineState.visibleKlineCount >= klineState.klines.length - 1) {
+      return;
+    }
+
+    // 计算缩小中心两边的K线数量
+    int leftKlineCount = crossLineIndex - klineRng.begin;
+    int rightKlineCount = klineRng.end - crossLineIndex;
+    // 取中心点左右两侧K线较多的一边进行收缩，保住缩放中心的地位
+    int count = leftKlineCount > rightKlineCount ? leftKlineCount : rightKlineCount;
+    klineRng.begin = crossLineIndex - count * 2;
+    klineRng.end = crossLineIndex + count * 2;
+
+    // 左右边界处理
+    if (klineRng.begin < 0) {
+      klineRng.begin = 0;
+    }
+    if (klineRng.end >= klineState.klines.length - 1) {
+      klineRng.end = klineState.klines.length - 1;
+    }
+    if (klineRng.end > klineState.klines.length - 1) {
+      klineRng.end = klineState.klines.length - 1;
+    }
+    klineState = klineState.copyWith(
+      klineRng: klineRng,
+      visibleKlineCount: klineRng.end - klineRng.begin + 1,
+      crossLineIndex: crossLineIndex,
+    );
+    calcVisibleKlineWidth();
   }
 
   // 计算可视范围K线自适应宽度
-  void calcVisibleKlineWidth(Size size) {
+  void calcVisibleKlineWidth() {
+    Size size = Size(klineState.width, klineState.klineChartHeight);
     if (klineState.klines.isEmpty) {
       return;
     }
@@ -524,7 +585,9 @@ class _KlineCtrlState extends State<KlineCtrl> {
         }
       }
     }
-    debugPrint("window Size: ${size.width}, visibleKlineCount = ${klineState.visibleKlineCount}");
+    debugPrint(
+      "window Size: ${size.width}, klineWidth:$klineWidth, klineInnerWidth: $klineInnerWidth, visibleKlineCount: ${klineState.visibleKlineCount}",
+    );
     klineState.klineWidth = klineWidth;
     klineState.klineInnerWidth = klineInnerWidth.toDouble();
 
@@ -536,13 +599,5 @@ class _KlineCtrlState extends State<KlineCtrl> {
       klineRng.begin = 0;
     }
     klineState.klineRng = klineRng;
-  }
-
-  // 实现缩小逻辑
-  void zoomOut() {}
-
-  // 处理十字线移动
-  void moveCrossLine(int index) {
-    // state = copyWith(crossLineIndex: index);
   }
 }
