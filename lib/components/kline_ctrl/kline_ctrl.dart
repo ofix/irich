@@ -7,8 +7,11 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:irich/components/indicators/amount_indicator.dart';
 import 'package:irich/components/indicators/minute_amount_indicator.dart';
@@ -107,6 +110,7 @@ class KlineCtrl extends StatefulWidget {
 class _KlineCtrlState extends State<KlineCtrl> {
   late KlineState klineState;
   late final FocusNode _focusNode;
+  Timer? _holdTimer;
 
   // K线类型
   static const Map<String, KlineType> klineTypeMap = {
@@ -373,33 +377,80 @@ class _KlineCtrlState extends State<KlineCtrl> {
     setState(() {});
   }
 
+  void onKeyDownArrowLeft() {
+    final index = klineState.crossLineIndex;
+    final klineRng = klineState.klineRng!;
+    if (index == -1) {
+      // 如果十字线未设置，默认设置为最后一根K线
+      klineState.crossLineIndex = klineState.klines.length - 1;
+    } else if (index == klineState.klineRng!.begin && klineRng.begin > 0) {
+      klineState.klineRng!.begin -= 1;
+      klineState.klineRng!.end -= 1;
+      klineState.crossLineIndex -= 1;
+    } else {
+      klineState.crossLineIndex -= 1; // 向左移动十字线
+    }
+    setState(() {});
+  }
+
+  void onKeyDownArrowRight() {
+    final index = klineState.crossLineIndex;
+    final klineRng = klineState.klineRng!;
+    if (index == -1) {
+      // 如果十字线未设置，默认设置为最后一根K线
+      klineState.crossLineIndex = klineState.klines.length - 1;
+    } else if (index == klineState.klineRng!.end && klineRng.end < klineState.klines.length - 1) {
+      // 如果十字线在可视范围的最后一根K线上，向右移动时需要扩展可视范围
+      klineState.klineRng!.begin += 1;
+      klineState.klineRng!.end += 1;
+      klineState.crossLineIndex += 1;
+    } else if (index >= klineState.klines.length - 1) {
+      return; // 已经是最后一根K线了,界面不需要刷新
+    } else {
+      klineState.crossLineIndex += 1; // 向右移动十字线
+    }
+    setState(() {});
+  }
+
+  void detectKeyArrowLeftDown() {
+    final pressed = HardwareKeyboard.instance.logicalKeysPressed.contains(
+      LogicalKeyboardKey.arrowLeft,
+    );
+    if (!pressed) {
+      _holdTimer?.cancel();
+    } else {
+      _focusNode.requestFocus(); // 保持焦点
+      onKeyDownArrowLeft();
+    }
+  }
+
+  void detectKeyArrowRightDown() {
+    final pressed = HardwareKeyboard.instance.logicalKeysPressed.contains(
+      LogicalKeyboardKey.arrowRight,
+    );
+    if (!pressed) {
+      _holdTimer?.cancel();
+    } else {
+      _focusNode.requestFocus(); // 保持焦点
+      onKeyDownArrowRight();
+    }
+  }
+
   // 支持鼠标上/下/左/右方向键进行缩放
   KeyEventResult _onKeyEvent(FocusNode focosNode, KeyEvent event) {
     if (event is KeyDownEvent) {
-      final index = klineState.crossLineIndex;
-      final klineRng = klineState.klineRng!;
       if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        if (index == -1) {
-          // 如果十字线未设置，默认设置为最后一根K线
-          klineState.crossLineIndex = klineState.klines.length - 1;
-        } else if (index == klineState.klineRng!.begin && klineRng.begin > 0) {
-          klineState.klineRng!.begin -= 1;
-          klineState.klineRng!.end -= 1;
-          klineState.crossLineIndex -= 1;
-        } else {
-          klineState.crossLineIndex -= 1; // 向左移动十字线
-        }
+        onKeyDownArrowLeft();
+        _holdTimer?.cancel();
+        _holdTimer = Timer.periodic(Duration(milliseconds: 100), (_) {
+          detectKeyArrowLeftDown();
+        });
       } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        if (index == klineState.klineRng!.end && klineRng.end < klineState.klines.length - 1) {
-          // 如果十字线在可视范围的最后一根K线上，向右移动时需要扩展可视范围
-          klineState.klineRng!.begin += 1;
-          klineState.klineRng!.end += 1;
-          klineState.crossLineIndex += 1;
-        } else if (index >= klineState.klines.length - 1) {
-          return KeyEventResult.handled; // 已经是最后一根K线了,界面不需要刷新
-        } else {
-          klineState.crossLineIndex += 1; // 向右移动十字线
-        }
+        onKeyDownArrowRight();
+        _holdTimer?.cancel();
+        _holdTimer = Timer.periodic(Duration(milliseconds: 100), (_) {
+          detectKeyArrowRightDown();
+        });
       } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
         zoomIn(); // 放大
       } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -413,8 +464,24 @@ class _KlineCtrlState extends State<KlineCtrl> {
       }
       setState(() {});
       return KeyEventResult.handled;
+    } else if (event is KeyUpEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        _focusNode.requestFocus(); // 保持焦点
+        _holdTimer?.cancel();
+        return KeyEventResult.handled;
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        _focusNode.requestFocus(); // 保持焦点
+        _holdTimer?.cancel();
+        return KeyEventResult.handled;
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+          event.logicalKey == LogicalKeyboardKey.arrowDown ||
+          event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.home ||
+          event.logicalKey == LogicalKeyboardKey.end) {
+        return KeyEventResult.handled;
+      }
     }
-    return KeyEventResult.ignored; // 其他按键不处理，比如字符按键
+    return KeyEventResult.ignored; // ，将失去焦点
   }
 
   // 用户单击鼠标的时候也需要记住单击位置所在的K线下标，以此为中心点进行缩放
@@ -583,6 +650,12 @@ class _KlineCtrlState extends State<KlineCtrl> {
         if (klineInnerWidth < 1) {
           klineInnerWidth = 1;
         }
+      }
+      if (klineInnerWidth < 1) {
+        klineInnerWidth = 1;
+      }
+      if (klineWidth < 1) {
+        klineWidth = 1;
       }
     }
     debugPrint(
