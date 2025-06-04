@@ -36,8 +36,8 @@ class _VolumeIndicatorState extends State<VolumeIndicator> {
           klines: state.klines,
           klineRng: state.klineRng!,
           crossLineIndex: state.crossLineIndex,
+          klineStep: state.klineStep,
           klineWidth: state.klineWidth,
-          klineInnerWidth: state.klineInnerWidth,
           isUpList: _getIsUpList(state.klines),
         ),
       ),
@@ -53,16 +53,16 @@ class _VolumeIndicatorPainter extends CustomPainter {
   final List<UiKline> klines; // 绘制K线
   final UiKlineRange klineRng; // 可视K线范围
   final int crossLineIndex; // 当前光标所在K线位置
-  final double klineWidth; // K线宽度
-  final double klineInnerWidth; // K线内部宽度
+  final double klineStep; // K线宽度
+  final double klineWidth; // K线内部宽度
   final List<bool> isUpList; // 红绿盘列表
 
   _VolumeIndicatorPainter({
     required this.klines,
     required this.klineRng,
     required this.crossLineIndex,
+    required this.klineStep,
     required this.klineWidth,
-    required this.klineInnerWidth,
     required this.isUpList,
   });
 
@@ -136,8 +136,8 @@ class _VolumeIndicatorPainter extends CustomPainter {
 
     int nKline = 0;
     for (int i = klineRng.begin; i < klineRng.end; i++) {
-      final x = nKline * klineWidth;
-      final barWidth = klineInnerWidth;
+      final x = nKline * klineStep;
+      final barWidth = klineWidth;
       final barHeight = (klines[i].volume / maxVolume) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 
@@ -157,7 +157,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
           ..strokeWidth = 0.5
           ..style = PaintingStyle.stroke;
 
-    final x = crossLineIndex * klineWidth + klineInnerWidth / 2;
+    final x = crossLineIndex * klineStep + klineWidth / 2;
 
     // 垂直线
     canvas.drawLine(Offset(x, titleHeight), Offset(x, size.height), crossPaint);

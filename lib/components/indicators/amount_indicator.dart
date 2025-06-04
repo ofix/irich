@@ -33,8 +33,8 @@ class _AmountIndicatorState extends State<AmountIndicator> {
         painter: _AmountIndicatorPainter(
           klines: state.klines,
           klineRng: state.klineRng!,
+          klineStep: state.klineStep,
           klineWidth: state.klineWidth,
-          klineInnerWidth: state.klineInnerWidth,
           crossLineIndex: state.crossLineIndex,
           isUpList: _getIsUpList(state.klines, state.klineRng!),
         ),
@@ -55,16 +55,16 @@ class _AmountIndicatorPainter extends CustomPainter {
   final List<UiKline> klines;
   final UiKlineRange klineRng;
   final int crossLineIndex;
+  final double klineStep;
   final double klineWidth;
-  final double klineInnerWidth;
   final List<bool> isUpList;
 
   _AmountIndicatorPainter({
     required this.klines,
     required this.klineRng,
     required this.crossLineIndex,
+    required this.klineStep,
     required this.klineWidth,
-    required this.klineInnerWidth,
     required this.isUpList,
   });
 
@@ -138,8 +138,8 @@ class _AmountIndicatorPainter extends CustomPainter {
     double maxAmount = _calcMaxAmount();
     int nKline = 0;
     for (int i = klineRng.begin; i < klineRng.end; i++) {
-      final x = nKline * klineWidth;
-      final barWidth = klineInnerWidth;
+      final x = nKline * klineStep;
+      final barWidth = klineWidth;
       final barHeight = (klines[i].amount / maxAmount) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 
@@ -159,7 +159,7 @@ class _AmountIndicatorPainter extends CustomPainter {
           ..strokeWidth = 0.5
           ..style = PaintingStyle.stroke;
 
-    final x = crossLineIndex * klineWidth + klineInnerWidth / 2;
+    final x = crossLineIndex * klineStep + klineWidth / 2;
 
     // 垂直线
     canvas.drawLine(Offset(x, titleHeight), Offset(x, size.height), crossPaint);

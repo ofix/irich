@@ -36,8 +36,8 @@ class _KlineChartState extends State<KlineChart> {
           klineRng: widget.klineState.klineRng!,
           emaCurves: widget.klineState.emaCurves,
           crossLineIndex: widget.klineState.crossLineIndex,
+          klineStep: widget.klineState.klineStep,
           klineWidth: widget.klineState.klineWidth,
-          klineInnerWidth: widget.klineState.klineInnerWidth,
         ),
       ),
     );

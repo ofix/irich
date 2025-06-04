@@ -34,8 +34,8 @@ class KlineState {
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
   List<List<UiIndicator>> indicators; // 0:日/周/月/季/年K线技术指标列表,1:分时图技术指标列表,2:五日分时图技术指标列表
   int crossLineIndex; // 十字线位置
+  double klineStep; // K线步长
   double klineWidth; // K线宽度
-  double klineInnerWidth; // K线内部宽度
   int visibleKlineCount; // 可视区域K线数量
   double width; // K线图宽度
   double klineChartHeight; // K线图高度
@@ -51,8 +51,8 @@ class KlineState {
     List<List<UiIndicator>>? indicators,
     UiKlineRange? klineRng,
     this.crossLineIndex = -1,
-    this.klineWidth = 17,
-    this.klineInnerWidth = 15,
+    this.klineStep = 17,
+    this.klineWidth = 15,
     this.visibleKlineCount = 120,
     this.width = 800,
     this.klineChartHeight = 600,
@@ -76,8 +76,8 @@ class KlineState {
     List<List<UiIndicator>>? indicators,
     int? visibleIndicatorIndex,
     int? crossLineIndex,
+    double? klineStep,
     double? klineWidth,
-    double? klineInnerWidth,
     int? visibleKlineCount,
     double? width,
     double? klineChartHeight,
@@ -93,8 +93,8 @@ class KlineState {
       emaCurves: emaCurves ?? this.emaCurves,
       indicators: indicators ?? this.indicators,
       crossLineIndex: crossLineIndex ?? this.crossLineIndex,
+      klineStep: klineStep ?? this.klineStep,
       klineWidth: klineWidth ?? this.klineWidth,
-      klineInnerWidth: klineInnerWidth ?? this.klineInnerWidth,
       visibleKlineCount: visibleKlineCount ?? this.visibleKlineCount,
       width: width ?? this.width,
       klineChartHeight: klineChartHeight ?? this.klineChartHeight,
@@ -148,8 +148,8 @@ class _KlineCtrlState extends State<KlineCtrl> {
   void initState() {
     super.initState();
     klineState = KlineState(share: widget.share, klineType: KlineType.day);
-    klineState.klineWidth = 7;
-    klineState.klineInnerWidth = 5;
+    klineState.klineStep = 7;
+    klineState.klineWidth = 5;
     _focusNode = FocusNode();
     _focusNode.requestFocus();
     loadKlines(); // 加载K线数据
@@ -512,7 +512,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     final RenderBox box = context.findRenderObject() as RenderBox;
     final localPosition = box.globalToLocal(details.globalPosition);
     // 计算点击的K线索引
-    final index = (localPosition.dx / klineState.klineWidth).floor();
+    final index = (localPosition.dx / klineState.klineStep).floor();
     klineState.crossLineIndex = index + klineState.klineRng!.begin;
     setState(() {});
   }
@@ -603,27 +603,16 @@ class _KlineCtrlState extends State<KlineCtrl> {
     calcVisibleKlineWidth();
   }
 
-  // 处理K线宽度边界情况
-  double _ensureKlineWidth(double klineWidth) {
+  // 处理K线实心宽度边界情况
+  int _ensureKlineWidth(double klineStep, int klineWidth) {
+    if (klineStep > 1 && klineWidth % 2 == 0) {
+      klineWidth = klineWidth;
+      klineWidth -= 1;
+    }
     if (klineWidth < 1) {
-      klineWidth = 1; // k线宽度不能小于1
+      klineWidth = 1;
     }
     return klineWidth;
-  }
-
-  // 处理K线实心宽度边界情况
-  int _ensureKlineInnerWidth(double klineWidth, int klineInnerWidth) {
-    if (klineWidth > 1 && klineInnerWidth % 2 == 0) {
-      klineInnerWidth = klineInnerWidth;
-      klineInnerWidth -= 1;
-      if (klineInnerWidth < 1) {
-        klineInnerWidth = 1;
-      }
-    }
-    if (klineInnerWidth < 1) {
-      klineInnerWidth = 1;
-    }
-    return klineInnerWidth;
   }
 
   // 实现缩放逻辑，显示的K线数量变多
@@ -635,14 +624,10 @@ class _KlineCtrlState extends State<KlineCtrl> {
     }
     // 可见K线数量大于等于总K线数量，不再缩小
     if (klineState.visibleKlineCount == klineState.klines.length) {
-      double klineWidth = klineState.width / klineState.visibleKlineCount * 0.85;
-      int klineInnerWidth = (klineState.klineWidth * 0.8).floor();
-      klineWidth = _ensureKlineWidth(klineWidth);
-      klineInnerWidth = _ensureKlineInnerWidth(klineWidth, klineInnerWidth);
-      klineState = klineState.copyWith(
-        klineWidth: klineWidth,
-        klineInnerWidth: klineInnerWidth.toDouble(),
-      );
+      double klineStep = klineState.width / klineState.visibleKlineCount * 0.85;
+      int klineWidth = (klineState.klineStep * 0.8).floor();
+      klineWidth = _ensureKlineWidth(klineStep, klineWidth);
+      klineState = klineState.copyWith(klineStep: klineStep, klineWidth: klineWidth.toDouble());
       return;
     }
 
@@ -678,13 +663,12 @@ class _KlineCtrlState extends State<KlineCtrl> {
     if (klineState.klines.isEmpty) {
       return;
     }
-    double klineWidth;
-    int klineInnerWidth;
-    klineWidth = (size.width / klineState.visibleKlineCount).floor().toDouble();
-    klineInnerWidth = (klineWidth * 0.8).floor();
-    klineWidth = _ensureKlineWidth(klineWidth);
-    klineInnerWidth = _ensureKlineInnerWidth(klineWidth, klineInnerWidth);
-    klineState.klineWidth = klineWidth;
-    klineState.klineInnerWidth = klineInnerWidth.toDouble();
+    double klineStep;
+    int klineWidth;
+    klineStep = size.width / klineState.visibleKlineCount;
+    klineWidth = (klineStep * 0.8).floor();
+    klineWidth = _ensureKlineWidth(klineStep, klineWidth);
+    klineState.klineStep = klineStep;
+    klineState.klineWidth = klineWidth.toDouble();
   }
 }

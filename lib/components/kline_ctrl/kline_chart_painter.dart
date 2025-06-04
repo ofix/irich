@@ -20,8 +20,8 @@ class KlinePainter extends CustomPainter {
   UiKlineRange klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
   int crossLineIndex; // 十字线位置
+  double klineStep; // K线步长
   double klineWidth; // K线宽度
-  double klineInnerWidth; // K线内部宽度
 
   double minKlinePrice = 0.0; // 可视区域K线最低价
   double maxKlinePrice = 0.0; // 可视区域K线最高价
@@ -39,8 +39,8 @@ class KlinePainter extends CustomPainter {
     required this.klineRng,
     required this.emaCurves,
     required this.crossLineIndex,
+    required this.klineStep,
     required this.klineWidth,
-    required this.klineInnerWidth,
   });
 
   @override
@@ -124,16 +124,6 @@ class KlinePainter extends CustomPainter {
     minRectPrice = min;
   }
 
-  double getDrawStep(Size size) {
-    double deltaWidth = 3;
-    if (klineWidth == 1.0) {
-      deltaWidth = size.width / (klineRng.end - klineRng.begin + 1);
-    } else {
-      deltaWidth = klineWidth;
-    }
-    return deltaWidth;
-  }
-
   // 绘制K线背景
   void _drawBackground(Canvas canvas, Size size) {
     final bgPaint =
@@ -206,11 +196,10 @@ class KlinePainter extends CustomPainter {
     // 绿盘画笔
     // 绘制K线
     int nKline = 0; // 第几根K线
-    double step = getDrawStep(size);
     for (var i = klineRng.begin; i <= klineRng.end; i++) {
       final kline = klines[i];
-      final x = nKline * step;
-      final centerX = x + klineInnerWidth / 2;
+      final x = nKline * klineStep;
+      final centerX = x + klineWidth / 2;
 
       // 计算坐标
       final highY = (maxPrice - kline.priceMax) * priceRatio;
@@ -226,7 +215,7 @@ class KlinePainter extends CustomPainter {
       // 非一字板情况
       if (kline.priceClose != kline.priceOpen) {
         canvas.drawRect(
-          Rect.fromLTRB(x, isUp ? closeY : openY, x + klineInnerWidth, isUp ? openY : closeY),
+          Rect.fromLTRB(x, isUp ? closeY : openY, x + klineWidth, isUp ? openY : closeY),
           isUp ? klineRedPen : klineGreenPen,
         );
       } else {
@@ -271,10 +260,10 @@ class KlinePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
     int nKline = 0;
-    double initialX = klineInnerWidth / 2;
-    double step = getDrawStep(size);
+    double initialX = klineWidth / 2;
+
     for (int i = klineRng.begin; i <= klineRng.end; i++) {
-      final x = nKline * step + initialX;
+      final x = nKline * klineStep + initialX;
       final y = (maxPrice - ema.emaPrice[i]) * priceRatio;
 
       if (i == klineRng.begin) {
@@ -618,7 +607,7 @@ class KlinePainter extends CustomPainter {
     final kline = klines[crossLineIndex];
     final priceRange = maxRectPrice - minRectPrice;
     final y = (1 - (kline.priceClose - minRectPrice) / priceRange) * size.height;
-    final x = (crossLineIndex - klineRng.begin) * klineWidth + klineInnerWidth / 2;
+    final x = (crossLineIndex - klineRng.begin) * klineStep + klineWidth / 2;
     // 水平线
     canvas.drawLine(Offset(0, y), Offset(size.width, y), crossPaint);
     // 垂直线
