@@ -61,7 +61,7 @@ final appRouter = GoRouter(
       path: '/settings',
       pageBuilder:
           (context, state) =>
-              NoTransitionPage(key: state.pageKey, child: const SettingsPage(title: "任务列表")),
+              NoTransitionPage(key: state.pageKey, child: const SettingsPage(title: "任务")),
     ),
   ],
 );

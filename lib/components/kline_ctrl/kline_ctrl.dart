@@ -103,7 +103,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
         addEmaCurve(905, Color.fromARGB(255, 0, 255, 0));
         initKlineRange(); // 初始化可见K线范围
       }
-
       initIndicators(); // 初始化附图指标
       setState(() {});
     } catch (e, stackTrace) {
@@ -131,7 +130,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
 
   // 初始化附图指标，有可能需要从文件中加载
   void initIndicators() {
-    klineState.indicators = [
+    final indicators = [
       [
         UiIndicator(type: UiIndicatorType.amount),
         UiIndicator(type: UiIndicatorType.volume),
@@ -146,6 +145,19 @@ class _KlineCtrlState extends State<KlineCtrl> {
         UiIndicator(type: UiIndicatorType.fiveDayMinuteVolume),
       ],
     ];
+    final klineType = klineState.klineType;
+    if (klineType == KlineType.day ||
+        klineType == KlineType.week ||
+        klineType == KlineType.month ||
+        klineType == KlineType.quarter ||
+        klineType == KlineType.year) {
+      klineState.indicators = indicators[0];
+      klineState.dynamicIndicators = indicators[0];
+    } else if (klineType == KlineType.minute) {
+      klineState.indicators = indicators[1];
+    } else if (klineType == KlineType.fiveDay) {
+      klineState.indicators = indicators[2];
+    }
   }
 
   @override
@@ -175,7 +187,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
                 children: [
                   // K线类型切换
                   Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
-
                   // EMA加权平均线
                   _buildEmaCurveButtons(context, emaCurveMap),
                   // K线主图
@@ -248,27 +259,14 @@ class _KlineCtrlState extends State<KlineCtrl> {
 
   // 绘制技术指标附图
   List<Widget> _buildIndicators(BuildContext context, KlineState klienState) {
-    final klineType = klineState.klineType;
     final indicators = klineState.indicators;
     if (indicators.isEmpty) {
       return [];
     }
     List<Widget> widgets = [];
-    List<UiIndicator> currentIndicators = [];
-    if (klineType == KlineType.day ||
-        klineType == KlineType.week ||
-        klineType == KlineType.month ||
-        klineType == KlineType.quarter ||
-        klineType == KlineType.year) {
-      currentIndicators = indicators[0];
-    } else if (klineType == KlineType.minute) {
-      currentIndicators = indicators[1];
-    } else if (klineType == KlineType.fiveDay) {
-      currentIndicators = indicators[2];
-    }
 
-    for (int i = 0; i < currentIndicators.length; i++) {
-      final type = currentIndicators[i].type;
+    for (int i = 0; i < indicators.length; i++) {
+      final type = indicators[i].type;
       if (type == UiIndicatorType.amount) {
         widgets.add(AmountIndicator(klineState: klineState));
       } else if (type == UiIndicatorType.volume) {
@@ -291,7 +289,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     if (klineState.indicators.length <= 4) {
       ratio = chartHeightMap[klineState.indicators.length]!;
     }
-    double height = size.height - 103;
+    double height = size.height - 60;
 
     klineState.klineChartWidth =
         size.width - klineState.klineChartLeftMargin - klineState.klineChartRightMargin;
@@ -454,7 +452,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
 
   // 添加技术指标
   void addIndicator(UiIndicator indicator, int i) {
-    klineState.indicators[i].add(indicator);
+    klineState.dynamicIndicators.add(indicator);
   }
 
   // 添加EMA曲线
@@ -556,9 +554,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
     // 左右边界处理
     if (klineRng.begin < 0) {
       klineRng.begin = 0;
-    }
-    if (klineRng.end > klineState.klines.length - 1) {
-      klineRng.end = klineState.klines.length - 1;
     }
     if (klineRng.end > klineState.klines.length - 1) {
       klineRng.end = klineState.klines.length - 1;

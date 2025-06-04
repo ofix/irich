@@ -86,9 +86,9 @@ class _MinuteVolumePainter extends CustomPainter {
       width: klineChartWidth,
       height: size.height,
       nRows: 4,
-      nCols: 4,
+      nCols: 8,
       nBigRows: 0,
-      nBigCols: 2,
+      nBigCols: 0,
       color: Colors.grey,
     );
     // 绘制十字线
@@ -96,7 +96,39 @@ class _MinuteVolumePainter extends CustomPainter {
       drawCrossLine(canvas, size);
     }
     canvas.restore();
-    // 绘制左边指示面板
+    // 绘制左边成交量指示面板
+    canvas.save();
+    canvas.translate(-2, 0);
+    drawKlinePane(
+      type: KlinePaneType.minuteVolume,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: size.height,
+      reference: 0,
+      min: 0,
+      max: maxVolume,
+      nRows: 4,
+      textAlign: TextAlign.right,
+      fontSize: 11,
+    );
+    canvas.restore();
+
+    // 绘制右边成交量指示面板
+    canvas.save();
+    canvas.translate(klineChartLeftMargin + klineChartWidth + 2, 0);
+    drawKlinePane(
+      type: KlinePaneType.minuteVolume,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: size.height,
+      reference: 0,
+      min: 0,
+      max: maxVolume,
+      nRows: 4,
+      textAlign: TextAlign.left,
+      fontSize: 11,
+    );
+    canvas.restore();
   }
 
   BigInt _calcMaxVolume() {
@@ -113,21 +145,12 @@ class _MinuteVolumePainter extends CustomPainter {
     final totalLines =
         klineType == KlineType.minute ? klines.length.clamp(0, 240) : klines.length.clamp(0, 1200);
 
-    Paint greyPen = Paint()..color = Colors.grey;
-    Paint redPen = Paint()..color = Colors.red;
-    Paint greenPen = Paint()..color = Colors.green;
-
+    Paint pen = Paint()..color = const Color.fromARGB(255, 136, 211, 251);
     for (int i = 1; i < totalLines; i++) {
       final x = i * barWidth;
       final y = height * (1 - klines[i].volume / BigInt.from(maxVolume));
       final h = height * klines[i].volume.toDouble() / maxVolume;
-      if (klines[i].price > klines[i - 1].price) {
-        canvas.drawLine(Offset(x, y), Offset(x, y + h), redPen);
-      } else if (klines[i].price < klines[i - 1].price) {
-        canvas.drawLine(Offset(x, y), Offset(x, y + h), greenPen);
-      } else {
-        canvas.drawLine(Offset(x, y), Offset(x, y + h), greyPen);
-      }
+      canvas.drawLine(Offset(x, y), Offset(x, y + h), pen);
     }
   }
 
@@ -139,15 +162,6 @@ class _MinuteVolumePainter extends CustomPainter {
     drawVerticalLine(canvas: canvas, x: crossLineIndex * barWidth, yTop: 0, yBottom: size.height);
     canvas.restore();
   }
-
-  // String _formatVolume(double volume) {
-  //   if (volume >= 100000000) {
-  //     return '${(volume / 100000000).toStringAsFixed(2)}亿';
-  //   } else if (volume >= 10000) {
-  //     return '${(volume / 10000).toStringAsFixed(2)}万';
-  //   }
-  //   return volume.toStringAsFixed(0);
-  // }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;

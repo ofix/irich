@@ -19,6 +19,6 @@ final lightColorScheme = ColorScheme.light(
 final darkColorScheme = ColorScheme.dark(
   primary: Colors.blue.shade300,
   secondary: Colors.blue.shade200,
-  surface: Colors.grey.shade900,
+  surface: const Color.fromARGB(255, 28, 29, 33),
   error: Colors.red.shade300,
 );

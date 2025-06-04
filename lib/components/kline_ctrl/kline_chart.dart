@@ -28,7 +28,7 @@ class _KlineChartState extends State<KlineChart> {
           widget.klineState.klineChartLeftMargin +
           widget.klineState.klineChartRightMargin,
       height: widget.klineState.klineChartHeight,
-      color: const Color(0xFF1E1E1E),
+      color: const Color.fromARGB(255, 28, 29, 33),
       child: CustomPaint(
         painter: KlinePainter(
           share: widget.klineState.share,

@@ -24,7 +24,7 @@ class TaskListPanel extends ConsumerWidget {
       children: [
         const Padding(
           padding: EdgeInsets.all(8.0),
-          child: Text('任务列表', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          child: Text('任务', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
         Expanded(
           child: ListView.builder(

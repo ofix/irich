@@ -18,7 +18,8 @@ class KlineState {
   List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
   UiKlineRange? klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
-  List<List<UiIndicator>> indicators; // 0:日/周/月/季/年K线技术指标列表,1:分时图技术指标列表,2:五日分时图技术指标列表
+  List<UiIndicator> indicators; //  当前显示的指标副图，日/周/月/季/年K线技术指标列表, 分时图技术指标列表,  五日分时图技术指标列表
+  List<UiIndicator> dynamicIndicators; // 日/周/月/季/年K线技术指标列表,支持动态添加和删除
   int crossLineIndex; // 十字线位置
   double klineStep; // K线步长
   double klineWidth; // K线宽度
@@ -36,7 +37,8 @@ class KlineState {
     List<MinuteKline>? minuteKlines,
     List<MinuteKline>? fiveDayMinuteKlines,
     List<ShareEmaCurve>? emaCurves,
-    List<List<UiIndicator>>? indicators,
+    List<UiIndicator>? indicators,
+    List<UiIndicator>? dynamicIndicators,
     UiKlineRange? klineRng,
     this.crossLineIndex = -1,
     this.klineStep = 17,
@@ -52,7 +54,8 @@ class KlineState {
        fiveDayMinuteKlines = fiveDayMinuteKlines ?? [],
        klineRng = klineRng ?? UiKlineRange(begin: 0, end: 0),
        emaCurves = emaCurves ?? [],
-       indicators = indicators ?? [];
+       indicators = indicators ?? [],
+       dynamicIndicators = dynamicIndicators ?? [];
 
   // 深拷贝方法（可选）
   KlineState copyWith({
@@ -63,7 +66,8 @@ class KlineState {
     List<MinuteKline>? fiveDayMinuteKlines,
     UiKlineRange? klineRng,
     List<ShareEmaCurve>? emaCurves,
-    List<List<UiIndicator>>? indicators,
+    List<UiIndicator>? indicators,
+    List<UiIndicator>? dynamicIndicators,
     int? visibleIndicatorIndex,
     int? crossLineIndex,
     double? klineStep,
@@ -84,6 +88,7 @@ class KlineState {
       klineRng: klineRng ?? this.klineRng,
       emaCurves: emaCurves ?? this.emaCurves,
       indicators: indicators ?? this.indicators,
+      dynamicIndicators: dynamicIndicators ?? this.dynamicIndicators,
       crossLineIndex: crossLineIndex ?? this.crossLineIndex,
       klineStep: klineStep ?? this.klineStep,
       klineWidth: klineWidth ?? this.klineWidth,
@@ -101,6 +106,9 @@ enum KlinePaneType {
   price, // 价格
   percent, // 百分比
   amount, // 金额
+  volume, // 成交量
+  minuteAmount, // 分时图成交额
+  minuteVolume, // 分时图成交量
   minutePrice, // 分时价格
   minutePercent, // 分时百分比
 }
@@ -185,13 +193,13 @@ void drawVerticalLine({
   required double yTop,
   required double yBottom,
 }) {
-  final verticalPen =
-      Paint()
-        ..color = Colors.white.withOpacity(0.7)
-        ..strokeWidth = 0.5
-        ..style = PaintingStyle.stroke;
   // 垂直线
-  canvas.drawLine(Offset(x, yTop), Offset(x, yBottom), verticalPen);
+  drawDashedLine(
+    canvas: canvas,
+    startPoint: Offset(x, yTop),
+    endPoint: Offset(x, yBottom),
+    color: const Color.fromARGB(255, 58, 88, 239),
+  );
 }
 
 /// 绘制K线指示面板
@@ -216,6 +224,7 @@ void drawKlinePane({
   required int nRows,
   required TextAlign textAlign,
   required double fontSize,
+  double offsetY = 0,
 }) {
   switch (type) {
     case KlinePaneType.minutePrice:
@@ -235,6 +244,7 @@ void drawKlinePane({
           formatFunc: (double data) {
             return data.toStringAsFixed(2);
           },
+          offsetY: offsetY,
         );
         break;
       }
@@ -255,12 +265,15 @@ void drawKlinePane({
           formatFunc: (double data) {
             return "${(data * 100).toStringAsFixed(2)}%";
           },
+          offsetY: offsetY,
         );
         break;
       }
+    case KlinePaneType.minuteAmount:
     case KlinePaneType.amount:
       {
         _drawKlinePaneStyleTwo(
+          type: type,
           canvas: canvas,
           width: width,
           height: height,
@@ -270,12 +283,51 @@ void drawKlinePane({
           textAlign: textAlign,
           fontSize: fontSize,
           formatFunc: (double data) {
-            return "${(data * 100).toStringAsFixed(2)}%";
+            return formatAmount(data);
           },
+          offsetY: offsetY,
+        );
+        break;
+      }
+    case KlinePaneType.minuteVolume:
+    case KlinePaneType.volume:
+      {
+        _drawKlinePaneStyleTwo(
+          type: type,
+          canvas: canvas,
+          width: width,
+          height: height,
+          min: min,
+          max: max,
+          nRows: nRows,
+          textAlign: textAlign,
+          fontSize: fontSize,
+          formatFunc: (double data) {
+            return formatVolume(data);
+          },
+          offsetY: offsetY,
         );
         break;
       }
   }
+}
+
+String formatAmount(double amount) {
+  if (amount >= 100000000) {
+    return '${(amount / 100000000).toStringAsFixed(1)}亿';
+  } else if (amount >= 10000) {
+    return '${(amount / 10000).toStringAsFixed(1)}万';
+  }
+  return amount.toStringAsFixed(1);
+}
+
+String formatVolume(double volume) {
+  if (volume >= 100000000) {
+    return '${(volume / 100000000).toStringAsFixed(0)}亿';
+  } else if (volume >= 10000) {
+    return '${(volume / 10000).toStringAsFixed(0)}万';
+  }
+  return volume.toStringAsFixed(0);
 }
 
 void _drawKlinePaneStyleOne({
@@ -290,6 +342,7 @@ void _drawKlinePaneStyleOne({
   required TextAlign textAlign,
   required double fontSize,
   required String Function(double) formatFunc,
+  double offsetY = 0,
 }) {
   double step = (max - min) / nRows;
   double stepHeight = (height) / nRows;
@@ -319,7 +372,7 @@ void _drawKlinePaneStyleOne({
     }
     final y = (i == 0) ? 0.0 : stepHeight * i - fontSize;
 
-    textPainter.paint(canvas, Offset(x, y));
+    textPainter.paint(canvas, Offset(x, y + offsetY));
   }
   // 绘制中间部分
   Color middleColor = Colors.grey;
@@ -345,10 +398,10 @@ void _drawKlinePaneStyleOne({
     x = width - textPainter.width; // 画布宽度 - 文本宽度
   }
   final y = stepHeight * halfSegments - fontSize;
-  textPainter.paint(canvas, Offset(x, y));
+  textPainter.paint(canvas, Offset(x, y + offsetY));
   Color bottomColor = Colors.green;
-  // 绘制下半部分
-  for (int i = halfSegments + 1; i <= nRows; i++) {
+  // 绘制下半部分（最后一行不绘制，因为下面有指标副图）
+  for (int i = halfSegments + 1; i < nRows; i++) {
     double bottomValue = max - i * step;
     String label = formatFunc(bottomValue);
     if (type == KlinePaneType.percent || type == KlinePaneType.price) {
@@ -370,11 +423,12 @@ void _drawKlinePaneStyleOne({
     }
     final y = (i == nRows) ? stepHeight * i - fontSize : stepHeight * i - halfFontSize;
 
-    textPainter.paint(canvas, Offset(x, y));
+    textPainter.paint(canvas, Offset(x, y + offsetY));
   }
 }
 
 void _drawKlinePaneStyleTwo({
+  required KlinePaneType type,
   required Canvas canvas,
   required double width,
   required double height,
@@ -384,12 +438,13 @@ void _drawKlinePaneStyleTwo({
   required TextAlign textAlign,
   required double fontSize,
   required String Function(double) formatFunc,
+  double offsetY = 0,
 }) {
   double step = (max - min) / nRows;
-  double stepHeight = (height) / nRows;
+  double stepHeight = height / nRows;
   double halfFontSize = fontSize / 2;
-  // 绘制上半部分
-  for (int i = 0; i <= nRows; i++) {
+  // 最后一行不绘制，留给其他指标副图腾空间
+  for (int i = 0; i < nRows; i++) {
     String label = formatFunc(max - i * step);
     TextPainter textPainter = TextPainter(
       text: TextSpan(text: label, style: TextStyle(color: Colors.grey, fontSize: fontSize)),
@@ -402,12 +457,82 @@ void _drawKlinePaneStyleTwo({
     }
     double y = 0;
     if (i == 0) {
-      y = stepHeight * i;
+      if (type == KlinePaneType.minuteAmount || type == KlinePaneType.minuteVolume) {
+        y = stepHeight * i - halfFontSize;
+      } else {
+        y = stepHeight * i;
+      }
     } else if (i == nRows) {
       y = stepHeight * i - fontSize;
     } else {
       y = stepHeight * i - halfFontSize;
     }
-    textPainter.paint(canvas, Offset(x, y));
+    textPainter.paint(canvas, Offset(x, y + offsetY));
   }
+}
+
+/// 绘制虚线
+/// [canvas] 画布对象
+/// [startPoint] 起始位置
+/// [endPoint] 结束位置
+/// [color] 绘制颜色 (默认黑色)
+/// [strokeWidth] 线宽 (默认1.0)
+/// [dashPattern] 虚线样式，需包含至少2个值：[实线长度, 空白长度] (默认[5.0, 3.0])
+void drawDashedLine({
+  required Canvas canvas,
+  required Offset startPoint,
+  required Offset endPoint,
+  Color color = Colors.black,
+  double strokeWidth = 1.0,
+  List<double> dashPattern = const [2.0, 1.0],
+}) {
+  // 检查坐标点有效性
+  if (!_isValidOffset(startPoint) || !_isValidOffset(endPoint)) {
+    debugPrint('DashedLine invalid parameters: start=$startPoint, end=$endPoint');
+    return;
+  }
+  // 参数校验
+  assert(dashPattern.length >= 2, 'dashPattern must have at least 2 values');
+
+  final paint =
+      Paint()
+        ..color = color
+        ..strokeWidth = strokeWidth
+        ..style = PaintingStyle.stroke;
+
+  final path = Path();
+  path.moveTo(startPoint.dx, startPoint.dy);
+
+  final totalDistance = (endPoint - startPoint).distance;
+  final dashLength = dashPattern[0];
+  final gapLength = dashPattern[1];
+  final segmentLength = dashLength + gapLength;
+
+  // 避免除以零
+  if (totalDistance <= 0 || segmentLength <= 0) {
+    debugPrint("drawDashedLine 参数错误");
+    return;
+  }
+
+  // 计算总段数（确保不为Infinity/NaN）
+  final segments = (totalDistance / segmentLength).floor();
+  if (segments <= 0) return; // 没有足够的空间绘制至少一段虚线
+
+  for (int i = 0; i < segments; i++) {
+    final ratioStart = (i * segmentLength) / totalDistance;
+    final ratioEnd = ((i * segmentLength) + dashLength) / totalDistance;
+
+    final currentStart = Offset.lerp(startPoint, endPoint, ratioStart)!;
+    final currentEnd = Offset.lerp(startPoint, endPoint, ratioEnd)!;
+
+    path.moveTo(currentStart.dx, currentStart.dy);
+    path.lineTo(currentEnd.dx, currentEnd.dy);
+  }
+
+  canvas.drawPath(path, paint);
+}
+
+/// 检查Offset是否有效（非Infinity/NaN）
+bool _isValidOffset(Offset offset) {
+  return offset.dx.isFinite && offset.dy.isFinite && !offset.dx.isNaN && !offset.dy.isNaN;
 }

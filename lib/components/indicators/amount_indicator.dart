@@ -64,6 +64,8 @@ class _AmountIndicatorPainter extends CustomPainter {
   final double klineChartWidth;
   final double klineChartLeftMargin;
   final double klineChartRightMargin;
+  late final double maxAmount;
+  final double titleHeight = 20.0;
 
   _AmountIndicatorPainter({
     required this.klines,
@@ -75,7 +77,9 @@ class _AmountIndicatorPainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
-  });
+  }) {
+    maxAmount = _calcMaxAmount();
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -89,10 +93,44 @@ class _AmountIndicatorPainter extends CustomPainter {
     if (crossLineIndex != -1) {
       _drawCrossLine(canvas, size);
     }
+    // 绘制左边成交额指示面板
+    canvas.save();
+    canvas.translate(-2, 0);
+    drawKlinePane(
+      type: KlinePaneType.amount,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: size.height,
+      reference: 0,
+      min: 0,
+      max: maxAmount,
+      nRows: 4,
+      textAlign: TextAlign.right,
+      fontSize: 11,
+      offsetY: titleHeight,
+    );
+    canvas.restore();
+
+    // 绘制右边成交额指示面板
+    canvas.save();
+    canvas.translate(klineChartLeftMargin + klineChartWidth + 2, 0);
+    drawKlinePane(
+      type: KlinePaneType.amount,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: size.height,
+      reference: 0,
+      min: 0,
+      max: maxAmount,
+      nRows: 4,
+      textAlign: TextAlign.left,
+      fontSize: 11,
+      offsetY: titleHeight,
+    );
+    canvas.restore();
   }
 
   void _drawTitleBar(Canvas canvas, Size size) {
-    const titleHeight = 20.0;
     final textStyle = TextStyle(color: Colors.white, fontSize: 12);
 
     // 绘制标题背景
@@ -104,7 +142,7 @@ class _AmountIndicatorPainter extends CustomPainter {
 
     // 绘制标题文本
     final textPainter = TextPainter(
-      text: TextSpan(text: '成交额', style: textStyle.copyWith(color: Colors.white)),
+      text: TextSpan(text: '成交额', style: textStyle.copyWith(color: Colors.grey)),
       textDirection: TextDirection.ltr,
     )..layout();
     textPainter.paint(canvas, const Offset(4, 4));
@@ -112,8 +150,8 @@ class _AmountIndicatorPainter extends CustomPainter {
     // 绘制昨日成交额
     final yesterdayText = TextPainter(
       text: TextSpan(
-        text: '昨: ${_formatAmount(klines.isNotEmpty ? klines[0].amount : 0)}',
-        style: textStyle.copyWith(color: Colors.grey),
+        text: '昨: ${formatAmount(klines.isNotEmpty ? klines[0].amount : 0)}',
+        style: textStyle.copyWith(color: const Color.fromARGB(255, 237, 130, 8)),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
@@ -122,8 +160,8 @@ class _AmountIndicatorPainter extends CustomPainter {
     // 绘制今日成交额
     final todayText = TextPainter(
       text: TextSpan(
-        text: '今: ${_formatAmount(klines.isNotEmpty ? klines.last.amount : 0)}',
-        style: textStyle.copyWith(color: Colors.white),
+        text: '今: ${formatAmount(klines.isNotEmpty ? klines.last.amount : 0)}',
+        style: textStyle.copyWith(color: Colors.red),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
@@ -131,7 +169,6 @@ class _AmountIndicatorPainter extends CustomPainter {
   }
 
   void _drawAmountBars(Canvas canvas, double height) {
-    const titleHeight = 20.0;
     final bodyHeight = height - titleHeight;
 
     final redPaint =
@@ -144,7 +181,6 @@ class _AmountIndicatorPainter extends CustomPainter {
           ..color = Colors.green
           ..style = PaintingStyle.fill;
 
-    double maxAmount = _calcMaxAmount();
     canvas.save();
     canvas.translate(klineChartLeftMargin, 0);
     int nKline = 0;
@@ -164,7 +200,6 @@ class _AmountIndicatorPainter extends CustomPainter {
   }
 
   void _drawCrossLine(Canvas canvas, Size size) {
-    const titleHeight = 20.0;
     final crossPaint =
         Paint()
           ..color = Colors.white.withOpacity(0.7)
@@ -175,15 +210,6 @@ class _AmountIndicatorPainter extends CustomPainter {
 
     // 垂直线
     canvas.drawLine(Offset(x, titleHeight), Offset(x, size.height), crossPaint);
-  }
-
-  String _formatAmount(double amount) {
-    if (amount >= 100000000) {
-      return '${(amount / 100000000).toStringAsFixed(2)}亿';
-    } else if (amount >= 10000) {
-      return '${(amount / 10000).toStringAsFixed(2)}万';
-    }
-    return amount.toStringAsFixed(2);
   }
 
   double _calcMaxAmount() {

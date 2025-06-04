@@ -30,7 +30,7 @@ class DesktopMenu extends StatelessWidget {
           _buildMenuItem(context, icon: Icons.trending_up, label: '行情', route: '/market'),
           _buildMenuItem(context, icon: Icons.search, label: '选股', route: '/discovery'),
           _buildMenuItem(context, icon: Icons.explore, label: '决策', route: '/portfolio'),
-          _buildMenuItem(context, icon: Icons.settings, label: '任务列表', route: '/settings'),
+          _buildMenuItem(context, icon: Icons.settings, label: '任务', route: '/settings'),
         ],
       ),
     );

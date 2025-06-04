@@ -63,6 +63,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
   final double klineChartLeftMargin; // K线图左边距
   final double klineChartRightMargin; // K线图右边距
   final double titleHeight = 20;
+  late final double maxVolume;
 
   _VolumeIndicatorPainter({
     required this.klines,
@@ -74,7 +75,9 @@ class _VolumeIndicatorPainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
-  });
+  }) {
+    maxVolume = _calcMaxVolume().toDouble();
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -87,6 +90,41 @@ class _VolumeIndicatorPainter extends CustomPainter {
     if (crossLineIndex != -1) {
       drawCrossLine(canvas, size.height);
     }
+    // 绘制左边成交量指示面板
+    canvas.save();
+    canvas.translate(-2, 0);
+    drawKlinePane(
+      type: KlinePaneType.volume,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: size.height,
+      reference: 0,
+      min: 0,
+      max: maxVolume,
+      nRows: 4,
+      textAlign: TextAlign.right,
+      fontSize: 11,
+      offsetY: titleHeight,
+    );
+    canvas.restore();
+
+    // 绘制右边成交量指示面板
+    canvas.save();
+    canvas.translate(klineChartLeftMargin + klineChartWidth + 2, 0);
+    drawKlinePane(
+      type: KlinePaneType.volume,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: size.height,
+      reference: 0,
+      min: 0,
+      max: maxVolume,
+      nRows: 4,
+      textAlign: TextAlign.left,
+      fontSize: 11,
+      offsetY: titleHeight,
+    );
+    canvas.restore();
   }
 
   void drawTitleBar(Canvas canvas, Size size) {
@@ -101,7 +139,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
 
     // 绘制标题文本
     final textPainter = TextPainter(
-      text: TextSpan(text: '成交量', style: textStyle.copyWith(color: Colors.white)),
+      text: TextSpan(text: '成交量', style: textStyle.copyWith(color: Colors.grey)),
       textDirection: TextDirection.ltr,
     )..layout();
     textPainter.paint(canvas, const Offset(4, 4));
@@ -109,10 +147,13 @@ class _VolumeIndicatorPainter extends CustomPainter {
     // 绘制昨日成交量
     String yesterdayVolume = "--";
     if (klines.isNotEmpty) {
-      yesterdayVolume = _formatVolume(klines.first.volume.toDouble());
+      yesterdayVolume = formatVolume(klines.first.volume.toDouble());
     }
     final yesterdayText = TextPainter(
-      text: TextSpan(text: '昨: $yesterdayVolume', style: textStyle.copyWith(color: Colors.grey)),
+      text: TextSpan(
+        text: '昨: $yesterdayVolume',
+        style: textStyle.copyWith(color: const Color.fromARGB(255, 237, 130, 8)),
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
     yesterdayText.paint(canvas, Offset(textPainter.width + 12, 4));
@@ -120,10 +161,10 @@ class _VolumeIndicatorPainter extends CustomPainter {
     // 绘制今日成交量
     String todayVolume = "--";
     if (klines.isNotEmpty) {
-      todayVolume = _formatVolume(klines.last.volume.toDouble());
+      todayVolume = formatVolume(klines.last.volume.toDouble());
     }
     final todayText = TextPainter(
-      text: TextSpan(text: '今: $todayVolume}', style: textStyle.copyWith(color: Colors.white)),
+      text: TextSpan(text: '今: $todayVolume', style: textStyle.copyWith(color: Colors.red)),
       textDirection: TextDirection.ltr,
     )..layout();
     todayText.paint(canvas, Offset(textPainter.width + yesterdayText.width + 24, 4));
@@ -142,15 +183,13 @@ class _VolumeIndicatorPainter extends CustomPainter {
           ..color = Colors.green
           ..style = PaintingStyle.fill;
 
-    BigInt maxVolume = _calcMaxVolume();
-
     canvas.save();
     canvas.translate(klineChartLeftMargin, 0);
     int nKline = 0;
     for (int i = klineRng.begin; i < klineRng.end; i++) {
       final x = nKline * klineStep;
       final barWidth = klineWidth;
-      final barHeight = (klines[i].volume / maxVolume) * bodyHeight;
+      final barHeight = (klines[i].volume.toDouble() / maxVolume) * bodyHeight;
       final y = titleHeight + bodyHeight - barHeight;
 
       // 根据涨跌决定颜色
@@ -172,15 +211,6 @@ class _VolumeIndicatorPainter extends CustomPainter {
       yBottom: height,
     );
     canvas.restore();
-  }
-
-  String _formatVolume(double volume) {
-    if (volume >= 100000000) {
-      return '${(volume / 100000000).toStringAsFixed(2)}亿';
-    } else if (volume >= 10000) {
-      return '${(volume / 10000).toStringAsFixed(2)}万';
-    }
-    return volume.toStringAsFixed(2);
   }
 
   BigInt _calcMaxVolume() {

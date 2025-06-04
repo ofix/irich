@@ -44,7 +44,7 @@ class _ShareLeftPanelState extends State<ShareLeftPanel> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Container(
       width: 300,
-      color: const Color(0xff000000),
+      color: const Color.fromARGB(255, 28, 29, 33),
       child: Column(
         children: [
           Row(

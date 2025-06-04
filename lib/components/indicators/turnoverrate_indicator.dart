@@ -62,6 +62,7 @@ class _TurnoverRatePainter extends CustomPainter {
   final double klineChartLeftMargin;
   final double klineChartRightMargin;
   final double titleHeight = 20.0;
+  late final double maxTurnoverRate;
   _TurnoverRatePainter({
     required this.klines,
     required this.klineRng,
@@ -72,7 +73,9 @@ class _TurnoverRatePainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
-  });
+  }) {
+    maxTurnoverRate = _calcMaxTurnoverRate();
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -84,6 +87,41 @@ class _TurnoverRatePainter extends CustomPainter {
     if (crossLineIndex != -1) {
       _drawCrossLine(canvas, size.height);
     }
+    // 绘制左边换手率指示面板
+    canvas.save();
+    canvas.translate(-2, 0);
+    drawKlinePane(
+      type: KlinePaneType.percent,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: size.height,
+      reference: 0,
+      min: 0,
+      max: maxTurnoverRate / 100,
+      nRows: 4,
+      textAlign: TextAlign.right,
+      fontSize: 11,
+      offsetY: titleHeight,
+    );
+    canvas.restore();
+
+    // 绘制右边换手率指示面板
+    canvas.save();
+    canvas.translate(klineChartLeftMargin + klineChartWidth + 2, 0);
+    drawKlinePane(
+      type: KlinePaneType.percent,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: size.height,
+      reference: 0,
+      min: 0,
+      max: maxTurnoverRate / 100,
+      nRows: 4,
+      textAlign: TextAlign.left,
+      fontSize: 11,
+      offsetY: titleHeight,
+    );
+    canvas.restore();
   }
 
   void _drawTitleBar(Canvas canvas, Size size) {
@@ -97,7 +135,7 @@ class _TurnoverRatePainter extends CustomPainter {
 
     // 绘制标题文本
     final textPainter = TextPainter(
-      text: TextSpan(text: '换手率', style: textStyle.copyWith(color: Colors.white)),
+      text: TextSpan(text: '换手率', style: textStyle.copyWith(color: Colors.grey)),
       textDirection: TextDirection.ltr,
     )..layout();
     textPainter.paint(canvas, const Offset(4, 4));
@@ -110,7 +148,7 @@ class _TurnoverRatePainter extends CustomPainter {
     final yesterdayText = TextPainter(
       text: TextSpan(
         text: '昨: $yesterdayTurnoverRate',
-        style: textStyle.copyWith(color: Colors.grey),
+        style: textStyle.copyWith(color: const Color.fromARGB(255, 237, 130, 8)),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
@@ -122,7 +160,7 @@ class _TurnoverRatePainter extends CustomPainter {
       todayTurnoverRate = _formatRate(klines.last.turnoverRate);
     }
     final todayText = TextPainter(
-      text: TextSpan(text: '今: $todayTurnoverRate', style: textStyle.copyWith(color: Colors.white)),
+      text: TextSpan(text: '今: $todayTurnoverRate', style: textStyle.copyWith(color: Colors.red)),
       textDirection: TextDirection.ltr,
     )..layout();
     todayText.paint(canvas, Offset(textPainter.width + yesterdayText.width + 24, 4));
@@ -144,7 +182,6 @@ class _TurnoverRatePainter extends CustomPainter {
           ..color = Colors.green
           ..style = PaintingStyle.fill;
 
-    double maxTurnoverRate = _calcMaxTurnoverRate();
     canvas.save();
     canvas.translate(klineChartLeftMargin, 0);
     int nKline = 0;
@@ -177,7 +214,7 @@ class _TurnoverRatePainter extends CustomPainter {
   }
 
   String _formatRate(double rate) {
-    return '${rate.toStringAsFixed(2)}%';
+    return '${rate.toStringAsFixed(0)}%';
   }
 
   // 获取可视范围K线的最大换手率

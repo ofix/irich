@@ -54,11 +54,6 @@ class KlinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (!klineType.isMinuteType) {
-      if (klines.isEmpty) {
-        return;
-      }
-    }
     switch (klineType) {
       case KlineType.minute:
         {
@@ -76,7 +71,6 @@ class KlinePainter extends CustomPainter {
           break;
         }
     }
-    // 绘制十字线
     if (crossLineIndex != -1) {
       drawCrossLine(canvas);
     }
@@ -132,6 +126,10 @@ class KlinePainter extends CustomPainter {
   }
 
   void drawDayKlines(Canvas canvas) {
+    if (klines.isEmpty) {
+      debugPrint("日K线数据不完整");
+      return;
+    }
     _calcRectMaxPrice(klines, klineRng.begin, klineRng.end);
     _calcRectMinPrice(klines, klineRng.begin, klineRng.end);
 
@@ -291,8 +289,8 @@ class KlinePainter extends CustomPainter {
       return;
     }
     // 计算价格范围
-    var minPrice = double.infinity;
-    var maxPrice = -double.infinity;
+    double minPrice = double.infinity;
+    double maxPrice = -double.infinity;
 
     for (final kline in minuteKlines) {
       if (kline.price < minPrice) minPrice = kline.price;
@@ -300,14 +298,19 @@ class KlinePainter extends CustomPainter {
     }
     // 计算昨日收盘价
     double yesterdayClosePrice = minuteKlines.first.price - minuteKlines.first.changeAmount;
+
     // 计算上下部分价格区间较大的那个
     double topPrice = (maxPrice - yesterdayClosePrice).abs();
     double bottomPrice = (minPrice - yesterdayClosePrice).abs();
     double changePrice = topPrice > bottomPrice ? topPrice : bottomPrice;
     minPrice = yesterdayClosePrice - changePrice;
-    maxPrice = yesterdayClosePrice - changePrice;
+    maxPrice = yesterdayClosePrice + changePrice;
     final priceRange = changePrice * 2;
     final priceRatio = klineChartHeight / priceRange;
+    double minPercent = (minPrice - yesterdayClosePrice) / priceRange;
+    double maxPercent = (maxPrice - yesterdayClosePrice) / priceRange;
+
+    int nMinuteKlines = minuteKlines.length.clamp(0, 240);
 
     // 绘制分时线
     canvas.save();
@@ -318,15 +321,12 @@ class KlinePainter extends CustomPainter {
           ..color = Colors.white
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
-    for (var i = 0; i < minuteKlines.length; i++) {
-      final kline = minuteKlines[i];
-      final x = i * (klineChartWidth / 240);
-      final y = (maxPrice - kline.price) * priceRatio;
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
+    path.moveTo(0, (maxPrice - minuteKlines.first.price) * priceRatio);
+    double minuteStep = klineChartWidth / 240; // 分时图每分钟的宽度
+    for (var i = 1; i < nMinuteKlines; i++) {
+      final x = i * minuteStep;
+      final y = (maxPrice - minuteKlines[i].price) * priceRatio;
+      path.lineTo(x, y);
     }
     canvas.drawPath(path, pen);
 
@@ -338,17 +338,15 @@ class KlinePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
 
-    double minuteKlineStep = klineChartWidth / 240; // 分时图每分钟的宽度
     avgPath.moveTo(0, (maxPrice - minuteKlines.first.avgPrice) * priceRatio);
-    for (var i = 1; i < minuteKlines.length; i++) {
-      final kline = minuteKlines[i];
-      final x = i * minuteKlineStep;
-      final y = (maxPrice - kline.avgPrice) * priceRatio;
+    for (var i = 1; i < nMinuteKlines; i++) {
+      final x = i * minuteStep;
+      final y = (maxPrice - minuteKlines[i].avgPrice) * priceRatio;
       avgPath.lineTo(x, y);
     }
-
     canvas.drawPath(avgPath, avgPaint);
     canvas.restore();
+
     // 绘制网格
     canvas.save();
     canvas.translate(klineChartLeftMargin, 0);
@@ -356,10 +354,10 @@ class KlinePainter extends CustomPainter {
       canvas: canvas,
       width: klineChartWidth,
       height: klineChartHeight,
-      nRows: 4,
-      nCols: 4,
-      nBigRows: 2,
-      nBigCols: 2,
+      nRows: 8,
+      nCols: 8,
+      nBigRows: 7,
+      nBigCols: 7,
       color: Colors.grey,
     );
     canvas.restore();
@@ -384,8 +382,6 @@ class KlinePainter extends CustomPainter {
     // 绘制右边涨幅指示面板
     canvas.save();
     canvas.translate(klineChartLeftMargin + klineChartWidth + 2, 0);
-    double minPercent = (minPrice - yesterdayClosePrice) / priceRange;
-    double maxPercent = (maxPrice - yesterdayClosePrice) / priceRange;
     drawKlinePane(
       type: KlinePaneType.minutePercent,
       canvas: canvas,
@@ -532,12 +528,6 @@ class KlinePainter extends CustomPainter {
   }
 
   void drawCrossLine(Canvas canvas) {
-    final crossPaint =
-        Paint()
-          ..color = Colors.white
-          ..strokeWidth = 1
-          ..style = PaintingStyle.stroke;
-
     // 获取当前K线数据
     final kline = klines[crossLineIndex];
     final priceRange = maxRectPrice - minRectPrice;
@@ -546,9 +536,20 @@ class KlinePainter extends CustomPainter {
     canvas.save();
     canvas.translate(klineChartLeftMargin, 0);
     // 水平线
-    canvas.drawLine(Offset(0, y), Offset(klineChartWidth, y), crossPaint);
+    drawDashedLine(
+      canvas: canvas,
+      startPoint: Offset(0, y),
+      endPoint: Offset(klineChartWidth, y),
+      color: const Color.fromARGB(255, 32, 136, 222),
+    );
     // 垂直线
-    canvas.drawLine(Offset(x, 0), Offset(x, klineChartHeight), crossPaint);
+    drawDashedLine(
+      canvas: canvas,
+      startPoint: Offset(x, 0),
+      endPoint: Offset(x, klineChartHeight),
+      color: const Color.fromARGB(255, 32, 136, 222),
+    );
+
     canvas.restore();
   }
 }
