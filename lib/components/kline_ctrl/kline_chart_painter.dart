@@ -8,6 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
 import 'dart:math';
 
@@ -22,6 +23,10 @@ class KlinePainter extends CustomPainter {
   int crossLineIndex; // 十字线位置
   double klineStep; // K线步长
   double klineWidth; // K线宽度
+  double klineChartWidth; // K线图宽度
+  double klineChartHeight; // K线图高度
+  double klineChartLeftMargin; // K线图左边距
+  double klineChartRightMargin; // K线图右边距
 
   double minKlinePrice = 0.0; // 可视区域K线最低价
   double maxKlinePrice = 0.0; // 可视区域K线最高价
@@ -41,6 +46,10 @@ class KlinePainter extends CustomPainter {
     required this.crossLineIndex,
     required this.klineStep,
     required this.klineWidth,
+    required this.klineChartWidth,
+    required this.klineChartHeight,
+    required this.klineChartLeftMargin,
+    required this.klineChartRightMargin,
   });
 
   @override
@@ -50,28 +59,26 @@ class KlinePainter extends CustomPainter {
         return;
       }
     }
-    // 绘制背景
-    _drawBackground(canvas, size);
-
-    // 根据不同类型绘制K线
     switch (klineType) {
       case KlineType.minute:
         {
-          _drawMinuteKlines(canvas, size);
+          drawMinuteKlines(canvas);
           break;
         }
       case KlineType.fiveDay:
         {
-          _drawFiveDayMinuteKlines(canvas, size);
+          drawFiveDayMinuteKlines(canvas);
           break;
         }
       default:
-        _drawDayKlines(canvas, size);
+        {
+          drawDayKlines(canvas);
+          break;
+        }
     }
-
     // 绘制十字线
     if (crossLineIndex != -1) {
-      _drawCrossLine(canvas, size);
+      drawCrossLine(canvas);
     }
   }
 
@@ -124,45 +131,12 @@ class KlinePainter extends CustomPainter {
     minRectPrice = min;
   }
 
-  // 绘制K线背景
-  void _drawBackground(Canvas canvas, Size size) {
-    final bgPaint =
-        Paint()
-          ..color = const Color(0xFF1E1E1E)
-          ..style = PaintingStyle.fill;
-
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
-
-    // 绘制网格线
-    final gridPaint =
-        Paint()
-          ..color = const Color(0xFF333333)
-          ..strokeWidth = 1
-          ..style = PaintingStyle.stroke;
-
-    // 水平网格线
-    const horizontalLines = 8;
-    final hStep = size.height / horizontalLines;
-    for (var i = 0; i <= horizontalLines; i++) {
-      final y = i * hStep;
-      canvas.drawLine(Offset(0, y), Offset(0 + size.width, y), gridPaint);
-    }
-    _calcRectMaxPrice(klines, klineRng.begin, klineRng.end);
-    // 垂直网格线
-    const verticalLines = 6;
-    final vStep = size.width / verticalLines;
-    for (var i = 0; i <= verticalLines; i++) {
-      final x = i * vStep;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-  }
-
-  void _drawDayKlines(Canvas canvas, Size size) {
+  void drawDayKlines(Canvas canvas) {
     _calcRectMaxPrice(klines, klineRng.begin, klineRng.end);
     _calcRectMinPrice(klines, klineRng.begin, klineRng.end);
 
     final priceRange = maxRectPrice - minRectPrice;
-    final priceRatio = size.height / priceRange;
+    final priceRatio = klineChartHeight / priceRange;
 
     final maxPrice = maxRectPrice;
     // 红盘一字板画笔
@@ -189,12 +163,14 @@ class KlinePainter extends CustomPainter {
         Paint()
           ..color = Colors.red
           ..style = PaintingStyle.fill;
+    // 绿盘画笔
     final klineGreenPen =
         Paint()
           ..color = Colors.green
           ..style = PaintingStyle.fill;
-    // 绿盘画笔
     // 绘制K线
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
     int nKline = 0; // 第几根K线
     for (var i = klineRng.begin; i <= klineRng.end; i++) {
       final kline = klines[i];
@@ -230,13 +206,50 @@ class KlinePainter extends CustomPainter {
       }
       nKline++;
     }
+    canvas.restore();
 
     // 绘制EMA曲线
     for (final ema in emaCurves) {
       if (ema.visible) {
-        _drawEmaCurve(canvas, ema, maxPrice, priceRatio, size);
+        _drawEmaCurve(canvas, ema, maxPrice, priceRatio);
       }
     }
+    // 绘制左边价格指示面板
+    canvas.save();
+    canvas.translate(-2, 0);
+    double openPrice = klines[klineRng.begin].priceOpen;
+    drawKlinePane(
+      type: KlinePaneType.price,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: klineChartHeight,
+      reference: openPrice,
+      min: minRectPrice,
+      max: maxRectPrice,
+      nRows: 8,
+      textAlign: TextAlign.right,
+      fontSize: 11,
+    );
+    canvas.restore();
+
+    // 绘制右边涨幅指示面板
+    canvas.save();
+    canvas.translate(klineChartLeftMargin + klineChartWidth + 2, 0);
+    double minPercent = (minRectPrice - openPrice) / priceRange;
+    double maxPercent = (maxRectPrice - openPrice) / priceRange;
+    drawKlinePane(
+      type: KlinePaneType.percent,
+      canvas: canvas,
+      width: klineChartRightMargin,
+      height: klineChartHeight,
+      reference: 0,
+      min: minPercent,
+      max: maxPercent,
+      nRows: 8,
+      textAlign: TextAlign.left,
+      fontSize: 11,
+    );
+    canvas.restore();
   }
 
   /// 绘制EMA曲线
@@ -244,13 +257,7 @@ class KlinePainter extends CustomPainter {
   /// [ema] EMA曲线数据
   /// [maxPrice] 最大价格
   /// [priceRatio] 价格比例
-  void _drawEmaCurve(
-    Canvas canvas,
-    ShareEmaCurve ema,
-    double maxPrice,
-    double priceRatio,
-    Size size,
-  ) {
+  void _drawEmaCurve(Canvas canvas, ShareEmaCurve ema, double maxPrice, double priceRatio) {
     // 少于2条K线数据无法绘制EMA曲线
     if (klines.length <= 2) return;
     final path = Path();
@@ -261,7 +268,8 @@ class KlinePainter extends CustomPainter {
           ..strokeWidth = 1.5;
     int nKline = 0;
     double initialX = klineWidth / 2;
-
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
     for (int i = klineRng.begin; i <= klineRng.end; i++) {
       final x = nKline * klineStep + initialX;
       final y = (maxPrice - ema.emaPrice[i]) * priceRatio;
@@ -274,14 +282,14 @@ class KlinePainter extends CustomPainter {
       nKline++;
     }
     canvas.drawPath(path, paint);
+    canvas.restore();
   }
 
-  void _drawMinuteKlines(Canvas canvas, Size size) {
+  void drawMinuteKlines(Canvas canvas) {
     if (minuteKlines.isEmpty) {
       debugPrint("分时图数据为空");
       return;
     }
-
     // 计算价格范围
     var minPrice = double.infinity;
     var maxPrice = -double.infinity;
@@ -290,33 +298,39 @@ class KlinePainter extends CustomPainter {
       if (kline.price < minPrice) minPrice = kline.price;
       if (kline.price > maxPrice) maxPrice = kline.price;
     }
-
-    final priceRange = maxPrice - minPrice;
-    final priceRatio = size.height / priceRange;
+    // 计算昨日收盘价
+    double yesterdayClosePrice = minuteKlines.first.price - minuteKlines.first.changeAmount;
+    // 计算上下部分价格区间较大的那个
+    double topPrice = (maxPrice - yesterdayClosePrice).abs();
+    double bottomPrice = (minPrice - yesterdayClosePrice).abs();
+    double changePrice = topPrice > bottomPrice ? topPrice : bottomPrice;
+    minPrice = yesterdayClosePrice - changePrice;
+    maxPrice = yesterdayClosePrice - changePrice;
+    final priceRange = changePrice * 2;
+    final priceRatio = klineChartHeight / priceRange;
 
     // 绘制分时线
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
     final path = Path();
-    final paint =
+    final pen =
         Paint()
           ..color = Colors.white
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
-
     for (var i = 0; i < minuteKlines.length; i++) {
       final kline = minuteKlines[i];
-      final x = i * (size.width / 240);
+      final x = i * (klineChartWidth / 240);
       final y = (maxPrice - kline.price) * priceRatio;
-
       if (i == 0) {
         path.moveTo(x, y);
       } else {
         path.lineTo(x, y);
       }
     }
+    canvas.drawPath(path, pen);
 
-    canvas.drawPath(path, paint);
-
-    // 绘制均线
+    // 绘制分时均线
     final avgPath = Path();
     final avgPaint =
         Paint()
@@ -324,241 +338,164 @@ class KlinePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
 
-    for (var i = 0; i < minuteKlines.length; i++) {
+    double minuteKlineStep = klineChartWidth / 240; // 分时图每分钟的宽度
+    avgPath.moveTo(0, (maxPrice - minuteKlines.first.avgPrice) * priceRatio);
+    for (var i = 1; i < minuteKlines.length; i++) {
       final kline = minuteKlines[i];
-      final x = i * (size.width / 240);
+      final x = i * minuteKlineStep;
       final y = (maxPrice - kline.avgPrice) * priceRatio;
-
-      if (i == 0) {
-        avgPath.moveTo(x, y);
-      } else {
-        avgPath.lineTo(x, y);
-      }
+      avgPath.lineTo(x, y);
     }
 
     canvas.drawPath(avgPath, avgPaint);
-  }
+    canvas.restore();
+    // 绘制网格
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
+    drawGrid(
+      canvas: canvas,
+      width: klineChartWidth,
+      height: klineChartHeight,
+      nRows: 4,
+      nCols: 4,
+      nBigRows: 2,
+      nBigCols: 2,
+      color: Colors.grey,
+    );
+    canvas.restore();
 
-  void _drawFiveDayMinuteKlineBackground(
-    Canvas canvas,
-    Size size,
-    double refClosePrice,
-    double deltaPrice,
-  ) {
-    const nRows = 16;
-    const nCols = 20;
-    final wRect = size.width;
-    double hRect = 2000;
-    final hRow = (hRect - (nRows + 2)) / nRows;
-    final wCol = wRect / nCols;
-    final dwCol = wRect / 5;
+    // 绘制左边价格指示面板
+    canvas.save();
+    canvas.translate(-2, 0);
+    drawKlinePane(
+      type: KlinePaneType.minutePrice,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: klineChartHeight,
+      reference: yesterdayClosePrice,
+      min: minPrice,
+      max: maxPrice,
+      nRows: 8,
+      textAlign: TextAlign.right,
+      fontSize: 11,
+    );
+    canvas.restore();
 
-    // Define pens (paints)
-    final solidPen =
-        Paint()
-          ..color = const Color(0xFF555555) // KLINE_PANEL_BORDER_COLOR
-          ..strokeWidth = 1
-          ..style = PaintingStyle.stroke;
-
-    final solidPen2 =
-        Paint()
-          ..color = const Color(0xFF555555)
-          ..strokeWidth = 2
-          ..style = PaintingStyle.stroke;
-
-    final dotPen =
-        Paint()
-          ..color = const Color(0xFF555555)
-          ..strokeWidth = 1
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round;
-
-    // Calculate prices and amplitudes
-    final prices = <double>[];
-    final amplitudes = <double>[];
-    final rowPrice = deltaPrice * 2 / nRows;
-
-    if (rowPrice < 0.01) {
-      for (var i = 0; i < 8; i++) {
-        prices.add(refClosePrice + 0.01 * (i + 1));
-        amplitudes.add((prices[i] / refClosePrice - 1) * 100);
-      }
-      for (var i = 0; i < 8; i++) {
-        prices.add(refClosePrice - 0.01 * (i + 1));
-        amplitudes.add((1 - prices[i] / refClosePrice) * 100);
-      }
-    } else {
-      for (var i = 0; i < 8; i++) {
-        prices.add(refClosePrice + rowPrice * (i + 1));
-        amplitudes.add((prices[i] / refClosePrice - 1) * 100);
-      }
-      for (var i = 0; i < 8; i++) {
-        prices.add(refClosePrice - rowPrice * (i + 1));
-        amplitudes.add(amplitudes[i]);
-      }
-    }
-
-    double offsetX = 0;
-
-    // 绘制左右外边框
-    // 上边框
-    canvas.drawLine(Offset(offsetX, 0), Offset(offsetX + wRect, 0), solidPen);
-    // 下边框
-    canvas.drawLine(Offset(offsetX, hRect), Offset(offsetX + wRect, hRect), solidPen);
-    // 左边框
-    canvas.drawLine(Offset(offsetX, 0), Offset(offsetX, hRect), solidPen);
-    // 右边框
-    canvas.drawLine(Offset(offsetX + wRect, 0), Offset(offsetX + wRect, hRect), solidPen);
-
-    // 中间粗水平线
-    canvas.drawLine(Offset(offsetX, hRect / 2), Offset(offsetX + wRect, hRect / 2), solidPen2);
-
-    // 5日粗竖线
-    final nDay = nCols ~/ 4;
-    for (var i = 1; i <= nDay; i++) {
-      final x = offsetX + dwCol * i;
-      canvas.drawLine(Offset(x, 0), Offset(x, hRect), solidPen2);
-    }
-
-    // 垂直分割虚线
-    for (var i = 1; i < nCols; i++) {
-      final x = offsetX + wCol * i;
-      if (i % 4 != 0) {
-        final path = Path();
-        path.moveTo(x, 0);
-        path.lineTo(x, hRect);
-        canvas.drawPath(path, dotPen);
-      }
-    }
-
-    // 水平分割虚线
-    for (var i = 1; i <= nRows; i++) {
-      final y = (hRow + 1) * i;
-      if (i == 8 || i == 16) continue; // 跳过中间虚线
-
-      final path = Path();
-      path.moveTo(offsetX, y);
-      path.lineTo(offsetX + wRect, y);
-      canvas.drawPath(path, dotPen);
-    }
-
-    final textStyle = TextStyle(color: Colors.white, fontSize: 10);
-    final textPainter = TextPainter(textDirection: TextDirection.ltr, textAlign: TextAlign.right);
-
-    // 左右两边上半部分价格和涨幅
-    for (var i = 0; i < 8; i++) {
-      final priceText = prices[8 - i - 1].toStringAsFixed(2);
-      final amplitudeText = '${amplitudes[8 - i - 1].toStringAsFixed(2)}%';
-      final y = (hRow + 1) * i + hRow / 2;
-
-      // 左右两边开盘价格基准(上一个交易日收盘价)
-      textPainter.text = TextSpan(text: priceText, style: textStyle.copyWith(color: Colors.red));
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(offsetX - 4, y - textPainter.height / 2));
-
-      // 左右两边上半部分价格和涨幅
-      textPainter.text = TextSpan(
-        text: amplitudeText,
-        style: textStyle.copyWith(color: Colors.red),
-      );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(offsetX + wRect + 4, y - textPainter.height / 2));
-    }
-
-    // 中间参考价格
-    final middleY = (hRow + 1) * 8 - hRow / 2;
-    textPainter.text = TextSpan(text: refClosePrice.toStringAsFixed(2), style: textStyle);
-    textPainter.layout();
-    textPainter.paint(canvas, Offset(offsetX - 4, middleY - textPainter.height / 2));
-
-    textPainter.text = TextSpan(text: '0.00%', style: textStyle);
-    textPainter.layout();
-    textPainter.paint(canvas, Offset(offsetX + wRect + 4, middleY - textPainter.height / 2));
-
-    // 下半部分绿色
-    for (var i = 8; i < 16; i++) {
-      final priceText = prices[i].toStringAsFixed(2);
-      final amplitudeText = '${amplitudes[i].toStringAsFixed}%';
-      final y = (hRow + 1) * i + hRow / 2;
-
-      // 左右两边开盘价格基准(上一个交易日收盘价)
-      textPainter.text = TextSpan(text: priceText, style: textStyle.copyWith(color: Colors.green));
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(offsetX - 4, y - textPainter.height / 2));
-
-      // 左右两边下半部分价格和涨幅
-      textPainter.text = TextSpan(
-        text: amplitudeText,
-        style: textStyle.copyWith(color: Colors.green),
-      );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(offsetX + wRect + 4, y - textPainter.height / 2));
-    }
+    // 绘制右边涨幅指示面板
+    canvas.save();
+    canvas.translate(klineChartLeftMargin + klineChartWidth + 2, 0);
+    double minPercent = (minPrice - yesterdayClosePrice) / priceRange;
+    double maxPercent = (maxPrice - yesterdayClosePrice) / priceRange;
+    drawKlinePane(
+      type: KlinePaneType.minutePercent,
+      canvas: canvas,
+      width: klineChartRightMargin,
+      height: klineChartHeight,
+      reference: 0,
+      min: minPercent,
+      max: maxPercent,
+      nRows: 8,
+      textAlign: TextAlign.left,
+      fontSize: 11,
+    );
+    canvas.restore();
   }
 
   // 绘制五日分时图
-  void _drawFiveDayMinuteKlines(Canvas canvas, Size size) {
+  void drawFiveDayMinuteKlines(Canvas canvas) {
     if (fiveDayMinuteKlines.isEmpty) {
       debugPrint("五日线数据为空!");
       return;
     }
-
-    // final nKlines = state.fiveDayMinuteKlines.length;
-    double maxMinutePrice = double.negativeInfinity;
-    double minMinutePrice = double.infinity;
-
+    double maxPrice = double.negativeInfinity;
+    double minPrice = double.infinity;
     for (final minuteKline in fiveDayMinuteKlines) {
-      if (minuteKline.price > maxMinutePrice) maxMinutePrice = minuteKline.price;
-      if (minuteKline.price < minMinutePrice) minMinutePrice = minuteKline.price;
+      if (minuteKline.price > maxPrice) maxPrice = minuteKline.price;
+      if (minuteKline.price < minPrice) minPrice = minuteKline.price;
     }
-
     final refClosePrice = fiveDayMinuteKlines.first.price - fiveDayMinuteKlines.first.changeAmount;
-
     // 计算最大波动幅度
-    double maxDelta = max(
-      (maxMinutePrice - refClosePrice).abs(),
-      (minMinutePrice - refClosePrice).abs(),
-    );
-
+    double maxDelta = max((maxPrice - refClosePrice).abs(), (minPrice - refClosePrice).abs());
     if (maxDelta < 0.08) {
       maxDelta = 0.08;
     }
+    double priceRange = 2 * maxDelta;
+    maxPrice = refClosePrice + maxDelta;
+    minPrice = refClosePrice - maxDelta;
+    double minPercent = (minPrice - refClosePrice) / priceRange;
+    double maxPercent = (maxPrice - refClosePrice) / priceRange;
+    final hZoomRatio = -klineChartHeight / priceRange;
 
-    final maxPrice = refClosePrice + maxDelta;
-    final hZoomRatio = -size.height / (2 * maxDelta);
+    // 绘制网格
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
+    drawGrid(
+      canvas: canvas,
+      width: klineChartWidth,
+      height: klineChartHeight,
+      nRows: 4,
+      nCols: 16,
+      nBigRows: 2,
+      nBigCols: 2,
+      color: Colors.grey,
+    );
+    canvas.restore();
 
-    // 绘制背景
-    _drawFiveDayMinuteKlineBackground(canvas, size, refClosePrice, maxPrice);
+    // 绘制左边价格指示面板
+    canvas.save();
+    canvas.translate(-2, 0);
+    drawKlinePane(
+      type: KlinePaneType.minutePrice,
+      canvas: canvas,
+      width: klineChartLeftMargin,
+      height: klineChartHeight,
+      reference: refClosePrice,
+      min: minPrice,
+      max: maxPrice,
+      nRows: 8,
+      textAlign: TextAlign.right,
+      fontSize: 11,
+    );
+    canvas.restore();
+
+    // 绘制右边涨幅指示面板
+    canvas.save();
+    canvas.translate(klineChartLeftMargin + klineChartWidth + 2, 0);
+    drawKlinePane(
+      type: KlinePaneType.minutePercent,
+      canvas: canvas,
+      width: klineChartRightMargin,
+      height: klineChartHeight,
+      reference: 0,
+      min: minPercent,
+      max: maxPercent,
+      nRows: 8,
+      textAlign: TextAlign.left,
+      fontSize: 11,
+    );
+    canvas.restore();
 
     // 限制最大绘制数量
     final nTotalLine = fiveDayMinuteKlines.length > 1200 ? 1200 : fiveDayMinuteKlines.length;
-    final w = size.width / 1200;
-
+    final w = klineChartWidth / 1200;
     // 准备绘制路径
     final pricePath = Path();
     final avgPricePath = Path();
-    final pricePoints = <Offset>[];
-    final avgPricePoints = <Offset>[];
-
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
     // 计算所有点
-    for (var i = 0; i < nTotalLine; i++) {
-      final kline = fiveDayMinuteKlines[i];
-      final x = i * w;
-      final y = (kline.price - maxPrice) * hZoomRatio;
-      final yAvg = (kline.avgPrice - maxPrice) * hZoomRatio;
-
-      if (i == 0) {
-        pricePath.moveTo(x, y);
-        avgPricePath.moveTo(x, yAvg);
-      } else {
-        pricePath.lineTo(x, y);
-        avgPricePath.lineTo(x, yAvg);
-      }
-
-      pricePoints.add(Offset(x, y));
-      avgPricePoints.add(Offset(x, yAvg));
+    MinuteKline kline;
+    double x, y, yAvg;
+    pricePath.moveTo(0, (fiveDayMinuteKlines.first.price - maxPrice) * hZoomRatio);
+    avgPricePath.moveTo(0, (fiveDayMinuteKlines.first.avgPrice - maxPrice) * hZoomRatio);
+    for (var i = 1; i < nTotalLine; i++) {
+      kline = fiveDayMinuteKlines[i];
+      x = i * w;
+      y = (kline.price - maxPrice) * hZoomRatio;
+      yAvg = (kline.avgPrice - maxPrice) * hZoomRatio;
+      pricePath.lineTo(x, y);
+      avgPricePath.lineTo(x, yAvg);
     }
-
     // 绘制分时线
     canvas.drawPath(
       pricePath,
@@ -567,7 +504,6 @@ class KlinePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
     );
-
     // 绘制分时均线
     canvas.drawPath(
       avgPricePath,
@@ -576,27 +512,26 @@ class KlinePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
     );
-
     // 绘制渐变填充区域
     final fillPath =
         Path.from(pricePath)
-          ..lineTo(nTotalLine * w, size.height)
-          ..lineTo(0, size.height)
+          ..lineTo(nTotalLine * w, klineChartHeight)
+          ..lineTo(0, klineChartHeight)
           ..close();
-
     final gradient = LinearGradient(
       colors: [Colors.red.withOpacity(0.24), Colors.red.withOpacity(0.02)],
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
     );
-
     canvas.drawPath(
       fillPath,
-      Paint()..shader = gradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+      Paint()
+        ..shader = gradient.createShader(Rect.fromLTWH(0, 0, klineChartWidth, klineChartHeight)),
     );
+    canvas.restore();
   }
 
-  void _drawCrossLine(Canvas canvas, Size size) {
+  void drawCrossLine(Canvas canvas) {
     final crossPaint =
         Paint()
           ..color = Colors.white
@@ -606,11 +541,14 @@ class KlinePainter extends CustomPainter {
     // 获取当前K线数据
     final kline = klines[crossLineIndex];
     final priceRange = maxRectPrice - minRectPrice;
-    final y = (1 - (kline.priceClose - minRectPrice) / priceRange) * size.height;
+    final y = (1 - (kline.priceClose - minRectPrice) / priceRange) * klineChartHeight;
     final x = (crossLineIndex - klineRng.begin) * klineStep + klineWidth / 2;
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
     // 水平线
-    canvas.drawLine(Offset(0, y), Offset(size.width, y), crossPaint);
+    canvas.drawLine(Offset(0, y), Offset(klineChartWidth, y), crossPaint);
     // 垂直线
-    canvas.drawLine(Offset(x, 0), Offset(x, size.height), crossPaint);
+    canvas.drawLine(Offset(x, 0), Offset(x, klineChartHeight), crossPaint);
+    canvas.restore();
   }
 }

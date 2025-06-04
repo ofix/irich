@@ -8,8 +8,8 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/widgets.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_painter.dart';
-import 'package:irich/components/kline_ctrl/kline_ctrl.dart';
 
 class KlineChart extends StatefulWidget {
   final KlineState klineState;
@@ -23,12 +23,19 @@ class _KlineChartState extends State<KlineChart> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: widget.klineState.width,
+      width:
+          widget.klineState.klineChartWidth +
+          widget.klineState.klineChartLeftMargin +
+          widget.klineState.klineChartRightMargin,
       height: widget.klineState.klineChartHeight,
       color: const Color(0xFF1E1E1E),
       child: CustomPaint(
         painter: KlinePainter(
           share: widget.klineState.share,
+          klineChartWidth: widget.klineState.klineChartWidth,
+          klineChartHeight: widget.klineState.klineChartHeight,
+          klineChartLeftMargin: widget.klineState.klineChartLeftMargin,
+          klineChartRightMargin: widget.klineState.klineChartRightMargin,
           klineType: widget.klineState.klineType,
           klines: widget.klineState.klines,
           minuteKlines: widget.klineState.minuteKlines,

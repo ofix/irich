@@ -8,7 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/kline_ctrl/kline_ctrl.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
 
 class VolumeIndicator extends StatefulWidget {
@@ -25,11 +25,11 @@ class _VolumeIndicatorState extends State<VolumeIndicator> {
   Widget build(BuildContext context) {
     KlineState state = widget.klineState;
     if (state.klines.isEmpty) {
-      return SizedBox(width: state.width, height: state.indicatorChartHeight);
+      return SizedBox(width: state.klineChartWidth, height: state.indicatorChartHeight);
     }
 
     return SizedBox(
-      width: state.width,
+      width: state.klineChartWidth + state.klineChartLeftMargin + state.klineChartRightMargin,
       height: state.indicatorChartHeight,
       child: CustomPaint(
         painter: _VolumeIndicatorPainter(
@@ -39,6 +39,9 @@ class _VolumeIndicatorState extends State<VolumeIndicator> {
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
           isUpList: _getIsUpList(state.klines),
+          klineChartWidth: state.klineChartWidth,
+          klineChartLeftMargin: state.klineChartLeftMargin,
+          klineChartRightMargin: state.klineChartRightMargin,
         ),
       ),
     );
@@ -56,6 +59,10 @@ class _VolumeIndicatorPainter extends CustomPainter {
   final double klineStep; // K线宽度
   final double klineWidth; // K线内部宽度
   final List<bool> isUpList; // 红绿盘列表
+  final double klineChartWidth; // K线图宽度
+  final double klineChartLeftMargin; // K线图左边距
+  final double klineChartRightMargin; // K线图右边距
+  final double titleHeight = 20;
 
   _VolumeIndicatorPainter({
     required this.klines,
@@ -64,23 +71,25 @@ class _VolumeIndicatorPainter extends CustomPainter {
     required this.klineStep,
     required this.klineWidth,
     required this.isUpList,
+    required this.klineChartWidth,
+    required this.klineChartLeftMargin,
+    required this.klineChartRightMargin,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     if (klines.isEmpty) return;
     // 绘制标题栏
-    _drawTitleBar(canvas, size);
+    drawTitleBar(canvas, size);
     // 绘制成交量柱状图
-    _drawVolumeBars(canvas, size);
+    drawVolumeBars(canvas, size.height);
     // 绘制十字线
     if (crossLineIndex != -1) {
-      _drawCrossLine(canvas, size);
+      drawCrossLine(canvas, size.height);
     }
   }
 
-  void _drawTitleBar(Canvas canvas, Size size) {
-    const titleHeight = 20.0;
+  void drawTitleBar(Canvas canvas, Size size) {
     final textStyle = TextStyle(color: Colors.white, fontSize: 12);
 
     // 绘制标题背景
@@ -98,29 +107,30 @@ class _VolumeIndicatorPainter extends CustomPainter {
     textPainter.paint(canvas, const Offset(4, 4));
 
     // 绘制昨日成交量
+    String yesterdayVolume = "--";
+    if (klines.isNotEmpty) {
+      yesterdayVolume = _formatVolume(klines.first.volume.toDouble());
+    }
     final yesterdayText = TextPainter(
-      text: TextSpan(
-        text: '昨: ${_formatVolume(klines.isNotEmpty ? klines[0].volume.toDouble() : 0)}',
-        style: textStyle.copyWith(color: Colors.grey),
-      ),
+      text: TextSpan(text: '昨: $yesterdayVolume', style: textStyle.copyWith(color: Colors.grey)),
       textDirection: TextDirection.ltr,
     )..layout();
     yesterdayText.paint(canvas, Offset(textPainter.width + 12, 4));
 
     // 绘制今日成交量
+    String todayVolume = "--";
+    if (klines.isNotEmpty) {
+      todayVolume = _formatVolume(klines.last.volume.toDouble());
+    }
     final todayText = TextPainter(
-      text: TextSpan(
-        text: '今: ${_formatVolume(klines.isNotEmpty ? klines.last.volume.toDouble() : 0)}',
-        style: textStyle.copyWith(color: Colors.white),
-      ),
+      text: TextSpan(text: '今: $todayVolume}', style: textStyle.copyWith(color: Colors.white)),
       textDirection: TextDirection.ltr,
     )..layout();
     todayText.paint(canvas, Offset(textPainter.width + yesterdayText.width + 24, 4));
   }
 
-  void _drawVolumeBars(Canvas canvas, Size size) {
-    const titleHeight = 20.0;
-    final bodyHeight = size.height - titleHeight;
+  void drawVolumeBars(Canvas canvas, double height) {
+    final bodyHeight = height - titleHeight;
 
     final redPaint =
         Paint()
@@ -134,6 +144,8 @@ class _VolumeIndicatorPainter extends CustomPainter {
 
     BigInt maxVolume = _calcMaxVolume();
 
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
     int nKline = 0;
     for (int i = klineRng.begin; i < klineRng.end; i++) {
       final x = nKline * klineStep;
@@ -147,20 +159,19 @@ class _VolumeIndicatorPainter extends CustomPainter {
       canvas.drawRect(Rect.fromLTWH(x, y, barWidth, barHeight), paint);
       nKline++;
     }
+    canvas.restore();
   }
 
-  void _drawCrossLine(Canvas canvas, Size size) {
-    const titleHeight = 20.0;
-    final crossPaint =
-        Paint()
-          ..color = Colors.white.withOpacity(0.7)
-          ..strokeWidth = 0.5
-          ..style = PaintingStyle.stroke;
-
-    final x = crossLineIndex * klineStep + klineWidth / 2;
-
-    // 垂直线
-    canvas.drawLine(Offset(x, titleHeight), Offset(x, size.height), crossPaint);
+  void drawCrossLine(Canvas canvas, double height) {
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
+    drawVerticalLine(
+      canvas: canvas,
+      x: crossLineIndex * klineStep + klineWidth / 2,
+      yTop: titleHeight,
+      yBottom: height,
+    );
+    canvas.restore();
   }
 
   String _formatVolume(double volume) {

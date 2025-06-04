@@ -8,22 +8,12 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
 
 class MinuteAmountIndicator extends StatefulWidget {
-  final double width;
-  final double height;
-  final List<MinuteKline> minuteKlines;
-  final KlineType klineType;
-  final int crossLineIndex;
-  const MinuteAmountIndicator({
-    super.key,
-    required this.minuteKlines,
-    required this.klineType,
-    required this.crossLineIndex,
-    this.width = 800,
-    this.height = 100,
-  });
+  final KlineState klineState;
+  const MinuteAmountIndicator({super.key, required this.klineState});
 
   @override
   State<MinuteAmountIndicator> createState() => _MinuteAmountIndicatorState();
@@ -32,18 +22,28 @@ class MinuteAmountIndicator extends StatefulWidget {
 class _MinuteAmountIndicatorState extends State<MinuteAmountIndicator> {
   @override
   Widget build(BuildContext context) {
-    if (widget.minuteKlines.isEmpty) {
-      return SizedBox(height: widget.height);
+    KlineState state = widget.klineState;
+    if (state.klineType == KlineType.minute) {
+      if (state.minuteKlines.isEmpty) {
+        return SizedBox(height: state.indicatorChartHeight);
+      }
+    } else {
+      if (state.fiveDayMinuteKlines.isEmpty) {
+        return SizedBox(height: state.indicatorChartHeight);
+      }
     }
 
     return SizedBox(
-      width: widget.width,
-      height: widget.height,
+      width: state.klineChartWidth + state.klineChartLeftMargin + state.klineChartRightMargin,
+      height: state.indicatorChartHeight,
       child: CustomPaint(
         painter: _MinuteVolumePainter(
-          klines: widget.minuteKlines,
-          klineType: widget.klineType,
-          crossLineIndex: widget.crossLineIndex,
+          klineChartLeftMargin: state.klineChartLeftMargin,
+          klineChartWidth: state.klineChartWidth,
+          minuteKlines: state.minuteKlines,
+          fiveDayMinuteKlines: state.fiveDayMinuteKlines,
+          klineType: state.klineType,
+          crossLineIndex: state.crossLineIndex,
         ),
       ),
     );
@@ -51,13 +51,19 @@ class _MinuteAmountIndicatorState extends State<MinuteAmountIndicator> {
 }
 
 class _MinuteVolumePainter extends CustomPainter {
-  final List<MinuteKline> klines;
+  final double klineChartLeftMargin;
+  final double klineChartWidth;
+  final List<MinuteKline> minuteKlines;
+  final List<MinuteKline> fiveDayMinuteKlines;
   final int crossLineIndex;
   final KlineType klineType;
   late final double maxAmount;
 
   _MinuteVolumePainter({
-    required this.klines,
+    required this.klineChartLeftMargin,
+    required this.klineChartWidth,
+    required this.minuteKlines,
+    required this.fiveDayMinuteKlines,
     required this.crossLineIndex,
     required this.klineType,
   }) {
@@ -66,50 +72,64 @@ class _MinuteVolumePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (klines.isEmpty) return;
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
     // 绘制成交量柱状图
-    _drawVolumeBars(canvas, size);
+    if (klineType == KlineType.minute) {
+      _drawVolumeBars(canvas, size.height, minuteKlines);
+    } else {
+      _drawVolumeBars(canvas, size.height, fiveDayMinuteKlines);
+    }
     // 绘制边框和网格
-    _drawGridAndBorder(canvas, size);
+    drawGrid(
+      canvas: canvas,
+      width: klineChartWidth,
+      height: size.height,
+      nRows: 4,
+      nCols: 4,
+      nBigRows: 0,
+      nBigCols: 2,
+      color: Colors.grey,
+    );
     // 绘制十字线
     if (crossLineIndex != -1) {
-      _drawCrossLine(canvas, size);
+      _drawCrossLine(canvas, size.height);
     }
+    canvas.restore();
   }
 
   double calcMaxAmount() {
-    if (klines.isEmpty) return 0;
-    return klines.map((k) => k.amount).reduce((a, b) => a > b ? a : b);
+    if (klineType == KlineType.minute) {
+      return minuteKlines.map((k) => k.amount).reduce((a, b) => a > b ? a : b);
+    } else {
+      return fiveDayMinuteKlines.map((k) => k.amount).reduce((a, b) => a > b ? a : b);
+    }
   }
 
-  void _drawVolumeBars(Canvas canvas, Size size) {
+  void _drawVolumeBars(Canvas canvas, double height, List<MinuteKline> klines) {
     final maxKlines = klineType == KlineType.minute ? 240 : 1200;
-    final barWidth = size.width / maxKlines;
+    final barStep = klineChartWidth / maxKlines;
     final totalLines =
         klineType == KlineType.minute ? klines.length.clamp(0, 240) : klines.length.clamp(0, 1200);
 
+    Paint greyPen = Paint()..color = Colors.grey;
+    Paint redPen = Paint()..color = Colors.red;
+    Paint greenPen = Paint()..color = Colors.green;
     for (int i = 1; i < totalLines; i++) {
-      final x = i * barWidth;
-      final y = size.height * (1 - klines[i].volume / BigInt.from(maxAmount));
-      final h = size.height * klines[i].volume.toDouble() / maxAmount;
-
-      final paint = _getVolumePaint(i);
-      canvas.drawLine(Offset(x, y), Offset(x, y + h), paint);
+      final x = i * barStep;
+      final y = height * (1 - klines[i].volume / BigInt.from(maxAmount));
+      final h = height * klines[i].volume.toDouble() / maxAmount;
+      if (klines[i].price > klines[i - 1].price) {
+        canvas.drawLine(Offset(x, y), Offset(x, y + h), redPen);
+      } else if (klines[i].price < klines[i - 1].price) {
+        canvas.drawLine(Offset(x, y), Offset(x, y + h), greenPen);
+      } else {
+        canvas.drawLine(Offset(x, y), Offset(x, y + h), greyPen);
+      }
     }
   }
 
-  Paint _getVolumePaint(int index) {
-    if (index >= klines.length || index < 1) return Paint()..color = Colors.grey;
-    if (klines[index].price > klines[index - 1].price) {
-      return Paint()..color = Colors.red;
-    } else if (klines[index].price < klines[index - 1].price) {
-      return Paint()..color = Colors.green;
-    } else {
-      return Paint()..color = Colors.grey;
-    }
-  }
-
-  void _drawGridAndBorder(Canvas canvas, Size size) {
+  void _drawGridAndBorder(Canvas canvas, double height) {
     // 绘制边框
     final borderPaint =
         Paint()
@@ -117,10 +137,10 @@ class _MinuteVolumePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1;
 
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), borderPaint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, klineChartWidth, height), borderPaint);
 
     // 绘制水平网格线
-    final hRow = size.height / 4;
+    final hRow = height / 4;
     final dotPaint =
         Paint()
           ..color = Colors.grey.withOpacity(0.5)
@@ -129,17 +149,17 @@ class _MinuteVolumePainter extends CustomPainter {
 
     for (int i = 1; i <= 3; i++) {
       final y = i * hRow;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), dotPaint);
+      canvas.drawLine(Offset(0, y), Offset(klineChartWidth, y), dotPaint);
     }
 
     // 绘制垂直网格线
     final nCols = klineType == KlineType.minute ? 8 : 20;
-    final wCol = (size.width) / nCols;
+    final wCol = (klineChartWidth) / nCols;
 
     for (int i = 1; i < nCols; i++) {
       if (i % 4 == 0) continue;
       final x = i * wCol;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), dotPaint);
+      canvas.drawLine(Offset(x, 0), Offset(x, height), dotPaint);
     }
 
     // 绘制粗垂直网格线
@@ -151,7 +171,7 @@ class _MinuteVolumePainter extends CustomPainter {
 
     for (int i = 4; i < nCols; i += 4) {
       final x = i * wCol;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), solidPaint);
+      canvas.drawLine(Offset(x, 0), Offset(x, height), solidPaint);
     }
 
     // 绘制刻度标签
@@ -164,13 +184,13 @@ class _MinuteVolumePainter extends CustomPainter {
       // 左侧标签
       _drawLabel(canvas, label, Offset(-4, y), textStyle, TextAlign.right);
       // 右侧标签
-      _drawLabel(canvas, label, Offset(size.width + 4, y), textStyle, TextAlign.left);
+      _drawLabel(canvas, label, Offset(klineChartWidth + 4, y), textStyle, TextAlign.left);
     }
   }
 
-  void _drawCrossLine(Canvas canvas, Size size) {
+  void _drawCrossLine(Canvas canvas, double height) {
     final maxLines = klineType == KlineType.minute ? 240 : 1200;
-    final barWidth = size.width / maxLines;
+    final barWidth = klineChartWidth / maxLines;
 
     final x = crossLineIndex * barWidth;
 
@@ -180,7 +200,7 @@ class _MinuteVolumePainter extends CustomPainter {
           ..strokeWidth = 0.5;
 
     // 垂直线
-    canvas.drawLine(Offset(x, 0), Offset(x, size.height), crossPaint);
+    canvas.drawLine(Offset(x, 0), Offset(x, height), crossPaint);
   }
 
   // 绘制右侧标签

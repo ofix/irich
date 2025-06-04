@@ -8,7 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/kline_ctrl/kline_ctrl.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
 
 class AmountIndicator extends StatefulWidget {
@@ -27,7 +27,7 @@ class _AmountIndicatorState extends State<AmountIndicator> {
     }
 
     return SizedBox(
-      width: state.width,
+      width: state.klineChartWidth + state.klineChartLeftMargin + state.klineChartRightMargin,
       height: state.indicatorChartHeight,
       child: CustomPaint(
         painter: _AmountIndicatorPainter(
@@ -36,6 +36,9 @@ class _AmountIndicatorState extends State<AmountIndicator> {
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
           crossLineIndex: state.crossLineIndex,
+          klineChartWidth: state.klineChartWidth,
+          klineChartLeftMargin: state.klineChartLeftMargin,
+          klineChartRightMargin: state.klineChartRightMargin,
           isUpList: _getIsUpList(state.klines, state.klineRng!),
         ),
       ),
@@ -58,6 +61,9 @@ class _AmountIndicatorPainter extends CustomPainter {
   final double klineStep;
   final double klineWidth;
   final List<bool> isUpList;
+  final double klineChartWidth;
+  final double klineChartLeftMargin;
+  final double klineChartRightMargin;
 
   _AmountIndicatorPainter({
     required this.klines,
@@ -66,6 +72,9 @@ class _AmountIndicatorPainter extends CustomPainter {
     required this.klineStep,
     required this.klineWidth,
     required this.isUpList,
+    required this.klineChartWidth,
+    required this.klineChartLeftMargin,
+    required this.klineChartRightMargin,
   });
 
   @override
@@ -75,7 +84,7 @@ class _AmountIndicatorPainter extends CustomPainter {
     // 绘制标题栏
     _drawTitleBar(canvas, size);
     // 绘制成交额柱状图
-    _drawAmountBars(canvas, size);
+    _drawAmountBars(canvas, size.height);
     // 绘制十字线
     if (crossLineIndex != -1) {
       _drawCrossLine(canvas, size);
@@ -121,9 +130,9 @@ class _AmountIndicatorPainter extends CustomPainter {
     todayText.paint(canvas, Offset(textPainter.width + yesterdayText.width + 24, 4));
   }
 
-  void _drawAmountBars(Canvas canvas, Size size) {
+  void _drawAmountBars(Canvas canvas, double height) {
     const titleHeight = 20.0;
-    final bodyHeight = size.height - titleHeight;
+    final bodyHeight = height - titleHeight;
 
     final redPaint =
         Paint()
@@ -136,6 +145,8 @@ class _AmountIndicatorPainter extends CustomPainter {
           ..style = PaintingStyle.fill;
 
     double maxAmount = _calcMaxAmount();
+    canvas.save();
+    canvas.translate(klineChartLeftMargin, 0);
     int nKline = 0;
     for (int i = klineRng.begin; i < klineRng.end; i++) {
       final x = nKline * klineStep;
@@ -149,6 +160,7 @@ class _AmountIndicatorPainter extends CustomPainter {
       canvas.drawRect(Rect.fromLTWH(x, y, barWidth, barHeight), paint);
       nKline++;
     }
+    canvas.restore();
   }
 
   void _drawCrossLine(Canvas canvas, Size size) {

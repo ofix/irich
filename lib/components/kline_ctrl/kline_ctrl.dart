@@ -18,90 +18,12 @@ import 'package:irich/components/indicators/minute_volume_indicator.dart';
 import 'package:irich/components/indicators/turnoverrate_indicator.dart';
 import 'package:irich/components/indicators/volume_indicator.dart';
 import 'package:irich/components/kline_ctrl/kline_chart.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/components/text_radio_button_group.dart';
 import 'package:irich/formula/formula_ema.dart';
 import 'package:irich/store/store_klines.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/utils/rich_result.dart';
-
-class KlineState {
-  Share share; // 股票
-  KlineType klineType = KlineType.day; // 当前绘制的K线类型
-  List<UiKline> klines; // 前复权日K线数据
-  List<MinuteKline> minuteKlines; // 分时K线数据
-  List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
-  UiKlineRange? klineRng; // 可视K线范围
-  List<ShareEmaCurve> emaCurves; // EMA曲线数据
-  List<List<UiIndicator>> indicators; // 0:日/周/月/季/年K线技术指标列表,1:分时图技术指标列表,2:五日分时图技术指标列表
-  int crossLineIndex; // 十字线位置
-  double klineStep; // K线步长
-  double klineWidth; // K线宽度
-  int visibleKlineCount; // 可视区域K线数量
-  double width; // K线图宽度
-  double klineChartHeight; // K线图高度
-  double indicatorChartHeight; // 指标附图高度
-
-  KlineState({
-    required this.share,
-    required this.klineType,
-    List<UiKline>? klines,
-    List<MinuteKline>? minuteKlines,
-    List<MinuteKline>? fiveDayMinuteKlines,
-    List<ShareEmaCurve>? emaCurves,
-    List<List<UiIndicator>>? indicators,
-    UiKlineRange? klineRng,
-    this.crossLineIndex = -1,
-    this.klineStep = 17,
-    this.klineWidth = 15,
-    this.visibleKlineCount = 120,
-    this.width = 800,
-    this.klineChartHeight = 600,
-    this.indicatorChartHeight = 80,
-  }) : klines = klines ?? [], // 使用const空列表避免共享引用
-       minuteKlines = minuteKlines ?? [],
-       fiveDayMinuteKlines = fiveDayMinuteKlines ?? [],
-       klineRng = klineRng ?? UiKlineRange(begin: 0, end: 0),
-       emaCurves = emaCurves ?? [],
-       indicators = indicators ?? [];
-
-  // 深拷贝方法（可选）
-  KlineState copyWith({
-    Share? share,
-    KlineType? klineType,
-    List<UiKline>? klines,
-    List<MinuteKline>? minuteKlines,
-    List<MinuteKline>? fiveDayMinuteKlines,
-    UiKlineRange? klineRng,
-    List<ShareEmaCurve>? emaCurves,
-    List<List<UiIndicator>>? indicators,
-    int? visibleIndicatorIndex,
-    int? crossLineIndex,
-    double? klineStep,
-    double? klineWidth,
-    int? visibleKlineCount,
-    double? width,
-    double? klineChartHeight,
-    double? indicatorChartHeight,
-  }) {
-    return KlineState(
-      share: share ?? this.share,
-      klineType: klineType ?? this.klineType,
-      klines: klines ?? this.klines,
-      minuteKlines: minuteKlines ?? this.minuteKlines,
-      fiveDayMinuteKlines: fiveDayMinuteKlines ?? this.fiveDayMinuteKlines,
-      klineRng: klineRng ?? this.klineRng,
-      emaCurves: emaCurves ?? this.emaCurves,
-      indicators: indicators ?? this.indicators,
-      crossLineIndex: crossLineIndex ?? this.crossLineIndex,
-      klineStep: klineStep ?? this.klineStep,
-      klineWidth: klineWidth ?? this.klineWidth,
-      visibleKlineCount: visibleKlineCount ?? this.visibleKlineCount,
-      width: width ?? this.width,
-      klineChartHeight: klineChartHeight ?? this.klineChartHeight,
-      indicatorChartHeight: indicatorChartHeight ?? this.indicatorChartHeight,
-    );
-  }
-}
 
 class KlineCtrl extends StatefulWidget {
   final Share share;
@@ -355,22 +277,10 @@ class _KlineCtrlState extends State<KlineCtrl> {
         widgets.add(TurnoverRateIndicator(klineState: klineState));
       } else if (type == UiIndicatorType.minuteAmount ||
           type == UiIndicatorType.fiveDayMinuteAmount) {
-        widgets.add(
-          MinuteAmountIndicator(
-            minuteKlines: klineState.minuteKlines,
-            klineType: klineState.klineType,
-            crossLineIndex: klineState.crossLineIndex,
-          ),
-        );
+        widgets.add(MinuteAmountIndicator(klineState: klineState));
       } else if (type == UiIndicatorType.minuteVolume ||
           type == UiIndicatorType.fiveDayMinuteVolume) {
-        widgets.add(
-          MinuteVolumeIndicator(
-            minuteKlines: klineState.minuteKlines,
-            klineType: klineState.klineType,
-            crossLineIndex: klineState.crossLineIndex,
-          ),
-        );
+        widgets.add(MinuteVolumeIndicator(klineState: klineState));
       }
     }
     return widgets;
@@ -383,7 +293,8 @@ class _KlineCtrlState extends State<KlineCtrl> {
     }
     double height = size.height - 103;
 
-    klineState.width = size.width;
+    klineState.klineChartWidth =
+        size.width - klineState.klineChartLeftMargin - klineState.klineChartRightMargin;
     klineState.klineChartHeight = height * ratio;
     klineState.indicatorChartHeight =
         klineState.indicators.isEmpty ? 0 : height * (1 - ratio) / klineState.indicators.length;
@@ -512,9 +423,12 @@ class _KlineCtrlState extends State<KlineCtrl> {
     final RenderBox box = context.findRenderObject() as RenderBox;
     final localPosition = box.globalToLocal(details.globalPosition);
     // 计算点击的K线索引
-    final index = (localPosition.dx / klineState.klineStep).floor();
-    klineState.crossLineIndex = index + klineState.klineRng!.begin;
-    setState(() {});
+    if ((localPosition.dx > klineState.klineChartLeftMargin) &&
+        localPosition.dx < (klineState.klineChartLeftMargin + klineState.klineChartWidth)) {
+      final index = (localPosition.dx / klineState.klineStep).floor();
+      klineState.crossLineIndex = index + klineState.klineRng!.begin;
+      setState(() {});
+    }
   }
 
   // 鼠标移动的时候需要动态绘制十字光标
@@ -624,7 +538,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     }
     // 可见K线数量大于等于总K线数量，不再缩小
     if (klineState.visibleKlineCount == klineState.klines.length) {
-      double klineStep = klineState.width / klineState.visibleKlineCount * 0.85;
+      double klineStep = klineState.klineChartWidth / klineState.visibleKlineCount * 0.85;
       int klineWidth = (klineState.klineStep * 0.8).floor();
       klineWidth = _ensureKlineWidth(klineStep, klineWidth);
       klineState = klineState.copyWith(klineStep: klineStep, klineWidth: klineWidth.toDouble());
@@ -659,7 +573,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
 
   // 计算可视范围K线自适应宽度
   void calcVisibleKlineWidth() {
-    Size size = Size(klineState.width, klineState.klineChartHeight);
+    Size size = Size(klineState.klineChartWidth, klineState.klineChartHeight);
     if (klineState.klines.isEmpty) {
       return;
     }
