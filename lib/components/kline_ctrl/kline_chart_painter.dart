@@ -124,6 +124,16 @@ class KlinePainter extends CustomPainter {
     minRectPrice = min;
   }
 
+  double getDrawStep(Size size) {
+    double deltaWidth = 3;
+    if (klineWidth == 1.0) {
+      deltaWidth = size.width / (klineRng.end - klineRng.begin + 1);
+    } else {
+      deltaWidth = klineWidth;
+    }
+    return deltaWidth;
+  }
+
   // 绘制K线背景
   void _drawBackground(Canvas canvas, Size size) {
     final bgPaint =
@@ -196,15 +206,10 @@ class KlinePainter extends CustomPainter {
     // 绿盘画笔
     // 绘制K线
     int nKline = 0; // 第几根K线
-    double deltaWidth = 3;
-    if (size.width <= klines.length) {
-      deltaWidth = size.width / klines.length;
-    } else {
-      deltaWidth = klineWidth;
-    }
+    double step = getDrawStep(size);
     for (var i = klineRng.begin; i <= klineRng.end; i++) {
       final kline = klines[i];
-      final x = nKline * deltaWidth;
+      final x = nKline * step;
       final centerX = x + klineInnerWidth / 2;
 
       // 计算坐标
@@ -267,14 +272,9 @@ class KlinePainter extends CustomPainter {
           ..strokeWidth = 1.5;
     int nKline = 0;
     double initialX = klineInnerWidth / 2;
-    double deltaWidth = 3;
-    if (size.width <= klines.length) {
-      deltaWidth = size.width / klines.length;
-    } else {
-      deltaWidth = klineWidth;
-    }
+    double step = getDrawStep(size);
     for (int i = klineRng.begin; i <= klineRng.end; i++) {
-      final x = nKline * deltaWidth + initialX;
+      final x = nKline * step + initialX;
       final y = (maxPrice - ema.emaPrice[i]) * priceRatio;
 
       if (i == klineRng.begin) {
