@@ -8,45 +8,67 @@
 // /////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/global/stock.dart';
-import 'package:irich/pages/share/share_page_common.dart';
-import 'package:irich/store/store_quote.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:irich/store/state_quote.dart';
 
 // 自选股组件
-class MarektShareTab extends StatefulWidget {
+class MarektShareTab extends ConsumerWidget {
   const MarektShareTab({super.key});
 
   @override
-  State<MarektShareTab> createState() => _MarektShareTabState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shareList = ref.watch(shareListProvider);
+    final currentShareIndex = ref.watch(currentShareIndexProvider);
+    final notifier = ref.watch(shareListProvider.notifier);
+    final ScrollController scrollController = ScrollController();
 
-class _MarektShareTabState extends State<MarektShareTab> with AutomaticKeepAliveClientMixin {
-  List<Share> _marketShares = []; // 市场股票
-  final bool _sortDescending = true; // 排序方式
-
-  @override
-  bool get wantKeepAlive => true;
-  @override
-  void initState() {
-    super.initState();
-    _marketShares = StoreQuote.marketShares;
-    _sortShares();
-  }
-
-  void _sortShares() {
-    setState(() {
-      _marketShares.sort(
-        (a, b) =>
-            _sortDescending
-                ? b.changeRate.compareTo(a.changeRate)
-                : a.changeRate.compareTo(b.changeRate),
-      );
+    // 监听选中索引变化，自动滚动到对应位置
+    ref.listen(currentShareIndexProvider, (_, newIndex) {
+      _scrollToIndex(newIndex, scrollController);
     });
+
+    return ListView.builder(
+      controller: scrollController,
+      itemCount: shareList.length,
+      itemExtent: 56, // 固定高度提升性能
+      itemBuilder: (context, index) {
+        final share = shareList[index];
+        return ListTile(
+          title: Text(share.name),
+          subtitle: Text(share.code),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                share.priceNow.toStringAsFixed(2),
+                style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+              ),
+              Text(
+                '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
+                style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+              ),
+            ],
+          ),
+          selected: index == currentShareIndex,
+          onTap: () {
+            notifier.setSelectedIndex(index);
+            GoRouter.of(context).push('/share/${share.code}');
+          },
+        );
+      },
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return buildShareList(context, _marketShares);
+  // 滚动到指定索引
+  void _scrollToIndex(int index, ScrollController controller) {
+    final double itemHeight = 50.0; // 假设列表项高度固定
+    final double offset = index * itemHeight;
+    controller.animateTo(
+      offset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 }
