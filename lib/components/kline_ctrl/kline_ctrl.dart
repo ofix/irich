@@ -67,10 +67,10 @@ class _KlineCtrlState extends State<KlineCtrl> {
   // 指标附图高度动态比例(最多4个指标附图)
   static const Map<int, double> chartHeightMap = {
     0: 1, // K线主图+0个指标附图
-    1: 0.8, // K线主图+1个指标附图
-    2: 0.7, // K线主图+2个指标附图
-    3: 0.6, // K线主图+3个指标附图
-    4: 0.5, // K线主图+4个指标附图
+    1: 0.7, // K线主图+1个指标附图
+    2: 0.6, // K线主图+2个指标附图
+    3: 0.5, // K线主图+3个指标附图
+    4: 0.4, // K线主图+4个指标附图
   };
 
   // 技术指标映射关系图
@@ -173,7 +173,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
         // UiIndicator(type: UiIndicatorType.volume),
         // UiIndicator(type: UiIndicatorType.turnoverRate),
         UiIndicator(type: UiIndicatorType.macd),
-        UiIndicator(type: UiIndicatorType.boll),
+        UiIndicator(type: UiIndicatorType.kdj),
       ],
       [
         UiIndicator(type: UiIndicatorType.minuteAmount),

@@ -119,49 +119,62 @@ class _KdjIndicatorPainter extends CustomPainter {
   }
 
   void drawTitleBar(Canvas canvas, Size size) {
-    final textStyle = TextStyle(color: Colors.white, fontSize: 12);
+    // 常量定义
+    const textPadding = 4.0;
+    const columnSpacing = 12.0;
+    final bgColor = const Color(0xFF252525);
+    final titleStyle = TextStyle(color: Colors.grey, fontSize: 12);
+    final kStyle = TextStyle(color: stockColors.kdjK, fontSize: 12);
+    final dStyle = TextStyle(color: stockColors.kdjD, fontSize: 12);
+    final jStyle = TextStyle(color: stockColors.kdjJ, fontSize: 12);
 
     // 绘制标题背景
-    final bgPaint =
-        Paint()
-          ..color = const Color(0xFF252525)
-          ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, titleHeight), bgPaint);
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, titleHeight),
+      Paint()
+        ..color = bgColor
+        ..style = PaintingStyle.fill,
+    );
 
-    // 绘制标题文本
-    final textPainter = TextPainter(
-      text: TextSpan(text: '成交额', style: textStyle.copyWith(color: Colors.grey)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(canvas, const Offset(4, 4));
+    // 辅助方法：绘制文本列
+    double drawTextColumn(String label, String? value, Offset baseOffset, TextStyle style) {
+      final text = value != null ? '$label: $value' : '$label: --';
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+      )..layout();
 
-    // 绘制昨日成交额
-    final yesterdayText = TextPainter(
-      text: TextSpan(
-        text: '昨: ${formatAmount(kdj.isNotEmpty ? 0 : 0)}',
-        style: textStyle.copyWith(color: Color.fromARGB(255, 255, 255, 0)),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    yesterdayText.paint(canvas, Offset(textPainter.width + 12, 4));
+      painter.paint(canvas, baseOffset);
+      return painter.width;
+    }
 
-    // 绘制今日成交额
-    final todayText = TextPainter(
-      text: TextSpan(
-        text: '今: ${formatAmount(kdj.isNotEmpty ? 0 : 0)}',
-        style: textStyle.copyWith(color: Colors.red),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    todayText.paint(canvas, Offset(textPainter.width + yesterdayText.width + 24, 4));
+    // 绘制标题和数值列
+    var currentX = textPadding;
+
+    // 标题
+    currentX += drawTextColumn('KDJ(9,3,3)', '', Offset(currentX, textPadding), titleStyle);
+
+    // 数值列
+    final k = kdj['K']?.last.toStringAsFixed(2);
+    final d = kdj['D']?.last.toStringAsFixed(2);
+    final j = kdj['J']?.last.toStringAsFixed(2);
+
+    currentX += columnSpacing;
+    currentX += drawTextColumn('K', k, Offset(currentX, textPadding), kStyle);
+
+    currentX += columnSpacing;
+    currentX += drawTextColumn('D', d, Offset(currentX, textPadding), dStyle);
+
+    currentX += columnSpacing;
+    drawTextColumn('J', j, Offset(currentX, textPadding), jStyle);
   }
 
   void drawKdj(Canvas canvas, double height) {
-    final bodyHeight = height - titleHeight;
     // 参数安全校验
     if (kdj.isEmpty) {
       return;
     }
+    final bodyHeight = height - titleHeight;
 
     final kLine = kdj['K'] ?? [];
     final dLine = kdj['D'] ?? [];
@@ -176,31 +189,40 @@ class _KdjIndicatorPainter extends CustomPainter {
     }
 
     // 计算有效绘制区间
-    final startIdx = klineRng.begin.clamp(0, kLine.length - 1).toInt();
-    final endIdx = klineRng.end.clamp(0, kLine.length - 1).toInt();
-    if (startIdx > endIdx) return;
+    final startIndex = klineRng.begin;
+    final endIndex = klineRng.end;
+    double min = double.infinity;
+    double max = double.negativeInfinity;
 
     // KDJ固定范围 [0,100]，无需动态计算Y轴
-    const kdjMin = 0.0;
-    const kdjMax = 100.0;
-    final scaleY = bodyHeight / (kdjMax - kdjMin);
+    for (int i = startIndex; i < endIndex; i++) {
+      if (kLine[i] < min) min = kLine[i];
+      if (dLine[i] < min) min = dLine[i];
+      if (jLine[i] < min) min = jLine[i];
+
+      if (kLine[i] > max) max = kLine[i];
+      if (dLine[i] > max) max = dLine[i];
+      if (jLine[i] > max) max = jLine[i];
+    }
+
+    final scaleY = bodyHeight / (max - min);
 
     // 创建画笔
     final kPaint =
         Paint()
-          ..color = Colors.blue
+          ..color = stockColors.kdjK
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
 
     final dPaint =
         Paint()
-          ..color = Colors.orange
+          ..color = stockColors.kdjD
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
 
     final jPaint =
         Paint()
-          ..color = Colors.green
+          ..color = stockColors.kdjJ
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
 
@@ -208,10 +230,10 @@ class _KdjIndicatorPainter extends CustomPainter {
     void drawLine(List<double> data, Paint paint) {
       final path = Path();
       double x = 0;
-      path.moveTo(x, bodyHeight - (data[startIdx] - kdjMin) * scaleY);
+      path.moveTo(x, bodyHeight - (data[startIndex] - min) * scaleY);
 
-      for (int i = startIdx; i <= endIdx; i++) {
-        path.lineTo(x, bodyHeight - (data[i] - kdjMin) * scaleY);
+      for (int i = startIndex + 1; i <= endIndex; i++) {
+        path.lineTo(x, bodyHeight - (data[i] - min) * scaleY);
         x += klineStep;
       }
       canvas.drawPath(path, paint);
@@ -224,16 +246,16 @@ class _KdjIndicatorPainter extends CustomPainter {
     drawLine(jLine, jPaint); // J线
 
     // 可选：绘制参考线（20/50/80）
-    final refPaint =
-        Paint()
-          ..color = Colors.grey.withOpacity(0.5)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.8;
+    // final refPaint =
+    //     Paint()
+    //       ..color = Colors.grey.withOpacity(0.5)
+    //       ..style = PaintingStyle.stroke
+    //       ..strokeWidth = 0.8;
 
-    for (final refValue in [20.0, 50.0, 80.0]) {
-      final y = bodyHeight - (refValue - kdjMin) * scaleY;
-      canvas.drawLine(Offset(0, y), Offset(klineStep * (endIdx - startIdx), y), refPaint);
-    }
+    // for (final refValue in [20.0, 50.0, 80.0]) {
+    //   final y = bodyHeight - (refValue - kdjMin) * scaleY;
+    //   canvas.drawLine(Offset(0, y), Offset(klineStep * (endIdx - startIdx), y), refPaint);
+    // }
 
     canvas.restore();
   }

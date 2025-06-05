@@ -124,8 +124,9 @@ class _MacdIndicatorPainter extends CustomPainter {
     const columnSpacing = 12.0;
     final bgColor = const Color(0xFF252525);
     final titleStyle = TextStyle(color: Colors.grey, fontSize: 12);
-    final valueStyle = TextStyle(color: const Color.fromARGB(255, 237, 130, 8), fontSize: 12);
-    final deaStyle = TextStyle(color: Colors.red, fontSize: 12);
+    final macdStyle = TextStyle(color: stockColors.macdRedBar, fontSize: 12);
+    final difStyle = TextStyle(color: stockColors.macdDif, fontSize: 12);
+    final deaStyle = TextStyle(color: stockColors.macdDea, fontSize: 12);
 
     // 绘制标题背景
     canvas.drawRect(
@@ -151,18 +152,18 @@ class _MacdIndicatorPainter extends CustomPainter {
     var currentX = textPadding;
 
     // 标题
-    currentX += drawTextColumn('MACD(12,26,9)', null, Offset(currentX, textPadding), titleStyle);
+    currentX += drawTextColumn('MACD(12,26,9)', '', Offset(currentX, textPadding), titleStyle);
 
     // 数值列
-    final macdValue = macd['MACD']?.last.toStringAsPrecision(2);
-    final diffValue = macd['DIF']?.last.toStringAsPrecision(2);
-    final deaValue = macd['DEA']?.last.toStringAsPrecision(2);
+    final macdValue = macd['MACD']?.last.toStringAsFixed(2);
+    final diffValue = macd['DIF']?.last.toStringAsFixed(2);
+    final deaValue = macd['DEA']?.last.toStringAsFixed(2);
 
     currentX += columnSpacing;
-    currentX += drawTextColumn('MACD', macdValue, Offset(currentX, textPadding), valueStyle);
+    currentX += drawTextColumn('MACD', macdValue, Offset(currentX, textPadding), macdStyle);
 
     currentX += columnSpacing;
-    currentX += drawTextColumn('DIFF', diffValue, Offset(currentX, textPadding), valueStyle);
+    currentX += drawTextColumn('DIFF', diffValue, Offset(currentX, textPadding), difStyle);
 
     currentX += columnSpacing;
     drawTextColumn('DEA', deaValue, Offset(currentX, textPadding), deaStyle);

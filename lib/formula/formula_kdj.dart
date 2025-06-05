@@ -60,7 +60,7 @@ class FormulaKdj extends Formula {
       j[i] = 3 * k[i] - 2 * d[i];
     }
 
-    return {'k': k, 'd': d, 'j': j};
+    return {'K': k, 'D': d, 'J': j};
   }
 
   static Map<String, List<double>> calculate(List<UiKline> klines, Map<String, dynamic> params) {
