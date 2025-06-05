@@ -13,6 +13,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:irich/components/indicators/amount_indicator.dart';
+import 'package:irich/components/indicators/boll_indicator.dart';
+import 'package:irich/components/indicators/kdj_indicator.dart';
+import 'package:irich/components/indicators/macd_indicator.dart';
 import 'package:irich/components/indicators/minute_amount_indicator.dart';
 import 'package:irich/components/indicators/minute_volume_indicator.dart';
 import 'package:irich/components/indicators/turnoverrate_indicator.dart';
@@ -20,7 +23,10 @@ import 'package:irich/components/indicators/volume_indicator.dart';
 import 'package:irich/components/kline_ctrl/kline_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/components/text_radio_button_group.dart';
+import 'package:irich/formula/formula_boll.dart';
 import 'package:irich/formula/formula_ema.dart';
+import 'package:irich/formula/formula_kdj.dart';
+import 'package:irich/formula/formula_macd.dart';
 import 'package:irich/store/store_klines.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/utils/rich_result.dart';
@@ -64,6 +70,26 @@ class _KlineCtrlState extends State<KlineCtrl> {
     2: 0.7, // K线主图+2个指标附图
     3: 0.6, // K线主图+3个指标附图
     4: 0.5, // K线主图+4个指标附图
+  };
+
+  // 技术指标映射关系图
+  static final indicatorCalculators = {
+    UiIndicatorType.macd: FormulaMacd.calculate,
+    UiIndicatorType.kdj: FormulaKdj.calculate,
+    UiIndicatorType.boll: FormulaBoll.calculate,
+  };
+
+  static final indicatorBuilders = <UiIndicatorType, Widget Function(KlineState state)>{
+    UiIndicatorType.amount: (state) => AmountIndicator(klineState: state),
+    UiIndicatorType.volume: (state) => VolumeIndicator(klineState: state),
+    UiIndicatorType.turnoverRate: (state) => TurnoverRateIndicator(klineState: state),
+    UiIndicatorType.minuteAmount: (state) => MinuteAmountIndicator(klineState: state),
+    UiIndicatorType.minuteVolume: (state) => MinuteVolumeIndicator(klineState: state),
+    UiIndicatorType.fiveDayMinuteAmount: (state) => MinuteAmountIndicator(klineState: state),
+    UiIndicatorType.fiveDayMinuteVolume: (state) => MinuteVolumeIndicator(klineState: state),
+    UiIndicatorType.macd: (state) => MacdIndicator(klineState: state),
+    UiIndicatorType.kdj: (state) => KdjIndicator(klineState: state),
+    UiIndicatorType.boll: (state) => BollIndicator(klineState: state),
   };
 
   @override
@@ -133,8 +159,10 @@ class _KlineCtrlState extends State<KlineCtrl> {
     final indicators = [
       [
         UiIndicator(type: UiIndicatorType.amount),
-        UiIndicator(type: UiIndicatorType.volume),
-        UiIndicator(type: UiIndicatorType.turnoverRate),
+        // UiIndicator(type: UiIndicatorType.volume),
+        // UiIndicator(type: UiIndicatorType.turnoverRate),
+        UiIndicator(type: UiIndicatorType.macd),
+        UiIndicator(type: UiIndicatorType.boll),
       ],
       [
         UiIndicator(type: UiIndicatorType.minuteAmount),
@@ -153,10 +181,41 @@ class _KlineCtrlState extends State<KlineCtrl> {
         klineType == KlineType.year) {
       klineState.indicators = indicators[0];
       klineState.dynamicIndicators = indicators[0];
+      for (final indicator in klineState.indicators) {
+        final calculator = indicatorCalculators[indicator.type];
+        if (calculator == null) {
+          continue;
+        }
+        final result = calculator(klineState.klines, {});
+        initIndicatorData(indicator.type, result);
+      }
     } else if (klineType == KlineType.minute) {
       klineState.indicators = indicators[1];
     } else if (klineType == KlineType.fiveDay) {
       klineState.indicators = indicators[2];
+    }
+  }
+
+  // 填充技术指标计算结果
+  void initIndicatorData(UiIndicatorType type, Map<String, List<double>> value) {
+    switch (type) {
+      case UiIndicatorType.macd:
+        {
+          klineState.macd = value;
+          break;
+        }
+      case UiIndicatorType.kdj:
+        {
+          klineState.kdj = value;
+          break;
+        }
+      case UiIndicatorType.boll:
+        {
+          klineState.boll = value;
+          break;
+        }
+      default:
+        debugPrint('未知指标类型: $type');
     }
   }
 
@@ -265,22 +324,12 @@ class _KlineCtrlState extends State<KlineCtrl> {
     }
     List<Widget> widgets = [];
 
-    for (int i = 0; i < indicators.length; i++) {
-      final type = indicators[i].type;
-      if (type == UiIndicatorType.amount) {
-        widgets.add(AmountIndicator(klineState: klineState));
-      } else if (type == UiIndicatorType.volume) {
-        widgets.add(VolumeIndicator(klineState: klineState));
-      } else if (type == UiIndicatorType.turnoverRate) {
-        widgets.add(TurnoverRateIndicator(klineState: klineState));
-      } else if (type == UiIndicatorType.minuteAmount ||
-          type == UiIndicatorType.fiveDayMinuteAmount) {
-        widgets.add(MinuteAmountIndicator(klineState: klineState));
-      } else if (type == UiIndicatorType.minuteVolume ||
-          type == UiIndicatorType.fiveDayMinuteVolume) {
-        widgets.add(MinuteVolumeIndicator(klineState: klineState));
-      }
+    for (final indicator in indicators) {
+      final builder = indicatorBuilders[indicator.type];
+      if (builder == null) continue;
+      widgets.add(builder(klineState));
     }
+
     return widgets;
   }
 
@@ -463,7 +512,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     }
 
     ShareEmaCurve curve = ShareEmaCurve(color: color, period: period, visible: true, emaPrice: []);
-    curve.emaPrice = FormulaEma.calculateEma(klineState.klines, period);
+    curve.emaPrice = FormulaEma.calc(klineState.klines, period);
     klineState.emaCurves.add(curve);
     // 刷新
     return true;

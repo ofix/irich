@@ -9,9 +9,12 @@
 
 enum FormulaType {
   ema, // 指数平滑移动平均线
+  macd, // MACD技术指标
+  kdj, // KDJ技术指标
+  boll, // 布林线
 }
 
-class Formula {
+abstract class Formula {
   final FormulaType _type;
   Formula(this._type);
   FormulaType get type => _type;

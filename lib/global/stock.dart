@@ -395,6 +395,9 @@ class MinuteKline {
 enum UiIndicatorType {
   volume, // 成交量
   amount, // 成交额
+  macd, // MACD技术指标
+  kdj, // KDJ技术指标
+  boll, // 布林线技术指标
   turnoverRate, // 换手率
   minuteVolume, // 分时成交量
   minuteAmount, // 分时成交额

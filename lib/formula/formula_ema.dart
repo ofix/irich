@@ -17,7 +17,7 @@ class FormulaEma extends Formula {
   /// [klines] K线数据列表
   /// [period] EMA周期
   /// 返回EMA值列表
-  static List<double> calculateEma(List<UiKline> klines, int period) {
+  static List<double> calc(List<UiKline> klines, int period) {
     final emaPrices = <double>[];
     if (klines.isEmpty || period <= 0) return emaPrices;
 
@@ -33,5 +33,10 @@ class FormulaEma extends Formula {
     }
 
     return emaPrices;
+  }
+
+  static dynamic calculate(List<UiKline> klines, Map<String, dynamic> params) {
+    final period = params['Period'] ?? 20; // 默认参数
+    return FormulaEma.calc(klines, period);
   }
 }

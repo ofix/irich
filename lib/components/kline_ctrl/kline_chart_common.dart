@@ -18,6 +18,9 @@ class KlineState {
   List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
   UiKlineRange? klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
+  Map<String, List<double>> kdj; // KDJ技术指标数据，按需填充
+  Map<String, List<double>> macd; // MACD技术指标数据，按需填充
+  Map<String, List<double>> boll; // 布林线技术指标数据，按需填充
   List<UiIndicator> indicators; //  当前显示的指标副图，日/周/月/季/年K线技术指标列表, 分时图技术指标列表,  五日分时图技术指标列表
   List<UiIndicator> dynamicIndicators; // 日/周/月/季/年K线技术指标列表,支持动态添加和删除
   int crossLineIndex; // 十字线位置
@@ -37,6 +40,9 @@ class KlineState {
     List<MinuteKline>? minuteKlines,
     List<MinuteKline>? fiveDayMinuteKlines,
     List<ShareEmaCurve>? emaCurves,
+    Map<String, List<double>>? kdj,
+    Map<String, List<double>>? macd,
+    Map<String, List<double>>? boll,
     List<UiIndicator>? indicators,
     List<UiIndicator>? dynamicIndicators,
     UiKlineRange? klineRng,
@@ -54,6 +60,9 @@ class KlineState {
        fiveDayMinuteKlines = fiveDayMinuteKlines ?? [],
        klineRng = klineRng ?? UiKlineRange(begin: 0, end: 0),
        emaCurves = emaCurves ?? [],
+       kdj = kdj ?? {},
+       macd = macd ?? {},
+       boll = boll ?? {},
        indicators = indicators ?? [],
        dynamicIndicators = dynamicIndicators ?? [];
 
@@ -66,6 +75,9 @@ class KlineState {
     List<MinuteKline>? fiveDayMinuteKlines,
     UiKlineRange? klineRng,
     List<ShareEmaCurve>? emaCurves,
+    Map<String, List<double>>? kdj,
+    Map<String, List<double>>? macd,
+    Map<String, List<double>>? boll,
     List<UiIndicator>? indicators,
     List<UiIndicator>? dynamicIndicators,
     int? visibleIndicatorIndex,
@@ -87,6 +99,9 @@ class KlineState {
       fiveDayMinuteKlines: fiveDayMinuteKlines ?? this.fiveDayMinuteKlines,
       klineRng: klineRng ?? this.klineRng,
       emaCurves: emaCurves ?? this.emaCurves,
+      kdj: kdj ?? this.kdj,
+      macd: macd ?? this.macd,
+      boll: boll ?? this.boll,
       indicators: indicators ?? this.indicators,
       dynamicIndicators: dynamicIndicators ?? this.dynamicIndicators,
       crossLineIndex: crossLineIndex ?? this.crossLineIndex,
