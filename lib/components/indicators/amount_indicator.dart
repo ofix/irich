@@ -10,10 +10,12 @@
 import 'package:flutter/material.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 class AmountIndicator extends StatefulWidget {
   final KlineState klineState;
-  const AmountIndicator({super.key, required this.klineState});
+  final StockColors stockColors;
+  const AmountIndicator({super.key, required this.klineState, required this.stockColors});
   @override
   State<AmountIndicator> createState() => _AmountIndicatorState();
 }
@@ -39,6 +41,7 @@ class _AmountIndicatorState extends State<AmountIndicator> {
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
+          stockColors: widget.stockColors,
           isUpList: _getIsUpList(state.klines, state.klineRng!),
         ),
       ),
@@ -66,6 +69,7 @@ class _AmountIndicatorPainter extends CustomPainter {
   final double klineChartRightMargin;
   late final double maxAmount;
   final double titleHeight = 20.0;
+  final StockColors stockColors;
 
   _AmountIndicatorPainter({
     required this.klines,
@@ -77,6 +81,7 @@ class _AmountIndicatorPainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.stockColors,
   }) {
     maxAmount = _calcMaxAmount();
   }
@@ -173,12 +178,12 @@ class _AmountIndicatorPainter extends CustomPainter {
 
     final redPaint =
         Paint()
-          ..color = Colors.red
+          ..color = stockColors.klineUp
           ..style = PaintingStyle.fill;
 
     final greenPaint =
         Paint()
-          ..color = Colors.green
+          ..color = stockColors.klineDown
           ..style = PaintingStyle.fill;
 
     canvas.save();

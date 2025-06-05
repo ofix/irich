@@ -10,10 +10,12 @@
 import 'package:flutter/material.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 class MinuteAmountIndicator extends StatefulWidget {
   final KlineState klineState;
-  const MinuteAmountIndicator({super.key, required this.klineState});
+  final StockColors stockColors;
+  const MinuteAmountIndicator({super.key, required this.klineState, required this.stockColors});
 
   @override
   State<MinuteAmountIndicator> createState() => _MinuteAmountIndicatorState();

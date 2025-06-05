@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:irich/theme/color_themes.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 class AppTheme {
   static ThemeData getLightTheme() {
@@ -25,6 +26,9 @@ class AppTheme {
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
+      extensions: <ThemeExtension<dynamic>>[
+        StockColors.light(), // 注入股票颜色
+      ],
     );
   }
 
@@ -42,6 +46,9 @@ class AppTheme {
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
+      extensions: <ThemeExtension<dynamic>>[
+        StockColors.dark(), // 注入股票颜色
+      ],
     );
   }
 }

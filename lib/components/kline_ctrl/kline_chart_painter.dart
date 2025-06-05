@@ -12,6 +12,8 @@ import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
 import 'dart:math';
 
+import 'package:irich/theme/stock_colors.dart';
+
 class KlinePainter extends CustomPainter {
   Share share; // 当前股票
   List<UiKline> klines; // 前复权日K线数据
@@ -35,6 +37,8 @@ class KlinePainter extends CustomPainter {
   int minRectPriceIndex = 0; // 可见K线中最低价K线位置
   int maxRectPriceIndex = 0; // 可见K险种最高价K线位置
 
+  StockColors stockColors; // 主题色
+
   KlinePainter({
     required this.share,
     required this.klineType,
@@ -50,6 +54,7 @@ class KlinePainter extends CustomPainter {
     required this.klineChartHeight,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.stockColors,
   });
 
   @override
@@ -140,13 +145,13 @@ class KlinePainter extends CustomPainter {
     // 红盘一字板画笔
     final redPen =
         Paint()
-          ..color = Colors.red
+          ..color = stockColors.klineUp
           ..strokeWidth = 1
           ..style = PaintingStyle.stroke;
     // 绿盘一字板画笔
     final greenPen =
         Paint()
-          ..color = Colors.green
+          ..color = stockColors.klineDown
           ..strokeWidth = 1
           ..style = PaintingStyle.stroke;
     // 收盘十字形画笔
@@ -159,12 +164,12 @@ class KlinePainter extends CustomPainter {
     // 红盘画笔
     final klineRedPen =
         Paint()
-          ..color = Colors.red
+          ..color = stockColors.klineUp
           ..style = PaintingStyle.fill;
     // 绿盘画笔
     final klineGreenPen =
         Paint()
-          ..color = Colors.green
+          ..color = stockColors.klineDown
           ..style = PaintingStyle.fill;
     // 绘制K线
     canvas.save();

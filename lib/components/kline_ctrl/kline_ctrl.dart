@@ -29,6 +29,7 @@ import 'package:irich/formula/formula_kdj.dart';
 import 'package:irich/formula/formula_macd.dart';
 import 'package:irich/store/store_klines.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/theme/stock_colors.dart';
 import 'package:irich/utils/rich_result.dart';
 
 class KlineCtrl extends StatefulWidget {
@@ -79,17 +80,27 @@ class _KlineCtrlState extends State<KlineCtrl> {
     UiIndicatorType.boll: FormulaBoll.calculate,
   };
 
-  static final indicatorBuilders = <UiIndicatorType, Widget Function(KlineState state)>{
-    UiIndicatorType.amount: (state) => AmountIndicator(klineState: state),
-    UiIndicatorType.volume: (state) => VolumeIndicator(klineState: state),
-    UiIndicatorType.turnoverRate: (state) => TurnoverRateIndicator(klineState: state),
-    UiIndicatorType.minuteAmount: (state) => MinuteAmountIndicator(klineState: state),
-    UiIndicatorType.minuteVolume: (state) => MinuteVolumeIndicator(klineState: state),
-    UiIndicatorType.fiveDayMinuteAmount: (state) => MinuteAmountIndicator(klineState: state),
-    UiIndicatorType.fiveDayMinuteVolume: (state) => MinuteVolumeIndicator(klineState: state),
-    UiIndicatorType.macd: (state) => MacdIndicator(klineState: state),
-    UiIndicatorType.kdj: (state) => KdjIndicator(klineState: state),
-    UiIndicatorType.boll: (state) => BollIndicator(klineState: state),
+  static final indicatorBuilders = <
+    UiIndicatorType,
+    Widget Function(KlineState state, StockColors colors)
+  >{
+    UiIndicatorType.amount:
+        (state, colors) => AmountIndicator(klineState: state, stockColors: colors),
+    UiIndicatorType.volume:
+        (state, colors) => VolumeIndicator(klineState: state, stockColors: colors),
+    UiIndicatorType.turnoverRate:
+        (state, colors) => TurnoverRateIndicator(klineState: state, stockColors: colors),
+    UiIndicatorType.minuteAmount:
+        (state, colors) => MinuteAmountIndicator(klineState: state, stockColors: colors),
+    UiIndicatorType.minuteVolume:
+        (state, colors) => MinuteVolumeIndicator(klineState: state, stockColors: colors),
+    UiIndicatorType.fiveDayMinuteAmount:
+        (state, colors) => MinuteAmountIndicator(klineState: state, stockColors: colors),
+    UiIndicatorType.fiveDayMinuteVolume:
+        (state, colors) => MinuteVolumeIndicator(klineState: state, stockColors: colors),
+    UiIndicatorType.macd: (state, colors) => MacdIndicator(klineState: state, stockColors: colors),
+    UiIndicatorType.kdj: (state, colors) => KdjIndicator(klineState: state, stockColors: colors),
+    UiIndicatorType.boll: (state, colors) => BollIndicator(klineState: state, stockColors: colors),
   };
 
   @override
@@ -228,6 +239,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
   @override
   Widget build(BuildContext context) {
     // final parentWidth = MediaQuery.of(context).size.width; 此方法获取的是屏幕宽度
+    final stockColors = Theme.of(context).extension<StockColors>()!;
     return Focus(
       autofocus: true,
       focusNode: _focusNode,
@@ -249,9 +261,9 @@ class _KlineCtrlState extends State<KlineCtrl> {
                   // EMA加权平均线
                   _buildEmaCurveButtons(context, emaCurveMap),
                   // K线主图
-                  KlineChart(klineState: klineState),
+                  KlineChart(klineState: klineState, stockColors: stockColors),
                   // 技术指标图
-                  ..._buildIndicators(context, klineState),
+                  ..._buildIndicators(context, klineState, stockColors),
                 ],
               );
             },
@@ -317,7 +329,11 @@ class _KlineCtrlState extends State<KlineCtrl> {
   }
 
   // 绘制技术指标附图
-  List<Widget> _buildIndicators(BuildContext context, KlineState klienState) {
+  List<Widget> _buildIndicators(
+    BuildContext context,
+    KlineState klienState,
+    StockColors stockColors,
+  ) {
     final indicators = klineState.indicators;
     if (indicators.isEmpty) {
       return [];
@@ -327,7 +343,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     for (final indicator in indicators) {
       final builder = indicatorBuilders[indicator.type];
       if (builder == null) continue;
-      widgets.add(builder(klineState));
+      widgets.add(builder(klineState, stockColors));
     }
 
     return widgets;

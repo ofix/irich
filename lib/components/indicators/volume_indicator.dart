@@ -10,11 +10,13 @@
 import 'package:flutter/material.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 class VolumeIndicator extends StatefulWidget {
   final KlineState klineState;
+  final StockColors stockColors;
 
-  const VolumeIndicator({super.key, required this.klineState});
+  const VolumeIndicator({super.key, required this.klineState, required this.stockColors});
 
   @override
   State<VolumeIndicator> createState() => _VolumeIndicatorState();
@@ -42,6 +44,7 @@ class _VolumeIndicatorState extends State<VolumeIndicator> {
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
+          stockColors: widget.stockColors,
         ),
       ),
     );
@@ -63,6 +66,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
   final double klineChartLeftMargin; // K线图左边距
   final double klineChartRightMargin; // K线图右边距
   final double titleHeight = 20;
+  final StockColors stockColors;
   late final double maxVolume;
 
   _VolumeIndicatorPainter({
@@ -75,6 +79,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.stockColors,
   }) {
     maxVolume = _calcMaxVolume().toDouble();
   }
@@ -175,12 +180,12 @@ class _VolumeIndicatorPainter extends CustomPainter {
 
     final redPaint =
         Paint()
-          ..color = Colors.red
+          ..color = stockColors.klineUp
           ..style = PaintingStyle.fill;
 
     final greenPaint =
         Paint()
-          ..color = Colors.green
+          ..color = stockColors.klineDown
           ..style = PaintingStyle.fill;
 
     canvas.save();

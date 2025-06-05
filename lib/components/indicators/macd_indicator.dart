@@ -7,15 +7,15 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 class MacdIndicator extends StatefulWidget {
   final KlineState klineState;
-  const MacdIndicator({super.key, required this.klineState});
+  final StockColors stockColors;
+  const MacdIndicator({super.key, required this.klineState, required this.stockColors});
   @override
   State<MacdIndicator> createState() => _MacdIndicatorState();
 }
@@ -41,18 +41,10 @@ class _MacdIndicatorState extends State<MacdIndicator> {
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
-          isUpList: _getIsUpList(state.klines, state.klineRng!),
+          stockColors: widget.stockColors,
         ),
       ),
     );
-  }
-
-  List<bool> _getIsUpList(List<UiKline> klines, UiKlineRange klineRng) {
-    List<bool> upList = [];
-    for (int i = klineRng.begin; i < klineRng.end; i++) {
-      upList.add(klines[i].priceClose >= klines[i].priceOpen);
-    }
-    return upList;
   }
 }
 
@@ -62,11 +54,11 @@ class _MacdIndicatorPainter extends CustomPainter {
   final int crossLineIndex;
   final double klineStep;
   final double klineWidth;
-  final List<bool> isUpList;
   final double klineChartWidth;
   final double klineChartLeftMargin;
   final double klineChartRightMargin;
   final double titleHeight = 20.0;
+  final StockColors stockColors;
 
   _MacdIndicatorPainter({
     required this.macd,
@@ -74,11 +66,11 @@ class _MacdIndicatorPainter extends CustomPainter {
     required this.crossLineIndex,
     required this.klineStep,
     required this.klineWidth,
-    required this.isUpList,
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
-  }) {}
+    required this.stockColors,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -187,14 +179,30 @@ class _MacdIndicatorPainter extends CustomPainter {
     canvas.translate(klineChartLeftMargin, titleHeight);
     // 计算实际需要绘制的数据范围
     final size = Size(klineChartWidth, bodyHeight);
+    double max = double.negativeInfinity;
+    double min = double.infinity;
+    int startIndex = klineRng.begin;
+    int endIndex = klineRng.end;
+    for (int i = startIndex; i < endIndex; i++) {
+      if (dif[i] < min) min = dif[i];
+      if (dea[i] < min) min = dea[i];
+      if (macdValues[i] < min) min = macdValues[i];
+
+      if (dif[i] > max) max = dif[i];
+      if (dea[i] > max) max = dea[i];
+      if (macdValues[i] > max) max = macdValues[i];
+    }
+
     // 绘制DIF线
     _drawLine(
       canvas: canvas,
       size: size,
       data: dif,
-      startIdx: klineRng.begin,
-      endIdx: klineRng.end,
-      color: const Color.fromARGB(255, 233, 161, 54),
+      startIdx: startIndex,
+      endIdx: endIndex,
+      min: min,
+      max: max,
+      color: stockColors.macdDif,
     );
 
     // 绘制DEA线
@@ -202,9 +210,11 @@ class _MacdIndicatorPainter extends CustomPainter {
       canvas: canvas,
       size: size,
       data: dea,
-      startIdx: klineRng.begin,
-      endIdx: klineRng.end,
-      color: const Color.fromARGB(255, 41, 204, 245),
+      startIdx: startIndex,
+      endIdx: endIndex,
+      min: min,
+      max: max,
+      color: stockColors.macdDea,
     );
 
     // 绘制MACD柱状图
@@ -212,10 +222,12 @@ class _MacdIndicatorPainter extends CustomPainter {
       canvas: canvas,
       size: size,
       data: macdValues,
-      startIdx: klineRng.begin,
-      endIdx: klineRng.end,
-      positiveColor: Colors.red,
-      negativeColor: Colors.green,
+      startIdx: startIndex,
+      endIdx: endIndex,
+      min: min,
+      max: max,
+      positiveColor: stockColors.macdRedBar,
+      negativeColor: stockColors.macdGreenBar,
     );
     canvas.restore();
   }
@@ -224,24 +236,18 @@ class _MacdIndicatorPainter extends CustomPainter {
     required Canvas canvas,
     required Size size,
     required List<double> data,
+
     required int startIdx,
     required int endIdx,
+    required double min,
+    required double max,
     required Color color,
   }) {
     if (data.isEmpty) return;
 
     final path = Path();
     final height = size.height;
-    double max = double.negativeInfinity;
-    double min = double.infinity;
-    for (int i = startIdx; i < endIdx; i++) {
-      if (data[i] > max) {
-        max = data[i];
-      }
-      if (data[i] < min) {
-        min = data[i];
-      }
-    }
+
     final range = max - min;
     final scaleY = height / (range == 0 ? 1 : range);
 
@@ -256,7 +262,7 @@ class _MacdIndicatorPainter extends CustomPainter {
       Paint()
         ..color = color
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
+        ..strokeWidth = 1,
     );
   }
 
@@ -266,6 +272,8 @@ class _MacdIndicatorPainter extends CustomPainter {
     required List<double> data,
     required int startIdx,
     required int endIdx,
+    required double min,
+    required double max,
     required Color positiveColor,
     required Color negativeColor,
   }) {
@@ -273,20 +281,21 @@ class _MacdIndicatorPainter extends CustomPainter {
     if (data.isEmpty || startIdx >= data.length || endIdx >= data.length || startIdx > endIdx) {
       return;
     }
-    final bodyHeight = size.height - titleHeight;
-    // 1. 计算Y轴缩放因子
-    final max = _calcMaxMacdInRange(data, startIdx, endIdx);
-    final scaleY = max > 0 ? bodyHeight / 2 / max : 1.0;
+    final range = max - min;
+    final yScale = size.height / range;
+    final baseY = size.height * (1 + min / range);
 
-    final zeroLine = bodyHeight / 2;
+    double zeroY = size.height * (1 - (0 - min) / range);
     final paintPositive =
         Paint()
           ..color = positiveColor
-          ..style = PaintingStyle.fill;
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1;
     final paintNegative =
         Paint()
           ..color = negativeColor
-          ..style = PaintingStyle.fill;
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1;
 
     double x = 0;
     for (int i = startIdx; i <= endIdx; i++) {
@@ -296,11 +305,10 @@ class _MacdIndicatorPainter extends CustomPainter {
         continue;
       }
 
-      final scaledValue = value * scaleY;
-      final y = zeroLine - scaledValue;
+      final y = baseY - value * yScale;
 
       // 绘制从零线到值的线段
-      canvas.drawLine(Offset(x, zeroLine), Offset(x, y), value > 0 ? paintPositive : paintNegative);
+      canvas.drawLine(Offset(x, zeroY), Offset(x, y), value > 0 ? paintPositive : paintNegative);
 
       x += klineStep;
     }

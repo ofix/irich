@@ -10,10 +10,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_painter.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 class KlineChart extends StatefulWidget {
   final KlineState klineState;
-  const KlineChart({super.key, required this.klineState});
+  final StockColors stockColors;
+  const KlineChart({super.key, required this.klineState, required this.stockColors});
 
   @override
   State<KlineChart> createState() => _KlineChartState();
@@ -45,6 +47,7 @@ class _KlineChartState extends State<KlineChart> {
           crossLineIndex: widget.klineState.crossLineIndex,
           klineStep: widget.klineState.klineStep,
           klineWidth: widget.klineState.klineWidth,
+          stockColors: widget.stockColors,
         ),
       ),
     );

@@ -10,10 +10,12 @@
 import 'package:flutter/material.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 class KdjIndicator extends StatefulWidget {
   final KlineState klineState;
-  const KdjIndicator({super.key, required this.klineState});
+  final StockColors stockColors;
+  const KdjIndicator({super.key, required this.klineState, required this.stockColors});
   @override
   State<KdjIndicator> createState() => _KdjIndicatorState();
 }
@@ -39,6 +41,7 @@ class _KdjIndicatorState extends State<KdjIndicator> {
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
+          stockColors: widget.stockColors,
         ),
       ),
     );
@@ -55,6 +58,7 @@ class _KdjIndicatorPainter extends CustomPainter {
   final double klineChartLeftMargin;
   final double klineChartRightMargin;
   final double titleHeight = 20.0;
+  final StockColors stockColors;
 
   _KdjIndicatorPainter({
     required this.kdj,
@@ -65,6 +69,7 @@ class _KdjIndicatorPainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.stockColors,
   });
 
   @override
@@ -134,7 +139,7 @@ class _KdjIndicatorPainter extends CustomPainter {
     final yesterdayText = TextPainter(
       text: TextSpan(
         text: '昨: ${formatAmount(kdj.isNotEmpty ? 0 : 0)}',
-        style: textStyle.copyWith(color: const Color.fromARGB(255, 237, 130, 8)),
+        style: textStyle.copyWith(color: Color.fromARGB(255, 255, 255, 0)),
       ),
       textDirection: TextDirection.ltr,
     )..layout();

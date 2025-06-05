@@ -10,10 +10,12 @@
 import 'package:flutter/material.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 class TurnoverRateIndicator extends StatefulWidget {
   final KlineState klineState;
-  const TurnoverRateIndicator({super.key, required this.klineState});
+  final StockColors stockColors;
+  const TurnoverRateIndicator({super.key, required this.klineState, required this.stockColors});
 
   @override
   State<TurnoverRateIndicator> createState() => _TurnoverRateIndicatorState();
@@ -41,6 +43,7 @@ class _TurnoverRateIndicatorState extends State<TurnoverRateIndicator> {
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
+          stockColors: widget.stockColors,
         ),
       ),
     );
@@ -62,6 +65,7 @@ class _TurnoverRatePainter extends CustomPainter {
   final double klineChartLeftMargin;
   final double klineChartRightMargin;
   final double titleHeight = 20.0;
+  final StockColors stockColors;
   late final double maxTurnoverRate;
   _TurnoverRatePainter({
     required this.klines,
@@ -73,6 +77,7 @@ class _TurnoverRatePainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.stockColors,
   }) {
     maxTurnoverRate = _calcMaxTurnoverRate();
   }
@@ -174,12 +179,12 @@ class _TurnoverRatePainter extends CustomPainter {
 
     final redPen =
         Paint()
-          ..color = Colors.red
+          ..color = stockColors.klineUp
           ..style = PaintingStyle.fill;
 
     final greenPen =
         Paint()
-          ..color = Colors.green
+          ..color = stockColors.klineDown
           ..style = PaintingStyle.fill;
 
     canvas.save();

@@ -12,10 +12,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 class BollIndicator extends StatefulWidget {
   final KlineState klineState;
-  const BollIndicator({super.key, required this.klineState});
+  final StockColors stockColors;
+  const BollIndicator({super.key, required this.klineState, required this.stockColors});
   @override
   State<BollIndicator> createState() => _BollIndicatorState();
 }
@@ -207,7 +209,7 @@ class _BollIndicatorPainter extends CustomPainter {
     bandPath.close();
     canvas.drawPath(
       bandPath,
-      _bandPaint..color = const Color.fromARGB(255, 150, 227, 105).withOpacity(0.2),
+      _bandPaint..color = const Color.fromARGB(255, 46, 197, 252).withOpacity(0.5),
     );
 
     // 绘制中线

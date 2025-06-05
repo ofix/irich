@@ -10,10 +10,12 @@
 import 'package:flutter/material.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 class MinuteVolumeIndicator extends StatefulWidget {
   final KlineState klineState;
-  const MinuteVolumeIndicator({super.key, required this.klineState});
+  final StockColors stockColors;
+  const MinuteVolumeIndicator({super.key, required this.klineState, required this.stockColors});
 
   @override
   State<MinuteVolumeIndicator> createState() => _MinuteVolumeIndicatorState();
@@ -44,6 +46,7 @@ class _MinuteVolumeIndicatorState extends State<MinuteVolumeIndicator> {
           minuteKlines: state.minuteKlines,
           klineType: state.klineType,
           crossLineIndex: state.crossLineIndex,
+          stockColors: widget.stockColors,
         ),
       ),
     );
@@ -58,7 +61,7 @@ class _MinuteVolumePainter extends CustomPainter {
   final int crossLineIndex;
   final KlineType klineType;
   late final double maxVolume;
-
+  final StockColors stockColors;
   _MinuteVolumePainter({
     required this.klineChartLeftMargin,
     required this.klineChartWidth,
@@ -66,6 +69,7 @@ class _MinuteVolumePainter extends CustomPainter {
     required this.fiveDayMinuteKlines,
     required this.crossLineIndex,
     required this.klineType,
+    required this.stockColors,
   }) {
     maxVolume = _calcMaxVolume().toDouble();
   }
