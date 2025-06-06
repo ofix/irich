@@ -204,18 +204,6 @@ class _VolumeIndicatorPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void drawCrossLine(Canvas canvas, double height) {
-    canvas.save();
-    canvas.translate(klineChartLeftMargin, 0);
-    drawVerticalLine(
-      canvas: canvas,
-      x: crossLineIndex * klineStep + klineWidth / 2,
-      yTop: indicatorChartTitleBarHeight,
-      yBottom: height,
-    );
-    canvas.restore();
-  }
-
   BigInt _calcMaxVolume() {
     if (klines.isEmpty) return BigInt.from(0);
     BigInt maxVolume = BigInt.from(0);
