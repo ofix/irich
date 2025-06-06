@@ -10,6 +10,12 @@
 import 'package:flutter/material.dart';
 import 'package:irich/global/stock.dart';
 
+enum CrossLineMode {
+  none, // 不显示
+  followCursor, // 跟随光标
+  followKline, // 跟随K线
+}
+
 class KlineState {
   Share share; // 股票
   KlineType klineType = KlineType.day; // 当前绘制的K线类型
@@ -22,8 +28,9 @@ class KlineState {
   Map<String, List<double>> boll; // 布林线技术指标数据，按需填充
   List<UiIndicator> indicators; //  当前显示的指标副图，日/周/月/季/年K线技术指标列表, 分时图技术指标列表,  五日分时图技术指标列表
   List<UiIndicator> dynamicIndicators; // 日/周/月/季/年K线技术指标列表,支持动态添加和删除
-  int crossLineIndex; // 十字线所属K线位置
-  Offset crossLinePos; // 十字线光标位置
+  CrossLineMode crossLineMode; // 十字线模式
+  Offset crossLineFollowCursorPos; // 十字线，跟随光标位置
+  int crossLineFollowKlineIndex; // 十字线，所属K线位置
   double klineStep; // K线步长
   double klineWidth; // K线宽度
   UiKlineRange? klineRng; // 可视K线范围
@@ -32,7 +39,7 @@ class KlineState {
   int visibleKlineCount; // 可视区域K线数量
   double klineCtrlWidth; // K线图容器宽度(主图+左右指示面板)
   double klineCtrlHeight; // K线图容器高度(主图+多个附图)
-  double klineCtrlTitleBar; // K线图标题栏高度
+  double klineCtrlTitleBarHeight; // K线图标题栏高度
   double klineChartWidth; // K线图宽度
   double klineChartHeight; // K线图高度
   double klineChartLeftMargin; // K线图左边宽度(显示价格指示图)
@@ -55,14 +62,15 @@ class KlineState {
     UiKlineRange? klineRng,
     this.klineRngMinPrice = double.infinity,
     this.klineRngMaxPrice = double.negativeInfinity,
-    this.crossLineIndex = -1,
-    this.crossLinePos = const Offset(-1, -1),
+    this.crossLineMode = CrossLineMode.none,
+    this.crossLineFollowKlineIndex = -1,
+    this.crossLineFollowCursorPos = const Offset(-1, -1),
     this.klineStep = 17,
     this.klineWidth = 15,
     this.visibleKlineCount = 120,
     this.klineCtrlWidth = 1200,
     this.klineCtrlHeight = 800,
-    this.klineCtrlTitleBar = 60,
+    this.klineCtrlTitleBarHeight = 60,
     this.klineChartWidth = 800,
     this.klineChartHeight = 600,
     this.klineChartLeftMargin = 50,
@@ -97,14 +105,15 @@ class KlineState {
     double? klineRngMinPrice,
     double? klineRngMaxPrice,
     int? visibleIndicatorIndex,
-    int? crossLineIndex,
-    Offset? corssLinePos,
+    CrossLineMode? crossLineMode,
+    int? crossLineFollowKlineIndex,
+    Offset? crossLineFollowCursorPos,
     double? klineStep,
     double? klineWidth,
     int? visibleKlineCount,
     double? klineCtrlWidth,
     double? klineCtrlHeight,
-    double? klineCtrlTitleBar,
+    double? klineCtrlTitleBarHeight,
     double? klineChartWidth,
     double? klineChartHeight,
     double? klineChartLeftMargin,
@@ -127,14 +136,15 @@ class KlineState {
       klineRng: klineRng ?? this.klineRng,
       klineRngMinPrice: klineRngMinPrice ?? this.klineRngMinPrice,
       klineRngMaxPrice: klineRngMaxPrice ?? this.klineRngMaxPrice,
-      crossLineIndex: crossLineIndex ?? this.crossLineIndex,
-      crossLinePos: crossLinePos,
+      crossLineMode: crossLineMode ?? this.crossLineMode,
+      crossLineFollowKlineIndex: crossLineFollowKlineIndex ?? this.crossLineFollowKlineIndex,
+      crossLineFollowCursorPos: crossLineFollowCursorPos ?? this.crossLineFollowCursorPos,
       klineStep: klineStep ?? this.klineStep,
       klineWidth: klineWidth ?? this.klineWidth,
       visibleKlineCount: visibleKlineCount ?? this.visibleKlineCount,
       klineCtrlWidth: klineCtrlWidth ?? this.klineCtrlWidth,
       klineCtrlHeight: klineCtrlHeight ?? this.klineCtrlHeight,
-      klineCtrlTitleBar: klineCtrlTitleBar ?? this.klineCtrlTitleBar,
+      klineCtrlTitleBarHeight: klineCtrlTitleBarHeight ?? this.klineCtrlTitleBarHeight,
       klineChartWidth: klineChartWidth ?? this.klineChartWidth,
       klineChartHeight: klineChartHeight ?? this.klineChartHeight,
       klineChartLeftMargin: klineChartLeftMargin ?? this.klineChartLeftMargin,

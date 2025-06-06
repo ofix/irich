@@ -37,7 +37,7 @@ class _VolumeIndicatorState extends State<VolumeIndicator> {
         painter: _VolumeIndicatorPainter(
           klines: state.klines,
           klineRng: state.klineRng!,
-          crossLineIndex: state.crossLineIndex,
+          crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
           isUpList: _getIsUpList(state.klines),
@@ -59,7 +59,7 @@ class _VolumeIndicatorState extends State<VolumeIndicator> {
 class _VolumeIndicatorPainter extends CustomPainter {
   final List<UiKline> klines; // 绘制K线
   final UiKlineRange klineRng; // 可视K线范围
-  final int crossLineIndex; // 当前光标所在K线位置
+  final int crossLineFollowKlineIndex; // 当前光标所在K线位置
   final double klineStep; // K线宽度
   final double klineWidth; // K线内部宽度
   final List<bool> isUpList; // 红绿盘列表
@@ -73,7 +73,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
   _VolumeIndicatorPainter({
     required this.klines,
     required this.klineRng,
-    required this.crossLineIndex,
+    required this.crossLineFollowKlineIndex,
     required this.klineStep,
     required this.klineWidth,
     required this.isUpList,
@@ -128,6 +128,30 @@ class _VolumeIndicatorPainter extends CustomPainter {
       offsetY: indicatorChartTitleBarHeight,
     );
     canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    if (oldDelegate is! _VolumeIndicatorPainter) return true;
+    final old = oldDelegate;
+
+    // 比较基础类型和引用
+    if (old.klineStep != klineStep ||
+        old.klineWidth != klineWidth ||
+        old.klineChartWidth != klineChartWidth ||
+        old.klineRng != klineRng ||
+        old.stockColors != stockColors ||
+        old.klineChartLeftMargin != klineChartLeftMargin ||
+        old.klineChartRightMargin != klineChartRightMargin) {
+      return true;
+    }
+
+    // 深度比较列表内容（假设列表顺序和长度决定是否更新）
+    if (old.klines.length != klines.length) {
+      return true;
+    }
+
+    return false;
   }
 
   void drawTitleBar(Canvas canvas, Size size) {
@@ -214,7 +238,4 @@ class _VolumeIndicatorPainter extends CustomPainter {
     }
     return maxVolume;
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

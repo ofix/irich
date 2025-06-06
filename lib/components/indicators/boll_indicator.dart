@@ -40,7 +40,7 @@ class _BollIndicatorState extends State<BollIndicator> {
           klineRng: state.klineRng!,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
-          crossLineIndex: state.crossLineIndex,
+          crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
@@ -55,7 +55,7 @@ class _BollIndicatorPainter extends CustomPainter {
   final Map<String, List<double>> boll;
   final List<UiKline> klines;
   final UiKlineRange klineRng;
-  final int crossLineIndex;
+  final int crossLineFollowKlineIndex;
   final double klineStep;
   final double klineWidth;
   final double klineChartWidth;
@@ -69,7 +69,7 @@ class _BollIndicatorPainter extends CustomPainter {
     required this.boll,
     required this.klines,
     required this.klineRng,
-    required this.crossLineIndex,
+    required this.crossLineFollowKlineIndex,
     required this.klineStep,
     required this.klineWidth,
     required this.klineChartWidth,
@@ -122,6 +122,29 @@ class _BollIndicatorPainter extends CustomPainter {
     //   offsetY: indicatorChartTitleBarHeight,
     // );
     // canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    if (oldDelegate is! _BollIndicatorPainter) return true;
+    final old = oldDelegate;
+
+    // 比较基础类型和引用
+    if (old.klineStep != klineStep ||
+        old.klineWidth != klineWidth ||
+        old.klineChartWidth != klineChartWidth ||
+        old.klineRng != klineRng ||
+        old.klineChartLeftMargin != klineChartLeftMargin ||
+        old.klineChartRightMargin != klineChartRightMargin) {
+      return true;
+    }
+
+    // 深度比较列表内容（假设列表顺序和长度决定是否更新）
+    if (old.boll.length != boll.length) {
+      return true;
+    }
+
+    return false;
   }
 
   void drawTitleBar(Canvas canvas, Size size) {
@@ -257,7 +280,4 @@ class _BollIndicatorPainter extends CustomPainter {
 
     return (min: minPrice, max: maxPrice);
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

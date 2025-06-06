@@ -36,7 +36,7 @@ class _TurnoverRateIndicatorState extends State<TurnoverRateIndicator> {
         painter: _TurnoverRatePainter(
           klines: state.klines,
           klineRng: state.klineRng!,
-          crossLineIndex: state.crossLineIndex,
+          crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
           isUpList: _getIsUpList(state.klines),
@@ -58,7 +58,7 @@ class _TurnoverRateIndicatorState extends State<TurnoverRateIndicator> {
 class _TurnoverRatePainter extends CustomPainter {
   final List<UiKline> klines;
   final UiKlineRange klineRng;
-  final int crossLineIndex;
+  final int crossLineFollowKlineIndex;
   final double klineStep;
   final double klineWidth;
   final List<bool> isUpList;
@@ -71,7 +71,7 @@ class _TurnoverRatePainter extends CustomPainter {
   _TurnoverRatePainter({
     required this.klines,
     required this.klineRng,
-    required this.crossLineIndex,
+    required this.crossLineFollowKlineIndex,
     required this.klineStep,
     required this.klineWidth,
     required this.isUpList,
@@ -125,6 +125,30 @@ class _TurnoverRatePainter extends CustomPainter {
       offsetY: indicatorChartTitleBarHeight,
     );
     canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    if (oldDelegate is! _TurnoverRatePainter) return true;
+    final old = oldDelegate;
+
+    // 比较基础类型和引用
+    if (old.klineStep != klineStep ||
+        old.klineWidth != klineWidth ||
+        old.klineChartWidth != klineChartWidth ||
+        old.klineRng != klineRng ||
+        old.stockColors != stockColors ||
+        old.klineChartLeftMargin != klineChartLeftMargin ||
+        old.klineChartRightMargin != klineChartRightMargin) {
+      return true;
+    }
+
+    // 深度比较列表内容（假设列表顺序和长度决定是否更新）
+    if (old.klines.length != klines.length) {
+      return true;
+    }
+
+    return false;
   }
 
   void _drawTitleBar(Canvas canvas, Size size) {
@@ -219,7 +243,4 @@ class _TurnoverRatePainter extends CustomPainter {
     }
     return max;
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

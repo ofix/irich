@@ -18,8 +18,9 @@ class CrossLinePainter extends CustomPainter {
   List<UiKline> klines; // K线坐标
   List<MinuteKline> minuteKlines; // 分时图数据
   List<MinuteKline> fiveDayMinuteKlines; // 五日分时图数据
-  int crossLineIndex; // 十字线相对K线偏移下标
-  Offset crossLinePos; // 十字线位置
+  CrossLineMode crossLineMode; // 十字线模式
+  int crossLineFollowKlineIndex; // 十字线相对K线偏移下标
+  Offset crossLineFollowCursorPos; // 十字线位置
   UiKlineRange klineRng; // 可见K线范围
   double klineRngMinPrice; // 可见K线范围最低价
   double klineRngMaxPrice; // 可见K线范围最高价
@@ -27,6 +28,7 @@ class CrossLinePainter extends CustomPainter {
   double klineWidth; // K线宽度
   double klineChartWidth; // K线图宽度
   double klineChartHeight; // K线图高度
+  double klineCtrlTitleBarHeight; // K线图标题栏高度
   double klineChartLeftMargin; // K线图左边距
   double klineChartRightMargin; // K线图右边距
 
@@ -40,12 +42,14 @@ class CrossLinePainter extends CustomPainter {
     required this.klineRng,
     required this.klineRngMinPrice,
     required this.klineRngMaxPrice,
-    required this.crossLineIndex,
-    required this.crossLinePos,
+    required this.crossLineMode,
+    required this.crossLineFollowKlineIndex,
+    required this.crossLineFollowCursorPos,
     required this.klineStep,
     required this.klineWidth,
     required this.klineChartWidth,
     required this.klineChartHeight,
+    required this.klineCtrlTitleBarHeight,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
     required this.stockColors,
@@ -53,7 +57,7 @@ class CrossLinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (crossLineIndex == -1) return;
+    if (crossLineMode == CrossLineMode.none) return;
     if (klineType.isMinuteType) {
       drawMinuteCrossLine(canvas);
     } else {
@@ -62,33 +66,73 @@ class CrossLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    if (oldDelegate is! CrossLinePainter) return true;
+    final old = oldDelegate;
+
+    if (klines.isEmpty) {
+      return false;
+    }
+
+    // 比较基础类型和引用
+    if (old.crossLineMode != crossLineMode ||
+        old.crossLineFollowCursorPos != crossLineFollowCursorPos ||
+        old.klineStep != klineStep ||
+        old.klineWidth != klineWidth ||
+        old.klineType != klineType ||
+        old.klineChartWidth != klineChartWidth ||
+        old.klineChartHeight != klineChartHeight ||
+        old.klineRng != klineRng ||
+        old.stockColors != stockColors ||
+        old.klineChartLeftMargin != klineChartLeftMargin ||
+        old.klineChartRightMargin != klineChartRightMargin) {
+      return true;
+    }
+
+    // 深度比较列表内容（假设列表顺序和长度决定是否更新）
+    if (old.klines.length != klines.length ||
+        old.minuteKlines.length != minuteKlines.length ||
+        old.fiveDayMinuteKlines.length != fiveDayMinuteKlines.length) {
+      return true;
+    }
+    debugPrint("不绘制crossLine");
+    return false;
+  }
 
   // 分时图/5日分时图
   void drawMinuteCrossLine(Canvas canvas) {}
 
   // 日/周/月/季/年K线绘制
   void drawDayCrossLine(Canvas canvas) {
+    if (klines.isEmpty) return;
     // 获取当前K线数据
-    final kline = klines[crossLineIndex];
+    final kline = klines[crossLineFollowKlineIndex];
     final priceRange = klineRngMaxPrice - klineRngMinPrice;
-    final y = (1 - (kline.priceClose - klineRngMinPrice) / priceRange) * klineChartHeight;
-    final x = (crossLineIndex - klineRng.begin) * klineStep + klineWidth / 2;
+    double x = 0;
+    double y = 0;
+    if (crossLineMode == CrossLineMode.followCursor) {
+      x = crossLineFollowCursorPos.dx;
+      y = crossLineFollowCursorPos.dy;
+    } else {
+      x = (crossLineFollowKlineIndex - klineRng.begin) * klineStep + klineWidth / 2;
+      y = (klineRngMaxPrice - kline.priceClose) * klineChartHeight / priceRange;
+    }
+
     canvas.save();
-    canvas.translate(klineChartLeftMargin, 0);
+    canvas.translate(klineChartLeftMargin, klineCtrlTitleBarHeight);
     // 水平线
     drawDashedLine(
       canvas: canvas,
       startPoint: Offset(0, y),
       endPoint: Offset(klineChartWidth, y),
-      color: const Color.fromARGB(255, 32, 136, 222),
+      color: stockColors.crossLine,
     );
     // 垂直线
     drawDashedLine(
       canvas: canvas,
       startPoint: Offset(x, 0),
-      endPoint: Offset(x, klineChartHeight),
-      color: const Color.fromARGB(255, 32, 136, 222),
+      endPoint: Offset(x, klineChartHeight - 24),
+      color: stockColors.crossLine,
     );
 
     canvas.restore();

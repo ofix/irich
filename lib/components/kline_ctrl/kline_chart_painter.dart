@@ -22,20 +22,15 @@ class KlinePainter extends CustomPainter {
   List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
   UiKlineRange klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
-  int crossLineIndex; // 十字线位置
+  int crossLineFollowKlineIndex; // 十字线位置
   double klineStep; // K线步长
   double klineWidth; // K线宽度
   double klineChartWidth; // K线图宽度
   double klineChartHeight; // K线图高度
   double klineChartLeftMargin; // K线图左边距
   double klineChartRightMargin; // K线图右边距
-
-  double minKlinePrice = 0.0; // 可视区域K线最低价
-  double maxKlinePrice = 0.0; // 可视区域K线最高价
-  double minRectPrice = 0.0; // 如果有EMA均线，可视区域最低价会变化
-  double maxRectPrice = 0.0; // 如果有EMA均线，可视区域最高价会变化
-  int minRectPriceIndex = 0; // 可见K线中最低价K线位置
-  int maxRectPriceIndex = 0; // 可见K险种最高价K线位置
+  double klineRngMinPrice; // 可视K线区域最低价
+  double klineRngMaxPrice; // 可视K线区域最高价
 
   StockColors stockColors; // 主题色
 
@@ -47,13 +42,15 @@ class KlinePainter extends CustomPainter {
     required this.fiveDayMinuteKlines,
     required this.klineRng,
     required this.emaCurves,
-    required this.crossLineIndex,
+    required this.crossLineFollowKlineIndex,
     required this.klineStep,
     required this.klineWidth,
     required this.klineChartWidth,
     required this.klineChartHeight,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.klineRngMinPrice,
+    required this.klineRngMaxPrice,
     required this.stockColors,
   });
 
@@ -72,6 +69,7 @@ class KlinePainter extends CustomPainter {
         }
       default:
         {
+          debugPrint("绘制日K线");
           drawDayKlines(canvas);
           break;
         }
@@ -79,52 +77,34 @@ class KlinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    if (oldDelegate is! KlinePainter) return true;
+    final old = oldDelegate;
 
-  // 获取可见K线范围内的最高价
-  void _calcRectMaxPrice(List<UiKline> klines, int begin, int end) {
-    double max = double.negativeInfinity;
-    for (int i = begin; i <= end; i++) {
-      if (klines[i].priceMax > max) {
-        max = klines[i].priceMax;
-      }
+    // 比较基础类型和引用
+    if (old.klineStep != klineStep ||
+        old.klineWidth != klineWidth ||
+        old.share.code != share.code ||
+        old.klineType != klineType ||
+        old.klineChartWidth != klineChartWidth ||
+        old.klineChartHeight != klineChartHeight ||
+        old.klineRng != klineRng ||
+        old.stockColors != stockColors ||
+        old.klineChartLeftMargin != klineChartLeftMargin ||
+        old.klineChartRightMargin != klineChartRightMargin) {
+      return true;
     }
-    maxKlinePrice = max;
-    if (emaCurves.isNotEmpty) {
-      for (final curve in emaCurves) {
-        if (curve.visible) {
-          for (int i = begin; i <= end; i++) {
-            if (curve.emaPrice[i] > max) {
-              max = curve.emaPrice[i];
-            }
-          }
-        }
-      }
-    }
-    maxRectPrice = max;
-  }
 
-  // 获取可见K线范围内的最低价
-  void _calcRectMinPrice(List<UiKline> klines, int begin, int end) {
-    double min = double.infinity;
-    for (int i = begin; i <= end; i++) {
-      if (klines[i].priceMax < min) {
-        min = klines[i].priceMax;
-      }
+    // 深度比较列表内容（假设列表顺序和长度决定是否更新）
+    if (old.klines.length != klines.length ||
+        old.minuteKlines.length != minuteKlines.length ||
+        old.fiveDayMinuteKlines.length != fiveDayMinuteKlines.length ||
+        old.emaCurves.length != emaCurves.length) {
+      return true;
     }
-    minKlinePrice = min;
-    if (emaCurves.isNotEmpty) {
-      for (final curve in emaCurves) {
-        if (curve.visible) {
-          for (int i = begin; i <= end; i++) {
-            if (curve.emaPrice[i] < min) {
-              min = curve.emaPrice[i];
-            }
-          }
-        }
-      }
-    }
-    minRectPrice = min;
+
+    debugPrint("不绘制 KlineChart");
+    return false;
   }
 
   void drawDayKlines(Canvas canvas) {
@@ -132,13 +112,10 @@ class KlinePainter extends CustomPainter {
       debugPrint("日K线数据不完整");
       return;
     }
-    _calcRectMaxPrice(klines, klineRng.begin, klineRng.end);
-    _calcRectMinPrice(klines, klineRng.begin, klineRng.end);
 
-    final priceRange = maxRectPrice - minRectPrice;
+    final priceRange = klineRngMaxPrice - klineRngMinPrice;
     final priceRatio = klineChartHeight / priceRange;
 
-    final maxPrice = maxRectPrice;
     // 红盘一字板画笔
     final redPen =
         Paint()
@@ -178,10 +155,10 @@ class KlinePainter extends CustomPainter {
       final centerX = x + klineWidth / 2;
 
       // 计算坐标
-      final highY = (maxPrice - kline.priceMax) * priceRatio;
-      final lowY = (maxPrice - kline.priceMin) * priceRatio;
-      final openY = (maxPrice - kline.priceOpen) * priceRatio;
-      final closeY = (maxPrice - kline.priceClose) * priceRatio;
+      final highY = (klineRngMaxPrice - kline.priceMax) * priceRatio;
+      final lowY = (klineRngMaxPrice - kline.priceMin) * priceRatio;
+      final openY = (klineRngMaxPrice - kline.priceOpen) * priceRatio;
+      final closeY = (klineRngMaxPrice - kline.priceClose) * priceRatio;
 
       final isUp = kline.priceClose > kline.priceOpen;
 
@@ -211,7 +188,7 @@ class KlinePainter extends CustomPainter {
     // 绘制EMA曲线
     for (final ema in emaCurves) {
       if (ema.visible) {
-        _drawEmaCurve(canvas, ema, maxPrice, priceRatio);
+        _drawEmaCurve(canvas, ema, klineRngMaxPrice, priceRatio);
       }
     }
     // 绘制左边价格指示面板
@@ -224,8 +201,8 @@ class KlinePainter extends CustomPainter {
       width: klineChartLeftMargin,
       height: klineChartHeight,
       reference: openPrice,
-      min: minRectPrice,
-      max: maxRectPrice,
+      min: klineRngMinPrice,
+      max: klineRngMaxPrice,
       nRows: 8,
       textAlign: TextAlign.right,
       fontSize: 11,
@@ -235,8 +212,8 @@ class KlinePainter extends CustomPainter {
     // 绘制右边涨幅指示面板
     canvas.save();
     canvas.translate(klineChartLeftMargin + klineChartWidth + 2, 0);
-    double minPercent = (minRectPrice - openPrice) / priceRange;
-    double maxPercent = (maxRectPrice - openPrice) / priceRange;
+    double minPercent = (klineRngMinPrice - openPrice) / priceRange;
+    double maxPercent = (klineRngMaxPrice - openPrice) / priceRange;
     drawKlinePane(
       type: KlinePaneType.percent,
       canvas: canvas,

@@ -37,7 +37,7 @@ class _AmountIndicatorState extends State<AmountIndicator> {
           klineRng: state.klineRng!,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
-          crossLineIndex: state.crossLineIndex,
+          crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
@@ -61,7 +61,7 @@ class _AmountIndicatorState extends State<AmountIndicator> {
 class _AmountIndicatorPainter extends CustomPainter {
   final List<UiKline> klines;
   final UiKlineRange klineRng;
-  final int crossLineIndex;
+  final int crossLineFollowKlineIndex;
   final double klineStep;
   final double klineWidth;
   final List<bool> isUpList;
@@ -75,7 +75,7 @@ class _AmountIndicatorPainter extends CustomPainter {
   _AmountIndicatorPainter({
     required this.klines,
     required this.klineRng,
-    required this.crossLineIndex,
+    required this.crossLineFollowKlineIndex,
     required this.klineStep,
     required this.klineWidth,
     required this.isUpList,
@@ -131,6 +131,30 @@ class _AmountIndicatorPainter extends CustomPainter {
       offsetY: indicatorChartTitleBarHeight,
     );
     canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    if (oldDelegate is! _AmountIndicatorPainter) return true;
+    final old = oldDelegate;
+
+    // 比较基础类型和引用
+    if (old.klineStep != klineStep ||
+        old.klineWidth != klineWidth ||
+        old.klineChartWidth != klineChartWidth ||
+        old.klineRng != klineRng ||
+        old.stockColors != stockColors ||
+        old.klineChartLeftMargin != klineChartLeftMargin ||
+        old.klineChartRightMargin != klineChartRightMargin) {
+      return true;
+    }
+
+    // 深度比较列表内容（假设列表顺序和长度决定是否更新）
+    if (old.klines.length != klines.length) {
+      return true;
+    }
+
+    return false;
   }
 
   void _drawTitleBar(Canvas canvas, Size size) {
@@ -212,7 +236,4 @@ class _AmountIndicatorPainter extends CustomPainter {
     }
     return maxAmount;
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

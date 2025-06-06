@@ -8,6 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ import 'package:irich/components/indicators/minute_amount_indicator.dart';
 import 'package:irich/components/indicators/minute_volume_indicator.dart';
 import 'package:irich/components/indicators/turnoverrate_indicator.dart';
 import 'package:irich/components/indicators/volume_indicator.dart';
+import 'package:irich/components/kline_ctrl/cross_line_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/text_radio_button_group.dart';
@@ -42,6 +44,7 @@ class KlineCtrl extends StatefulWidget {
 class _KlineCtrlState extends State<KlineCtrl> {
   late KlineState klineState;
   late final FocusNode _focusNode;
+  late bool isDesktop;
 
   // K线类型
   static const Map<String, KlineType> klineTypeMap = {
@@ -101,6 +104,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     klineState.klineWidth = 5;
     _focusNode = FocusNode();
     _focusNode.requestFocus();
+    isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
     loadKlines(); // 加载K线数据
   }
 
@@ -153,6 +157,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
       }
       klineState.klineRng!.end = klineState.klines.length - 1;
     }
+    calcKlineRngMinMaxPrice();
   }
 
   // 初始化附图指标，有可能需要从文件中加载
@@ -234,35 +239,57 @@ class _KlineCtrlState extends State<KlineCtrl> {
       autofocus: true,
       focusNode: _focusNode,
       onKeyEvent: _onKeyEvent,
-      child: Listener(
-        onPointerSignal: _onMouseScroll,
-        child: GestureDetector(
-          onTapDown: _onTapDown,
-          onPanUpdate: _onMouseMove,
-          child: LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              // final parentWidth = constraints.maxWidth; // 父容器可用宽度
-              Size size = Size(constraints.maxWidth, constraints.maxHeight);
-              setSize(size); // 计算K线图宽高,当前显示的K线图范围
-              return Stack(
-                children: [
-                  Column(
-                    children: [
-                      // K线类型切换
-                      Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
-                      // K线主图
-                      KlineChart(klineState: klineState, stockColors: stockColors),
-                      // 技术指标图
-                      ..._buildIndicators(context, klineState, stockColors),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
+      child: MouseRegion(
+        onHover: _onPointerHover, // 解决Listerner的onPointerHover方法无法触发鼠标移动的bug
+        child: Listener(
+          onPointerSignal: _onMouseScroll,
+          child: GestureDetector(onTapDown: _onTapDown, child: _buildKlineCtrl(stockColors)),
         ),
       ),
     );
+  }
+
+  Widget _buildKlineCtrl(StockColors stockColors) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        // final parentWidth = constraints.maxWidth; // 父容器可用宽度
+        Size size = Size(constraints.maxWidth, constraints.maxHeight);
+        setSize(size); // 计算K线图宽高,当前显示的K线图范围
+        return Stack(
+          children: [
+            Column(
+              children: [
+                // K线类型切换
+                Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
+                // K线主图
+                KlineChart(klineState: klineState, stockColors: stockColors),
+                // 技术指标图
+                ..._buildIndicators(context, klineState, stockColors),
+              ],
+            ),
+            // 十字线
+            CrossLineChart(klineState: klineState, stockColors: stockColors),
+          ],
+        );
+      },
+    );
+  }
+
+  void setSize(Size size) {
+    double ratio = 1;
+    if (klineState.indicators.length <= 4) {
+      ratio = chartHeightMap[klineState.indicators.length]!;
+    }
+    klineState.klineCtrlWidth = size.width;
+    klineState.klineCtrlHeight = size.height;
+    klineState.klineChartWidth =
+        size.width - klineState.klineChartLeftMargin - klineState.klineChartRightMargin;
+    double height = size.height - klineState.klineCtrlTitleBarHeight - 8; // 总高度-标题栏-EMA曲线按钮高度
+    klineState.klineChartHeight = height * ratio;
+    klineState.indicatorChartHeight =
+        klineState.indicators.isEmpty ? 0 : height * (1 - ratio) / klineState.indicators.length;
+
+    calcVisibleKlineWidth();
   }
 
   Widget _buildKlineName() {
@@ -311,23 +338,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
     return widgets;
   }
 
-  void setSize(Size size) {
-    double ratio = 1;
-    if (klineState.indicators.length <= 4) {
-      ratio = chartHeightMap[klineState.indicators.length]!;
-    }
-    klineState.klineCtrlWidth = size.width;
-    klineState.klineCtrlHeight = size.height;
-    klineState.klineChartWidth =
-        size.width - klineState.klineChartLeftMargin - klineState.klineChartRightMargin;
-    double height = size.height - klineState.klineCtrlTitleBar;
-    klineState.klineChartHeight = height * ratio;
-    klineState.indicatorChartHeight =
-        klineState.indicators.isEmpty ? 0 : height * (1 - ratio) / klineState.indicators.length;
-
-    calcVisibleKlineWidth();
-  }
-
   Future<RichResult> _queryKlines(StoreKlines store, String stockCode, KlineType type) async {
     final klines = _getKlinesListForType(type);
     return switch (type) {
@@ -360,39 +370,46 @@ class _KlineCtrlState extends State<KlineCtrl> {
   }
 
   void onKeyDownArrowLeft() {
-    int crossLineIndex = klineState.crossLineIndex;
+    int crossLineFollowKlineIndex = klineState.crossLineFollowKlineIndex;
     UiKlineRange klineRng = klineState.klineRng!;
-    if (crossLineIndex == -1) {
+    if (crossLineFollowKlineIndex == -1) {
       // 如果十字线未设置，默认设置为最后一根K线
-      crossLineIndex = klineState.klines.length - 1;
-    } else if ((crossLineIndex == klineRng.begin) && (klineRng.begin > 0)) {
+      crossLineFollowKlineIndex = klineState.klines.length - 1;
+    } else if ((crossLineFollowKlineIndex == klineRng.begin) && (klineRng.begin > 0)) {
       klineRng.begin -= 1;
       klineRng.end -= 1;
-      crossLineIndex -= 1;
+      crossLineFollowKlineIndex -= 1;
+      calcKlineRngMinMaxPrice();
     } else {
-      crossLineIndex -= 1; // 向左移动十字线
+      crossLineFollowKlineIndex -= 1; // 向左移动十字线
     }
-    klineState = klineState.copyWith(klineRng: klineRng, crossLineIndex: crossLineIndex);
+    klineState = klineState.copyWith(
+      klineRng: klineRng,
+      crossLineFollowKlineIndex: crossLineFollowKlineIndex,
+      crossLineMode: CrossLineMode.followKline,
+    );
     setState(() {});
   }
 
   void onKeyDownArrowRight() {
-    final crossLineIndex = klineState.crossLineIndex;
+    final crossLineFollowKlineIndex = klineState.crossLineFollowKlineIndex;
     final klineRng = klineState.klineRng!;
-    if (crossLineIndex == -1) {
+    if (crossLineFollowKlineIndex == -1) {
       // 如果十字线未设置，默认设置为最后一根K线
-      klineState.crossLineIndex = klineState.klines.length - 1;
-    } else if ((crossLineIndex >= klineState.klineRng!.end) &&
+      klineState.crossLineFollowKlineIndex = klineState.klines.length - 1;
+    } else if ((crossLineFollowKlineIndex >= klineState.klineRng!.end) &&
         (klineRng.end < klineState.klines.length - 1)) {
       // 如果十字线在可视范围的最后一根K线上，向右移动时需要扩展可视范围
       klineState.klineRng!.begin += 1;
       klineState.klineRng!.end += 1;
-      klineState.crossLineIndex += 1;
-    } else if (crossLineIndex >= klineState.klines.length - 1) {
+      klineState.crossLineFollowKlineIndex += 1;
+      calcKlineRngMinMaxPrice();
+    } else if (crossLineFollowKlineIndex >= klineState.klines.length - 1) {
       return; // 已经是最后一根K线了,界面不需要刷新
     } else {
-      klineState.crossLineIndex += 1; // 向右移动十字线
+      klineState.crossLineFollowKlineIndex += 1; // 向右移动十字线
     }
+    klineState.crossLineMode = CrossLineMode.followKline;
     setState(() {});
   }
 
@@ -408,11 +425,13 @@ class _KlineCtrlState extends State<KlineCtrl> {
       } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
         zoomOut(); // 缩小
       } else if (event.logicalKey == LogicalKeyboardKey.escape) {
-        klineState.crossLineIndex = -1; // 清除十字线
+        klineState.crossLineMode = CrossLineMode.none;
+        klineState.crossLineFollowKlineIndex = -1; // 清除十字线
+        klineState.crossLineFollowCursorPos = Offset.zero;
       } else if (event.logicalKey == LogicalKeyboardKey.home) {
-        klineState.crossLineIndex = klineState.klineRng!.begin;
+        klineState.crossLineFollowKlineIndex = klineState.klineRng!.begin;
       } else if (event.logicalKey == LogicalKeyboardKey.end) {
-        klineState.crossLineIndex = klineState.klineRng!.end;
+        klineState.crossLineFollowKlineIndex = klineState.klineRng!.end;
       }
       setState(() {});
       return KeyEventResult.handled;
@@ -451,16 +470,43 @@ class _KlineCtrlState extends State<KlineCtrl> {
     // 计算点击的K线索引
     if ((localPosition.dx > klineState.klineChartLeftMargin) &&
         localPosition.dx < (klineState.klineChartLeftMargin + klineState.klineChartWidth)) {
-      final index = (localPosition.dx / klineState.klineStep).floor();
-      klineState.crossLineIndex = index + klineState.klineRng!.begin;
+      klineState.crossLineFollowKlineIndex = calcCrossLineFollowKlineIndex(localPosition);
+      klineState.crossLineFollowCursorPos = localPosition.translate(
+        -klineState.klineChartLeftMargin,
+        -klineState.klineCtrlTitleBarHeight - 8,
+      );
+      klineState.crossLineMode = CrossLineMode.followCursor;
       setState(() {});
     }
   }
 
+  int calcCrossLineFollowKlineIndex(Offset localPosition) {
+    final index = (localPosition.dx / klineState.klineStep).floor();
+    return index + klineState.klineRng!.begin;
+  }
+
+  void _onPointerHover(PointerEvent event) {
+    _onMouseMove(event.localPosition);
+  }
+
   // 鼠标移动的时候需要动态绘制十字光标
-  void _onMouseMove(DragUpdateDetails details) {
-    debugPrint('全局: ${details.globalPosition}');
-    debugPrint('局部: ${details.localPosition}');
+  void _onMouseMove(Offset localPosition) {
+    klineState.crossLineMode = CrossLineMode.followCursor;
+
+    if ((localPosition.dx > klineState.klineChartLeftMargin) &&
+        localPosition.dx < (klineState.klineChartLeftMargin + klineState.klineChartWidth)) {
+      klineState.crossLineFollowCursorPos = localPosition;
+      klineState.crossLineFollowKlineIndex = calcCrossLineFollowKlineIndex(localPosition);
+      klineState.crossLineMode = CrossLineMode.followCursor;
+      setState(() {});
+    }
+    if (klineState.crossLineMode == CrossLineMode.followCursor) {
+      klineState.crossLineFollowCursorPos = localPosition.translate(
+        -klineState.klineChartLeftMargin,
+        -klineState.klineCtrlTitleBarHeight - 8,
+      );
+      setState(() {});
+    }
   }
 
   // 鼠标滚轮事件处理,可以用来切换股票
@@ -493,6 +539,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     ShareEmaCurve curve = ShareEmaCurve(color: color, period: period, visible: true, emaPrice: []);
     curve.emaPrice = FormulaEma.calc(klineState.klines, period);
     klineState.emaCurves.add(curve);
+    calcKlineRngMinMaxPrice();
     // 刷新
     return true;
   }
@@ -501,15 +548,19 @@ class _KlineCtrlState extends State<KlineCtrl> {
   bool removeEmaCurve(int period) {
     final originalLength = klineState.emaCurves.length;
     klineState.emaCurves.removeWhere((curve) => curve.period == period);
-    return klineState.emaCurves.length != originalLength;
+    bool result = klineState.emaCurves.length != originalLength;
+    if (result) {
+      calcKlineRngMinMaxPrice();
+    }
+    return result;
   }
 
   // 处理放大逻辑,可见的K线数量变少
   void zoomIn() {
-    int crossLineIndex = klineState.crossLineIndex;
+    int crossLineFollowKlineIndex = klineState.crossLineFollowKlineIndex;
     UiKlineRange klineRng = klineState.klineRng!;
-    if (crossLineIndex == -1) {
-      crossLineIndex = klineState.klines.length - 1; // 放大中心为最右边K线
+    if (crossLineFollowKlineIndex == -1) {
+      crossLineFollowKlineIndex = klineState.klines.length - 1; // 放大中心为最右边K线
     }
     // 可见K线数量少于8，不再放大
     if (klineRng.end <= klineRng.begin + 8) {
@@ -517,12 +568,12 @@ class _KlineCtrlState extends State<KlineCtrl> {
     }
 
     // 计算放大中心两边的K线数量
-    int leftKlineCount = crossLineIndex - klineRng.begin;
-    int rightKlineCount = klineRng.end - crossLineIndex;
+    int leftKlineCount = crossLineFollowKlineIndex - klineRng.begin;
+    int rightKlineCount = klineRng.end - crossLineFollowKlineIndex;
     // 取中心点左右两侧K线较多的一边进行延展，保住缩放中心的位置
     int count = leftKlineCount > rightKlineCount ? leftKlineCount : rightKlineCount;
-    klineRng.begin = crossLineIndex - count ~/ 2;
-    klineRng.end = crossLineIndex + count ~/ 2;
+    klineRng.begin = crossLineFollowKlineIndex - count ~/ 2;
+    klineRng.end = crossLineFollowKlineIndex + count ~/ 2;
 
     // 左右边界处理
     if (klineRng.begin > klineRng.end) {
@@ -538,9 +589,11 @@ class _KlineCtrlState extends State<KlineCtrl> {
     klineState = klineState.copyWith(
       klineRng: klineRng,
       visibleKlineCount: klineRng.end - klineRng.begin + 1,
-      crossLineIndex: crossLineIndex,
+      crossLineFollowKlineIndex: crossLineFollowKlineIndex,
+      crossLineMode: CrossLineMode.followKline,
     );
     calcVisibleKlineWidth();
+    calcKlineRngMinMaxPrice();
   }
 
   // 处理K线实心宽度边界情况
@@ -557,10 +610,10 @@ class _KlineCtrlState extends State<KlineCtrl> {
 
   // 实现缩放逻辑，显示的K线数量变多
   void zoomOut() {
-    int crossLineIndex = klineState.crossLineIndex;
+    int crossLineFollowKlineIndex = klineState.crossLineFollowKlineIndex;
     UiKlineRange klineRng = klineState.klineRng!;
-    if (crossLineIndex == -1) {
-      crossLineIndex = klineState.klines.length - 1; // 缩小中心为最右边K线
+    if (crossLineFollowKlineIndex == -1) {
+      crossLineFollowKlineIndex = klineState.klines.length - 1; // 缩小中心为最右边K线
     }
     // 可见K线数量大于等于总K线数量，不再缩小
     if (klineState.visibleKlineCount == klineState.klines.length) {
@@ -568,16 +621,17 @@ class _KlineCtrlState extends State<KlineCtrl> {
       int klineWidth = (klineState.klineStep * 0.8).floor();
       klineWidth = _ensureKlineWidth(klineStep, klineWidth);
       klineState = klineState.copyWith(klineStep: klineStep, klineWidth: klineWidth.toDouble());
+      calcKlineRngMinMaxPrice();
       return;
     }
 
     // 计算缩小中心两边的K线数量
-    int leftKlineCount = crossLineIndex - klineRng.begin;
-    int rightKlineCount = klineRng.end - crossLineIndex;
+    int leftKlineCount = crossLineFollowKlineIndex - klineRng.begin;
+    int rightKlineCount = klineRng.end - crossLineFollowKlineIndex;
     // 取中心点左右两侧K线较多的一边进行收缩，保住缩放中心的地位
     int count = leftKlineCount > rightKlineCount ? leftKlineCount : rightKlineCount;
-    klineRng.begin = crossLineIndex - count * 2;
-    klineRng.end = crossLineIndex + count * 2;
+    klineRng.begin = crossLineFollowKlineIndex - count * 2;
+    klineRng.end = crossLineFollowKlineIndex + count * 2;
 
     // 左右边界处理
     if (klineRng.begin < 0) {
@@ -589,9 +643,42 @@ class _KlineCtrlState extends State<KlineCtrl> {
     klineState = klineState.copyWith(
       klineRng: klineRng,
       visibleKlineCount: klineRng.end - klineRng.begin + 1,
-      crossLineIndex: crossLineIndex,
+      crossLineFollowKlineIndex: crossLineFollowKlineIndex,
+      crossLineMode: CrossLineMode.followKline,
     );
     calcVisibleKlineWidth();
+    calcKlineRngMinMaxPrice();
+  }
+
+  // 获取可见K线范围内的 最高价/最低价
+  void calcKlineRngMinMaxPrice() {
+    double min = double.infinity;
+    double max = double.negativeInfinity;
+    for (int i = klineState.klineRng!.begin; i <= klineState.klineRng!.end; i++) {
+      if (klineState.klines[i].priceClose < min) {
+        min = klineState.klines[i].priceClose;
+      }
+      if (klineState.klines[i].priceClose > max) {
+        max = klineState.klines[i].priceClose;
+      }
+    }
+    if (klineState.emaCurves.isNotEmpty) {
+      for (final curve in klineState.emaCurves) {
+        if (curve.visible) {
+          for (int i = klineState.klineRng!.begin; i <= klineState.klineRng!.end; i++) {
+            if (curve.emaPrice[i] < min) {
+              min = curve.emaPrice[i];
+            }
+            if (curve.emaPrice[i] > max) {
+              max = curve.emaPrice[i];
+            }
+          }
+        }
+      }
+    }
+
+    klineState.klineRngMinPrice = min;
+    klineState.klineRngMaxPrice = max;
   }
 
   // 计算可视范围K线自适应宽度

@@ -21,11 +21,12 @@ class CrossLineChart extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: klineState.klineChartWidth,
-      height: klineState.klineCtrlHeight - klineState.klineCtrlTitleBar,
-      color: const Color.fromARGB(255, 66, 190, 248),
+      height: klineState.klineCtrlHeight - klineState.klineCtrlTitleBarHeight,
+      color: Colors.transparent,
       child: CustomPaint(
         painter: CrossLinePainter(
           klines: klineState.klines,
+          klineCtrlTitleBarHeight: klineState.klineCtrlTitleBarHeight,
           klineChartWidth: klineState.klineChartWidth,
           klineChartHeight: klineState.klineChartHeight,
           klineChartLeftMargin: klineState.klineChartLeftMargin,
@@ -36,8 +37,9 @@ class CrossLineChart extends StatelessWidget {
           klineRng: klineState.klineRng!,
           klineRngMinPrice: klineState.klineRngMinPrice,
           klineRngMaxPrice: klineState.klineRngMaxPrice,
-          crossLineIndex: klineState.crossLineIndex,
-          crossLinePos: klineState.crossLinePos,
+          crossLineMode: klineState.crossLineMode,
+          crossLineFollowKlineIndex: klineState.crossLineFollowKlineIndex,
+          crossLineFollowCursorPos: klineState.crossLineFollowCursorPos,
           klineStep: klineState.klineStep,
           klineWidth: klineState.klineWidth,
           stockColors: stockColors,

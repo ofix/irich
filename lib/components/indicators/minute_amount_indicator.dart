@@ -45,7 +45,7 @@ class _MinuteAmountIndicatorState extends State<MinuteAmountIndicator> {
           minuteKlines: state.minuteKlines,
           fiveDayMinuteKlines: state.fiveDayMinuteKlines,
           klineType: state.klineType,
-          crossLineIndex: state.crossLineIndex,
+          crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
         ),
       ),
     );
@@ -57,7 +57,7 @@ class _MinuteVolumePainter extends CustomPainter {
   final double klineChartWidth;
   final List<MinuteKline> minuteKlines;
   final List<MinuteKline> fiveDayMinuteKlines;
-  final int crossLineIndex;
+  final int crossLineFollowKlineIndex;
   final KlineType klineType;
   late final double maxAmount;
 
@@ -66,7 +66,7 @@ class _MinuteVolumePainter extends CustomPainter {
     required this.klineChartWidth,
     required this.minuteKlines,
     required this.fiveDayMinuteKlines,
-    required this.crossLineIndex,
+    required this.crossLineFollowKlineIndex,
     required this.klineType,
   }) {
     maxAmount = calcMaxAmount().toDouble();
@@ -130,6 +130,9 @@ class _MinuteVolumePainter extends CustomPainter {
     canvas.restore();
   }
 
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+
   double calcMaxAmount() {
     if (klineType == KlineType.minute) {
       return minuteKlines.map((k) => k.amount).reduce((a, b) => a > b ? a : b);
@@ -160,7 +163,4 @@ class _MinuteVolumePainter extends CustomPainter {
       }
     }
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

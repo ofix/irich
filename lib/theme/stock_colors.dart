@@ -30,7 +30,7 @@ class StockColors extends ThemeExtension<StockColors> {
     required this.ma10,
     required this.ma20,
     required this.ma30,
-    this.crossLine = Colors.grey,
+    required this.crossLine,
   });
 
   factory StockColors.light() {
@@ -44,6 +44,7 @@ class StockColors extends ThemeExtension<StockColors> {
       kdjK: Colors.blue,
       kdjD: Colors.yellow,
       kdjJ: const Color.fromARGB(255, 255, 59, 203),
+      crossLine: Colors.grey,
       ma5: Colors.pink,
       ma10: Colors.yellow.shade700,
       ma20: Colors.purple,
@@ -62,6 +63,7 @@ class StockColors extends ThemeExtension<StockColors> {
       kdjK: Colors.blue,
       kdjD: Colors.yellow,
       kdjJ: const Color.fromARGB(255, 255, 59, 203),
+      crossLine: Colors.white,
       ma5: Colors.pink.shade200,
       ma10: Colors.yellow.shade600,
       ma20: Colors.purple.shade200,

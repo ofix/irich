@@ -45,7 +45,7 @@ class _MinuteVolumeIndicatorState extends State<MinuteVolumeIndicator> {
           fiveDayMinuteKlines: state.fiveDayMinuteKlines,
           minuteKlines: state.minuteKlines,
           klineType: state.klineType,
-          crossLineIndex: state.crossLineIndex,
+          crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
           stockColors: widget.stockColors,
         ),
       ),
@@ -58,7 +58,7 @@ class _MinuteVolumePainter extends CustomPainter {
   final double klineChartWidth;
   final List<MinuteKline> minuteKlines;
   final List<MinuteKline> fiveDayMinuteKlines;
-  final int crossLineIndex;
+  final int crossLineFollowKlineIndex;
   final KlineType klineType;
   late final double maxVolume;
   final StockColors stockColors;
@@ -67,7 +67,7 @@ class _MinuteVolumePainter extends CustomPainter {
     required this.klineChartWidth,
     required this.minuteKlines,
     required this.fiveDayMinuteKlines,
-    required this.crossLineIndex,
+    required this.crossLineFollowKlineIndex,
     required this.klineType,
     required this.stockColors,
   }) {
@@ -131,6 +131,9 @@ class _MinuteVolumePainter extends CustomPainter {
     canvas.restore();
   }
 
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+
   BigInt _calcMaxVolume() {
     if (klineType == KlineType.minute) {
       return minuteKlines.map((k) => k.volume).reduce((a, b) => a > b ? a : b);
@@ -153,7 +156,4 @@ class _MinuteVolumePainter extends CustomPainter {
       canvas.drawLine(Offset(x, y), Offset(x, y + h), pen);
     }
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

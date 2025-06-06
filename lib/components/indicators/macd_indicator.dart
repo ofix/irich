@@ -37,7 +37,7 @@ class _MacdIndicatorState extends State<MacdIndicator> {
           klineRng: state.klineRng!,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
-          crossLineIndex: state.crossLineIndex,
+          crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
@@ -52,7 +52,7 @@ class _MacdIndicatorState extends State<MacdIndicator> {
 class _MacdIndicatorPainter extends CustomPainter {
   final Map<String, List<double>> macd;
   final UiKlineRange klineRng;
-  final int crossLineIndex;
+  final int crossLineFollowKlineIndex;
   final double klineStep;
   final double klineWidth;
   final double klineChartWidth;
@@ -64,7 +64,7 @@ class _MacdIndicatorPainter extends CustomPainter {
   _MacdIndicatorPainter({
     required this.macd,
     required this.klineRng,
-    required this.crossLineIndex,
+    required this.crossLineFollowKlineIndex,
     required this.klineStep,
     required this.klineWidth,
     required this.klineChartWidth,
@@ -118,6 +118,30 @@ class _MacdIndicatorPainter extends CustomPainter {
     //   offsetY: indicatorChartTitleBarHeight,
     // );
     // canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    if (oldDelegate is! _MacdIndicatorPainter) return true;
+    final old = oldDelegate;
+
+    // 比较基础类型和引用
+    if (old.klineStep != klineStep ||
+        old.klineWidth != klineWidth ||
+        old.klineChartWidth != klineChartWidth ||
+        old.klineRng != klineRng ||
+        old.stockColors != stockColors ||
+        old.klineChartLeftMargin != klineChartLeftMargin ||
+        old.klineChartRightMargin != klineChartRightMargin) {
+      return true;
+    }
+
+    // 深度比较列表内容（假设列表顺序和长度决定是否更新）
+    if (old.macd.length != macd.length) {
+      return true;
+    }
+
+    return false;
   }
 
   void drawTitleBar(Canvas canvas, Size size) {
@@ -316,7 +340,4 @@ class _MacdIndicatorPainter extends CustomPainter {
       x += klineStep;
     }
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
