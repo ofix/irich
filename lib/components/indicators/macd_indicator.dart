@@ -317,16 +317,6 @@ class _MacdIndicatorPainter extends CustomPainter {
     }
   }
 
-  // 辅助函数：计算数据区间内的最大绝对值
-  double _calcMaxMacdInRange(List<double> data, int startIdx, int endIdx) {
-    double max = 0;
-    for (int i = startIdx; i <= endIdx; i++) {
-      final absValue = data[i].abs();
-      if (absValue > max) max = absValue;
-    }
-    return max;
-  }
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
