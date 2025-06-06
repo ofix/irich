@@ -8,7 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/theme/stock_colors.dart';
 
@@ -41,6 +41,7 @@ class _MacdIndicatorState extends State<MacdIndicator> {
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
+          indicatorChartTitleBarHeight: state.indicatorChartTitleBarHeight,
           stockColors: widget.stockColors,
         ),
       ),
@@ -57,7 +58,7 @@ class _MacdIndicatorPainter extends CustomPainter {
   final double klineChartWidth;
   final double klineChartLeftMargin;
   final double klineChartRightMargin;
-  final double titleHeight = 20.0;
+  final double indicatorChartTitleBarHeight;
   final StockColors stockColors;
 
   _MacdIndicatorPainter({
@@ -69,6 +70,7 @@ class _MacdIndicatorPainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.indicatorChartTitleBarHeight,
     required this.stockColors,
   });
 
@@ -95,7 +97,7 @@ class _MacdIndicatorPainter extends CustomPainter {
     //   nRows: 4,
     //   textAlign: TextAlign.right,
     //   fontSize: 11,
-    //   offsetY: titleHeight,
+    //   offsetY: indicatorChartTitleBarHeight,
     // );
     // canvas.restore();
 
@@ -113,7 +115,7 @@ class _MacdIndicatorPainter extends CustomPainter {
     //   nRows: 4,
     //   textAlign: TextAlign.left,
     //   fontSize: 11,
-    //   offsetY: titleHeight,
+    //   offsetY: indicatorChartTitleBarHeight,
     // );
     // canvas.restore();
   }
@@ -130,7 +132,7 @@ class _MacdIndicatorPainter extends CustomPainter {
 
     // 绘制标题背景
     canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, titleHeight),
+      Rect.fromLTWH(0, 0, size.width, indicatorChartTitleBarHeight),
       Paint()
         ..color = bgColor
         ..style = PaintingStyle.fill,
@@ -175,9 +177,9 @@ class _MacdIndicatorPainter extends CustomPainter {
     final macdValues = macd['MACD'] ?? [];
     if (dif.isEmpty || dea.isEmpty || macdValues.isEmpty) return;
 
-    final bodyHeight = height - titleHeight;
+    final bodyHeight = height - indicatorChartTitleBarHeight;
     canvas.save();
-    canvas.translate(klineChartLeftMargin, titleHeight);
+    canvas.translate(klineChartLeftMargin, indicatorChartTitleBarHeight);
     // 计算实际需要绘制的数据范围
     final size = Size(klineChartWidth, bodyHeight);
     double max = double.negativeInfinity;

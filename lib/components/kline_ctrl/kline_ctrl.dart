@@ -21,7 +21,7 @@ import 'package:irich/components/indicators/minute_volume_indicator.dart';
 import 'package:irich/components/indicators/turnoverrate_indicator.dart';
 import 'package:irich/components/indicators/volume_indicator.dart';
 import 'package:irich/components/kline_ctrl/kline_chart.dart';
-import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/text_radio_button_group.dart';
 import 'package:irich/formula/formula_boll.dart';
 import 'package:irich/formula/formula_ema.dart';
@@ -52,16 +52,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
     '月K': KlineType.month,
     '季K': KlineType.quarter,
     '年K': KlineType.year,
-  };
-  // EMA日K线
-  static const Map<String, int> emaCurveMap = {
-    'EMA5': 5,
-    'EMA10': 10,
-    'EMA20': 20,
-    'EMA30': 30,
-    'EMA60': 60,
-    'EMA255': 255,
-    'EMA905': 905,
   };
 
   // 指标附图高度动态比例(最多4个指标附图)
@@ -246,24 +236,26 @@ class _KlineCtrlState extends State<KlineCtrl> {
       onKeyEvent: _onKeyEvent,
       child: Listener(
         onPointerSignal: _onMouseScroll,
-        onPointerHover: _onMouseMove,
         child: GestureDetector(
           onTapDown: _onTapDown,
+          onPanUpdate: _onMouseMove,
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
               // final parentWidth = constraints.maxWidth; // 父容器可用宽度
               Size size = Size(constraints.maxWidth, constraints.maxHeight);
               setSize(size); // 计算K线图宽高,当前显示的K线图范围
-              return Column(
+              return Stack(
                 children: [
-                  // K线类型切换
-                  Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
-                  // EMA加权平均线
-                  _buildEmaCurveButtons(context, emaCurveMap),
-                  // K线主图
-                  KlineChart(klineState: klineState, stockColors: stockColors),
-                  // 技术指标图
-                  ..._buildIndicators(context, klineState, stockColors),
+                  Column(
+                    children: [
+                      // K线类型切换
+                      Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
+                      // K线主图
+                      KlineChart(klineState: klineState, stockColors: stockColors),
+                      // 技术指标图
+                      ..._buildIndicators(context, klineState, stockColors),
+                    ],
+                  ),
                 ],
               );
             },
@@ -298,36 +290,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
     );
   }
 
-  // 绘制EMA曲线按钮组
-  Widget _buildEmaCurveButtons(BuildContext context, Map<String, int> emaCurveMap) {
-    List<Widget> widgets = [];
-    for (final entry in emaCurveMap.entries) {
-      Color emaColor = _getEmaColor(entry.value);
-      TextButton button = TextButton(
-        style: TextButton.styleFrom(foregroundColor: emaColor),
-        onPressed: () => {},
-        child: Text(entry.key),
-      );
-      widgets.add(button);
-    }
-
-    return Row(children: widgets);
-  }
-
-  // 获取EMA曲线颜色
-  Color _getEmaColor(int period) {
-    return switch (period) {
-      5 => Colors.white,
-      10 => const Color.fromARGB(255, 236, 9, 202),
-      20 => const Color.fromARGB(255, 72, 105, 239),
-      30 => const Color(0xFFFF9F1A),
-      60 => const Color.fromARGB(255, 11, 180, 218),
-      255 => const Color.fromARGB(255, 245, 16, 16),
-      905 => const Color.fromARGB(255, 7, 131, 75),
-      _ => Colors.purple,
-    };
-  }
-
   // 绘制技术指标附图
   List<Widget> _buildIndicators(
     BuildContext context,
@@ -354,10 +316,11 @@ class _KlineCtrlState extends State<KlineCtrl> {
     if (klineState.indicators.length <= 4) {
       ratio = chartHeightMap[klineState.indicators.length]!;
     }
-    double height = size.height - 60;
-
+    klineState.klineCtrlWidth = size.width;
+    klineState.klineCtrlHeight = size.height;
     klineState.klineChartWidth =
         size.width - klineState.klineChartLeftMargin - klineState.klineChartRightMargin;
+    double height = size.height - klineState.klineCtrlTitleBar;
     klineState.klineChartHeight = height * ratio;
     klineState.indicatorChartHeight =
         klineState.indicators.isEmpty ? 0 : height * (1 - ratio) / klineState.indicators.length;
@@ -495,24 +458,24 @@ class _KlineCtrlState extends State<KlineCtrl> {
   }
 
   // 鼠标移动的时候需要动态绘制十字光标
-  void _onMouseMove(PointerHoverEvent event) {}
+  void _onMouseMove(DragUpdateDetails details) {
+    debugPrint('全局: ${details.globalPosition}');
+    debugPrint('局部: ${details.localPosition}');
+  }
 
+  // 鼠标滚轮事件处理,可以用来切换股票
   void _onMouseScroll(PointerEvent event) {
     if (event is PointerScrollEvent) {
+      if (event.scrollDelta.dy > 0) {
+      } else {}
       setState(() {});
     }
   }
 
   void logError(String s, {required Object error, required StackTrace stackTrace}) {}
 
-  void onMouseMove(PointerHoverEvent event) {}
-
-  // 鼠标滚轮事件处理,可以用来切换股票
   void onMouseScroll(PointerEvent event) {
-    if (event is PointerScrollEvent) {
-      if (event.scrollDelta.dy > 0) {
-      } else {}
-    }
+    if (event is PointerScrollEvent) {}
   }
 
   // 添加技术指标

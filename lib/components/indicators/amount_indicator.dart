@@ -8,7 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/theme/stock_colors.dart';
 
@@ -41,6 +41,7 @@ class _AmountIndicatorState extends State<AmountIndicator> {
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
+          indicatorChartTitleBarHeight: state.indicatorChartTitleBarHeight,
           stockColors: widget.stockColors,
           isUpList: _getIsUpList(state.klines, state.klineRng!),
         ),
@@ -68,7 +69,7 @@ class _AmountIndicatorPainter extends CustomPainter {
   final double klineChartLeftMargin;
   final double klineChartRightMargin;
   late final double maxAmount;
-  final double titleHeight = 20.0;
+  final double indicatorChartTitleBarHeight;
   final StockColors stockColors;
 
   _AmountIndicatorPainter({
@@ -81,6 +82,7 @@ class _AmountIndicatorPainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.indicatorChartTitleBarHeight,
     required this.stockColors,
   }) {
     maxAmount = _calcMaxAmount();
@@ -94,10 +96,6 @@ class _AmountIndicatorPainter extends CustomPainter {
     _drawTitleBar(canvas, size);
     // 绘制成交额柱状图
     _drawAmountBars(canvas, size.height);
-    // 绘制十字线
-    if (crossLineIndex != -1) {
-      _drawCrossLine(canvas, size);
-    }
     // 绘制左边成交额指示面板
     canvas.save();
     canvas.translate(-2, 0);
@@ -112,7 +110,7 @@ class _AmountIndicatorPainter extends CustomPainter {
       nRows: 4,
       textAlign: TextAlign.right,
       fontSize: 11,
-      offsetY: titleHeight,
+      offsetY: indicatorChartTitleBarHeight,
     );
     canvas.restore();
 
@@ -130,7 +128,7 @@ class _AmountIndicatorPainter extends CustomPainter {
       nRows: 4,
       textAlign: TextAlign.left,
       fontSize: 11,
-      offsetY: titleHeight,
+      offsetY: indicatorChartTitleBarHeight,
     );
     canvas.restore();
   }
@@ -143,7 +141,7 @@ class _AmountIndicatorPainter extends CustomPainter {
         Paint()
           ..color = const Color(0xFF252525)
           ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, titleHeight), bgPaint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, indicatorChartTitleBarHeight), bgPaint);
 
     // 绘制标题文本
     final textPainter = TextPainter(
@@ -174,7 +172,7 @@ class _AmountIndicatorPainter extends CustomPainter {
   }
 
   void _drawAmountBars(Canvas canvas, double height) {
-    final bodyHeight = height - titleHeight;
+    final bodyHeight = height - indicatorChartTitleBarHeight;
 
     final redPaint =
         Paint()
@@ -193,7 +191,7 @@ class _AmountIndicatorPainter extends CustomPainter {
       final x = nKline * klineStep;
       final barWidth = klineWidth;
       final barHeight = (klines[i].amount / maxAmount) * bodyHeight;
-      final y = titleHeight + bodyHeight - barHeight;
+      final y = indicatorChartTitleBarHeight + bodyHeight - barHeight;
 
       // 根据涨跌决定颜色
       final paint = isUpList[nKline] ? redPaint : greenPaint;
@@ -202,19 +200,6 @@ class _AmountIndicatorPainter extends CustomPainter {
       nKline++;
     }
     canvas.restore();
-  }
-
-  void _drawCrossLine(Canvas canvas, Size size) {
-    final crossPaint =
-        Paint()
-          ..color = Colors.white.withOpacity(0.7)
-          ..strokeWidth = 0.5
-          ..style = PaintingStyle.stroke;
-
-    final x = crossLineIndex * klineStep + klineWidth / 2;
-
-    // 垂直线
-    canvas.drawLine(Offset(x, titleHeight), Offset(x, size.height), crossPaint);
   }
 
   double _calcMaxAmount() {

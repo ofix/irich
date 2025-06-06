@@ -16,22 +16,29 @@ class KlineState {
   List<UiKline> klines; // 前复权日K线数据
   List<MinuteKline> minuteKlines; // 分时K线数据
   List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
-  UiKlineRange? klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
   Map<String, List<double>> kdj; // KDJ技术指标数据，按需填充
   Map<String, List<double>> macd; // MACD技术指标数据，按需填充
   Map<String, List<double>> boll; // 布林线技术指标数据，按需填充
   List<UiIndicator> indicators; //  当前显示的指标副图，日/周/月/季/年K线技术指标列表, 分时图技术指标列表,  五日分时图技术指标列表
   List<UiIndicator> dynamicIndicators; // 日/周/月/季/年K线技术指标列表,支持动态添加和删除
-  int crossLineIndex; // 十字线位置
+  int crossLineIndex; // 十字线所属K线位置
+  Offset crossLinePos; // 十字线光标位置
   double klineStep; // K线步长
   double klineWidth; // K线宽度
+  UiKlineRange? klineRng; // 可视K线范围
+  double klineRngMinPrice; // 可见范围K线最低价
+  double klineRngMaxPrice; // 可见范围K线最高价
   int visibleKlineCount; // 可视区域K线数量
+  double klineCtrlWidth; // K线图容器宽度(主图+左右指示面板)
+  double klineCtrlHeight; // K线图容器高度(主图+多个附图)
+  double klineCtrlTitleBar; // K线图标题栏高度
   double klineChartWidth; // K线图宽度
   double klineChartHeight; // K线图高度
   double klineChartLeftMargin; // K线图左边宽度(显示价格指示图)
   double klineChartRightMargin; // K线图右边宽度(显示涨幅指示图)
   double indicatorChartHeight; // 指标附图高度
+  double indicatorChartTitleBarHeight; // 指标附图标题栏高度
 
   KlineState({
     required this.share,
@@ -46,15 +53,22 @@ class KlineState {
     List<UiIndicator>? indicators,
     List<UiIndicator>? dynamicIndicators,
     UiKlineRange? klineRng,
+    this.klineRngMinPrice = double.infinity,
+    this.klineRngMaxPrice = double.negativeInfinity,
     this.crossLineIndex = -1,
+    this.crossLinePos = const Offset(-1, -1),
     this.klineStep = 17,
     this.klineWidth = 15,
     this.visibleKlineCount = 120,
+    this.klineCtrlWidth = 1200,
+    this.klineCtrlHeight = 800,
+    this.klineCtrlTitleBar = 60,
     this.klineChartWidth = 800,
     this.klineChartHeight = 600,
     this.klineChartLeftMargin = 50,
     this.klineChartRightMargin = 50,
     this.indicatorChartHeight = 80,
+    this.indicatorChartTitleBarHeight = 20,
   }) : klines = klines ?? [], // 使用const空列表避免共享引用
        minuteKlines = minuteKlines ?? [],
        fiveDayMinuteKlines = fiveDayMinuteKlines ?? [],
@@ -73,23 +87,30 @@ class KlineState {
     List<UiKline>? klines,
     List<MinuteKline>? minuteKlines,
     List<MinuteKline>? fiveDayMinuteKlines,
-    UiKlineRange? klineRng,
     List<ShareEmaCurve>? emaCurves,
     Map<String, List<double>>? kdj,
     Map<String, List<double>>? macd,
     Map<String, List<double>>? boll,
     List<UiIndicator>? indicators,
     List<UiIndicator>? dynamicIndicators,
+    UiKlineRange? klineRng,
+    double? klineRngMinPrice,
+    double? klineRngMaxPrice,
     int? visibleIndicatorIndex,
     int? crossLineIndex,
+    Offset? corssLinePos,
     double? klineStep,
     double? klineWidth,
     int? visibleKlineCount,
+    double? klineCtrlWidth,
+    double? klineCtrlHeight,
+    double? klineCtrlTitleBar,
     double? klineChartWidth,
     double? klineChartHeight,
     double? klineChartLeftMargin,
     double? klineChartRightMargin,
     double? indicatorChartHeight,
+    double? indicatorChartTitleBarHeight,
   }) {
     return KlineState(
       share: share ?? this.share,
@@ -97,22 +118,30 @@ class KlineState {
       klines: klines ?? this.klines,
       minuteKlines: minuteKlines ?? this.minuteKlines,
       fiveDayMinuteKlines: fiveDayMinuteKlines ?? this.fiveDayMinuteKlines,
-      klineRng: klineRng ?? this.klineRng,
       emaCurves: emaCurves ?? this.emaCurves,
       kdj: kdj ?? this.kdj,
       macd: macd ?? this.macd,
       boll: boll ?? this.boll,
       indicators: indicators ?? this.indicators,
       dynamicIndicators: dynamicIndicators ?? this.dynamicIndicators,
+      klineRng: klineRng ?? this.klineRng,
+      klineRngMinPrice: klineRngMinPrice ?? this.klineRngMinPrice,
+      klineRngMaxPrice: klineRngMaxPrice ?? this.klineRngMaxPrice,
       crossLineIndex: crossLineIndex ?? this.crossLineIndex,
+      crossLinePos: crossLinePos,
       klineStep: klineStep ?? this.klineStep,
       klineWidth: klineWidth ?? this.klineWidth,
       visibleKlineCount: visibleKlineCount ?? this.visibleKlineCount,
+      klineCtrlWidth: klineCtrlWidth ?? this.klineCtrlWidth,
+      klineCtrlHeight: klineCtrlHeight ?? this.klineCtrlHeight,
+      klineCtrlTitleBar: klineCtrlTitleBar ?? this.klineCtrlTitleBar,
       klineChartWidth: klineChartWidth ?? this.klineChartWidth,
       klineChartHeight: klineChartHeight ?? this.klineChartHeight,
       klineChartLeftMargin: klineChartLeftMargin ?? this.klineChartLeftMargin,
       klineChartRightMargin: klineChartRightMargin ?? this.klineChartRightMargin,
       indicatorChartHeight: indicatorChartHeight ?? this.indicatorChartHeight,
+      indicatorChartTitleBarHeight:
+          indicatorChartTitleBarHeight ?? this.indicatorChartTitleBarHeight,
     );
   }
 }

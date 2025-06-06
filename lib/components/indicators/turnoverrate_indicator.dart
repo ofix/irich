@@ -8,7 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/theme/stock_colors.dart';
 
@@ -43,6 +43,7 @@ class _TurnoverRateIndicatorState extends State<TurnoverRateIndicator> {
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
+          indicatorChartTitleBarHeight: state.indicatorChartTitleBarHeight,
           stockColors: widget.stockColors,
         ),
       ),
@@ -64,7 +65,7 @@ class _TurnoverRatePainter extends CustomPainter {
   final double klineChartWidth;
   final double klineChartLeftMargin;
   final double klineChartRightMargin;
-  final double titleHeight = 20.0;
+  final double indicatorChartTitleBarHeight;
   final StockColors stockColors;
   late final double maxTurnoverRate;
   _TurnoverRatePainter({
@@ -77,6 +78,7 @@ class _TurnoverRatePainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.indicatorChartTitleBarHeight,
     required this.stockColors,
   }) {
     maxTurnoverRate = _calcMaxTurnoverRate();
@@ -88,10 +90,6 @@ class _TurnoverRatePainter extends CustomPainter {
     _drawTitleBar(canvas, size);
     // 绘制换手率柱状图
     _drawTurnoverRateBars(canvas, size.height);
-    // 绘制十字线
-    if (crossLineIndex != -1) {
-      _drawCrossLine(canvas, size.height);
-    }
     // 绘制左边换手率指示面板
     canvas.save();
     canvas.translate(-2, 0);
@@ -106,7 +104,7 @@ class _TurnoverRatePainter extends CustomPainter {
       nRows: 4,
       textAlign: TextAlign.right,
       fontSize: 11,
-      offsetY: titleHeight,
+      offsetY: indicatorChartTitleBarHeight,
     );
     canvas.restore();
 
@@ -124,7 +122,7 @@ class _TurnoverRatePainter extends CustomPainter {
       nRows: 4,
       textAlign: TextAlign.left,
       fontSize: 11,
-      offsetY: titleHeight,
+      offsetY: indicatorChartTitleBarHeight,
     );
     canvas.restore();
   }
@@ -136,7 +134,7 @@ class _TurnoverRatePainter extends CustomPainter {
         Paint()
           ..color = const Color(0xFF252525)
           ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, titleHeight), bgPen);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, indicatorChartTitleBarHeight), bgPen);
 
     // 绘制标题文本
     final textPainter = TextPainter(
@@ -175,7 +173,7 @@ class _TurnoverRatePainter extends CustomPainter {
     if (klines.isEmpty) {
       return;
     }
-    final bodyHeight = height - titleHeight;
+    final bodyHeight = height - indicatorChartTitleBarHeight;
 
     final redPen =
         Paint()
@@ -194,7 +192,7 @@ class _TurnoverRatePainter extends CustomPainter {
       final x = nKline * klineStep;
       final barWidth = klineWidth;
       final barHeight = (klines[i].turnoverRate / maxTurnoverRate) * bodyHeight;
-      final y = titleHeight + bodyHeight - barHeight;
+      final y = indicatorChartTitleBarHeight + bodyHeight - barHeight;
 
       // 确保最小高度
       double effectiveHeight = barHeight < 2 ? 2 : barHeight;
@@ -203,18 +201,6 @@ class _TurnoverRatePainter extends CustomPainter {
       canvas.drawRect(Rect.fromLTWH(x, y, barWidth, effectiveHeight), paint);
       nKline++;
     }
-    canvas.restore();
-  }
-
-  void _drawCrossLine(Canvas canvas, double height) {
-    canvas.save();
-    canvas.translate(klineChartLeftMargin, 0);
-    drawVerticalLine(
-      canvas: canvas,
-      x: crossLineIndex * klineStep + klineWidth / 2,
-      yTop: titleHeight,
-      yBottom: height,
-    );
     canvas.restore();
   }
 

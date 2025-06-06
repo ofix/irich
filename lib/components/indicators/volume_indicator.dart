@@ -8,7 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/theme/stock_colors.dart';
 
@@ -44,6 +44,7 @@ class _VolumeIndicatorState extends State<VolumeIndicator> {
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
+          indicatorChartTitleBarHeight: state.indicatorChartTitleBarHeight,
           stockColors: widget.stockColors,
         ),
       ),
@@ -65,7 +66,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
   final double klineChartWidth; // K线图宽度
   final double klineChartLeftMargin; // K线图左边距
   final double klineChartRightMargin; // K线图右边距
-  final double titleHeight = 20;
+  final double indicatorChartTitleBarHeight; // 标题栏高度
   final StockColors stockColors;
   late final double maxVolume;
 
@@ -79,6 +80,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.indicatorChartTitleBarHeight,
     required this.stockColors,
   }) {
     maxVolume = _calcMaxVolume().toDouble();
@@ -91,10 +93,6 @@ class _VolumeIndicatorPainter extends CustomPainter {
     drawTitleBar(canvas, size);
     // 绘制成交量柱状图
     drawVolumeBars(canvas, size.height);
-    // 绘制十字线
-    if (crossLineIndex != -1) {
-      drawCrossLine(canvas, size.height);
-    }
     // 绘制左边成交量指示面板
     canvas.save();
     canvas.translate(-2, 0);
@@ -109,7 +107,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
       nRows: 4,
       textAlign: TextAlign.right,
       fontSize: 11,
-      offsetY: titleHeight,
+      offsetY: indicatorChartTitleBarHeight,
     );
     canvas.restore();
 
@@ -127,7 +125,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
       nRows: 4,
       textAlign: TextAlign.left,
       fontSize: 11,
-      offsetY: titleHeight,
+      offsetY: indicatorChartTitleBarHeight,
     );
     canvas.restore();
   }
@@ -140,7 +138,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
         Paint()
           ..color = const Color(0xFF252525)
           ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, titleHeight), bgPaint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, indicatorChartTitleBarHeight), bgPaint);
 
     // 绘制标题文本
     final textPainter = TextPainter(
@@ -176,7 +174,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
   }
 
   void drawVolumeBars(Canvas canvas, double height) {
-    final bodyHeight = height - titleHeight;
+    final bodyHeight = height - indicatorChartTitleBarHeight;
 
     final redPaint =
         Paint()
@@ -195,7 +193,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
       final x = nKline * klineStep;
       final barWidth = klineWidth;
       final barHeight = (klines[i].volume.toDouble() / maxVolume) * bodyHeight;
-      final y = titleHeight + bodyHeight - barHeight;
+      final y = indicatorChartTitleBarHeight + bodyHeight - barHeight;
 
       // 根据涨跌决定颜色
       final paint = isUpList[nKline] ? redPaint : greenPaint;
@@ -212,7 +210,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
     drawVerticalLine(
       canvas: canvas,
       x: crossLineIndex * klineStep + klineWidth / 2,
-      yTop: titleHeight,
+      yTop: indicatorChartTitleBarHeight,
       yBottom: height,
     );
     canvas.restore();

@@ -10,7 +10,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/theme/stock_colors.dart';
 
@@ -44,6 +44,7 @@ class _BollIndicatorState extends State<BollIndicator> {
           klineChartWidth: state.klineChartWidth,
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartRightMargin: state.klineChartRightMargin,
+          indicatorChartTitleBarHeight: state.indicatorChartTitleBarHeight,
         ),
       ),
     );
@@ -60,7 +61,7 @@ class _BollIndicatorPainter extends CustomPainter {
   final double klineChartWidth;
   final double klineChartLeftMargin;
   final double klineChartRightMargin;
-  final double titleHeight = 20.0;
+  final double indicatorChartTitleBarHeight;
   final _bandPaint = Paint()..style = PaintingStyle.fill;
   final _linePaint = Paint()..style = PaintingStyle.stroke;
 
@@ -74,6 +75,7 @@ class _BollIndicatorPainter extends CustomPainter {
     required this.klineChartWidth,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
+    required this.indicatorChartTitleBarHeight,
   });
 
   @override
@@ -99,7 +101,7 @@ class _BollIndicatorPainter extends CustomPainter {
     //   nRows: 4,
     //   textAlign: TextAlign.right,
     //   fontSize: 11,
-    //   offsetY: titleHeight,
+    //   offsetY: indicatorChartTitleBarHeight,
     // );
     // canvas.restore();
 
@@ -117,7 +119,7 @@ class _BollIndicatorPainter extends CustomPainter {
     //   nRows: 4,
     //   textAlign: TextAlign.left,
     //   fontSize: 11,
-    //   offsetY: titleHeight,
+    //   offsetY: indicatorChartTitleBarHeight,
     // );
     // canvas.restore();
   }
@@ -130,7 +132,7 @@ class _BollIndicatorPainter extends CustomPainter {
         Paint()
           ..color = const Color(0xFF252525)
           ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, titleHeight), bgPaint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, indicatorChartTitleBarHeight), bgPaint);
 
     // 绘制标题文本
     final textPainter = TextPainter(
@@ -187,13 +189,13 @@ class _BollIndicatorPainter extends CustomPainter {
       startIdx: startIdx,
       endIdx: endIdx,
     );
-    final bodyHeight = height - titleHeight;
+    final bodyHeight = height - indicatorChartTitleBarHeight;
     // 缩放因子
     final scaleY = bodyHeight / (priceRange.max - priceRange.min);
 
     // 绘制轨道区域
     canvas.save();
-    canvas.translate(klineChartLeftMargin, titleHeight);
+    canvas.translate(klineChartLeftMargin, indicatorChartTitleBarHeight);
 
     final bandPath =
         Path()..moveTo(0, bodyHeight - (upperBand[startIdx] - priceRange.min) * scaleY);

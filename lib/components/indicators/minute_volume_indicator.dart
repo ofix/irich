@@ -8,7 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/theme/stock_colors.dart';
 
@@ -95,10 +95,6 @@ class _MinuteVolumePainter extends CustomPainter {
       nBigCols: 0,
       color: Colors.grey,
     );
-    // 绘制十字线
-    if (crossLineIndex != -1) {
-      drawCrossLine(canvas, size);
-    }
     canvas.restore();
     // 绘制左边成交量指示面板
     canvas.save();
@@ -156,15 +152,6 @@ class _MinuteVolumePainter extends CustomPainter {
       final h = height * klines[i].volume.toDouble() / maxVolume;
       canvas.drawLine(Offset(x, y), Offset(x, y + h), pen);
     }
-  }
-
-  void drawCrossLine(Canvas canvas, Size size) {
-    final maxLines = klineType == KlineType.minute ? 240 : 1200;
-    final barWidth = size.width / maxLines;
-    canvas.save();
-    canvas.translate(klineChartLeftMargin, 0);
-    drawVerticalLine(canvas: canvas, x: crossLineIndex * barWidth, yTop: 0, yBottom: size.height);
-    canvas.restore();
   }
 
   @override

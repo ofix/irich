@@ -8,7 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/kline_ctrl/kline_chart_common.dart';
+import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'dart:math';
 
@@ -75,9 +75,6 @@ class KlinePainter extends CustomPainter {
           drawDayKlines(canvas);
           break;
         }
-    }
-    if (crossLineIndex != -1) {
-      drawCrossLine(canvas);
     }
   }
 
@@ -529,32 +526,6 @@ class KlinePainter extends CustomPainter {
       Paint()
         ..shader = gradient.createShader(Rect.fromLTWH(0, 0, klineChartWidth, klineChartHeight)),
     );
-    canvas.restore();
-  }
-
-  void drawCrossLine(Canvas canvas) {
-    // 获取当前K线数据
-    final kline = klines[crossLineIndex];
-    final priceRange = maxRectPrice - minRectPrice;
-    final y = (1 - (kline.priceClose - minRectPrice) / priceRange) * klineChartHeight;
-    final x = (crossLineIndex - klineRng.begin) * klineStep + klineWidth / 2;
-    canvas.save();
-    canvas.translate(klineChartLeftMargin, 0);
-    // 水平线
-    drawDashedLine(
-      canvas: canvas,
-      startPoint: Offset(0, y),
-      endPoint: Offset(klineChartWidth, y),
-      color: const Color.fromARGB(255, 32, 136, 222),
-    );
-    // 垂直线
-    drawDashedLine(
-      canvas: canvas,
-      startPoint: Offset(x, 0),
-      endPoint: Offset(x, klineChartHeight),
-      color: const Color.fromARGB(255, 32, 136, 222),
-    );
-
     canvas.restore();
   }
 }
