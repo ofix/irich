@@ -268,7 +268,11 @@ class _KlineCtrlState extends State<KlineCtrl> {
               ],
             ),
             // 十字线
-            CrossLineChart(klineState: klineState, stockColors: stockColors),
+            Positioned(
+              left: klineState.klineChartLeftMargin,
+              top: klineState.klineCtrlTitleBarHeight,
+              child: CrossLineChart(klineState: klineState, stockColors: stockColors),
+            ),
           ],
         );
       },
