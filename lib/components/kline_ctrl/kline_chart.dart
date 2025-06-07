@@ -28,32 +28,41 @@ class _KlineChartState extends State<KlineChart> {
   Widget build(BuildContext context) {
     final state = widget.klineCtrlState;
     return Container(
-      width: state.klineChartWidth + state.klineChartLeftMargin + state.klineChartRightMargin,
-      height: state.klineChartHeight,
+      width: state.klineCtrlWidth,
+      height: state.klineType.isMinuteType ? state.klineChartHeight : state.klineChartHeight + 22,
       color: const Color.fromARGB(255, 28, 29, 33),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, // 强制左对齐
+      child: Stack(
         children: [
-          if (!state.klineType.isMinuteType) _buildEmaCurveButtons(context, state.emaCurveSettings),
-          CustomPaint(
-            painter: KlinePainter(
-              share: state.share,
-              klineChartWidth: state.klineChartWidth,
-              klineChartHeight: state.klineChartHeight,
-              klineChartLeftMargin: state.klineChartLeftMargin,
-              klineChartRightMargin: state.klineChartRightMargin,
-              klineType: state.klineType,
-              klines: state.klines,
-              minuteKlines: state.minuteKlines,
-              fiveDayMinuteKlines: state.fiveDayMinuteKlines,
-              klineRng: state.klineRng!,
-              klineRngMinPrice: state.klineRngMinPrice,
-              klineRngMaxPrice: state.klineRngMaxPrice,
-              emaCurves: state.emaCurves,
-              crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
-              klineStep: state.klineStep,
-              klineWidth: state.klineWidth,
-              stockColors: widget.stockColors,
+          if (!state.klineType.isMinuteType)
+            Positioned(top: -4, child: _buildEmaCurveButtons(context, state.emaCurveSettings)),
+          Positioned(
+            top: state.klineType.isMinuteType ? 0 : 28,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, // 强制左对齐
+              children: [
+                CustomPaint(
+                  size: Size(state.klineCtrlWidth, state.klineChartHeight),
+                  painter: KlinePainter(
+                    share: state.share,
+                    klineChartWidth: state.klineChartWidth,
+                    klineChartHeight: state.klineChartHeight,
+                    klineChartLeftMargin: state.klineChartLeftMargin,
+                    klineChartRightMargin: state.klineChartRightMargin,
+                    klineType: state.klineType,
+                    klines: state.klines,
+                    minuteKlines: state.minuteKlines,
+                    fiveDayMinuteKlines: state.fiveDayMinuteKlines,
+                    klineRng: state.klineRng!,
+                    klineRngMinPrice: state.klineRngMinPrice,
+                    klineRngMaxPrice: state.klineRngMaxPrice,
+                    emaCurves: state.emaCurves,
+                    crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
+                    klineStep: state.klineStep,
+                    klineWidth: state.klineWidth,
+                    stockColors: widget.stockColors,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

@@ -37,7 +37,7 @@ const defaultEmaCurveSettings = [
   EmaCurveSetting(period: 30, color: Color(0xFFFF9F1A)),
   EmaCurveSetting(period: 60, color: Color.fromARGB(255, 11, 180, 218)),
   EmaCurveSetting(period: 255, color: Color.fromARGB(255, 245, 16, 16)),
-  EmaCurveSetting(period: 905, color: Color.fromARGB(255, 7, 131, 75)),
+  EmaCurveSetting(period: 905, color: Color.fromARGB(255, 24, 245, 146)),
 ];
 
 // K线组件核心类
@@ -106,7 +106,7 @@ class KlineCtrlState {
     this.klineChartLeftMargin = 50,
     this.klineChartRightMargin = 50,
     this.indicatorChartHeight = 80,
-    this.indicatorChartTitleBarHeight = 20,
+    this.indicatorChartTitleBarHeight = 32,
     List<EmaCurveSetting>? emaCurveSettings,
   }) : klines = klines ?? [], // 使用const空列表避免共享引用
        minuteKlines = minuteKlines ?? [],

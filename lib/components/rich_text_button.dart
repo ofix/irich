@@ -38,18 +38,16 @@ class RichTextButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: padding),
-          decoration: BoxDecoration(
-            // color: isSelected ? selectedColor : unselectedColor,
-            borderRadius: BorderRadius.circular(borderRadius),
-          ),
+          height: 32,
+          padding: EdgeInsets.symmetric(horizontal: padding, vertical: 4),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(borderRadius)),
           child: Center(
             child: Text(
               label,
               style: TextStyle(
                 backgroundColor: Colors.transparent,
                 color: isSelected ? textColor : const Color.fromARGB(255, 214, 211, 211),
-                fontSize: 16,
+                fontSize: 14,
               ),
             ),
           ),

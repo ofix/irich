@@ -36,18 +36,16 @@ class RichCheckboxButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: padding),
-          decoration: BoxDecoration(
-            // color: isSelected ? selectedColor : unselectedColor,
-            borderRadius: BorderRadius.circular(borderRadius),
-          ),
+          height: 32,
+          padding: EdgeInsets.fromLTRB(padding, 4, padding, 4),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(borderRadius)),
           child: Center(
             child: Text(
               label,
               style: TextStyle(
                 backgroundColor: Colors.transparent,
                 color: isSelected ? selectedColor : unselectedColor,
-                fontSize: 16,
+                fontSize: 14,
               ),
             ),
           ),

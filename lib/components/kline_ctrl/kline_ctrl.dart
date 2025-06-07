@@ -253,7 +253,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
       builder: (BuildContext context, BoxConstraints constraints) {
         // final parentWidth = constraints.maxWidth; // 父容器可用宽度
         Size size = Size(constraints.maxWidth, constraints.maxHeight);
-        setSize(size); // 计算K线图宽高,当前显示的K线图范围
+        updateSize(size); // 计算K线图宽高,当前显示的K线图范围
         return Stack(
           children: [
             Column(
@@ -278,7 +278,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     );
   }
 
-  void setSize(Size size) {
+  void updateSize(Size size) {
     double ratio = 1;
     if (klineCtrlState.indicators.length <= 4) {
       ratio = chartHeightMap[klineCtrlState.indicators.length]!;
@@ -287,8 +287,11 @@ class _KlineCtrlState extends State<KlineCtrl> {
     klineCtrlState.klineCtrlHeight = size.height;
     klineCtrlState.klineChartWidth =
         size.width - klineCtrlState.klineChartLeftMargin - klineCtrlState.klineChartRightMargin;
-    double height = size.height - klineCtrlState.klineCtrlTitleBarHeight - 8; // 总高度-标题栏-EMA曲线按钮高度
-    klineCtrlState.klineChartHeight = height * ratio;
+    double height = size.height - klineCtrlState.klineCtrlTitleBarHeight;
+    if (!klineCtrlState.klineType.isMinuteType) {
+      height = height - klineCtrlState.klineCtrlTitleBarHeight + 4;
+    }
+    klineCtrlState.klineChartHeight = (height * ratio).floorToDouble();
     klineCtrlState.indicatorChartHeight =
         klineCtrlState.indicators.isEmpty
             ? 0
@@ -659,11 +662,11 @@ class _KlineCtrlState extends State<KlineCtrl> {
     double min = double.infinity;
     double max = double.negativeInfinity;
     for (int i = klineCtrlState.klineRng!.begin; i <= klineCtrlState.klineRng!.end; i++) {
-      if (klineCtrlState.klines[i].priceClose < min) {
-        min = klineCtrlState.klines[i].priceClose;
+      if (klineCtrlState.klines[i].priceMin < min) {
+        min = klineCtrlState.klines[i].priceMin;
       }
-      if (klineCtrlState.klines[i].priceClose > max) {
-        max = klineCtrlState.klines[i].priceClose;
+      if (klineCtrlState.klines[i].priceMax > max) {
+        max = klineCtrlState.klines[i].priceMax;
       }
     }
     if (klineCtrlState.emaCurves.isNotEmpty) {
