@@ -8,6 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'dart:math';
@@ -69,7 +70,6 @@ class KlinePainter extends CustomPainter {
         }
       default:
         {
-          debugPrint("绘制日K线");
           drawDayKlines(canvas);
           break;
         }
@@ -102,8 +102,6 @@ class KlinePainter extends CustomPainter {
         old.emaCurves.length != emaCurves.length) {
       return true;
     }
-
-    debugPrint("不绘制 KlineChart");
     return false;
   }
 

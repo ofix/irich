@@ -145,54 +145,23 @@ class _KdjIndicatorPainter extends CustomPainter {
   }
 
   void drawTitleBar(Canvas canvas, Size size) {
-    // 常量定义
-    const textPadding = 4.0;
-    const columnSpacing = 12.0;
-    final bgColor = const Color(0xFF252525);
-    final titleStyle = TextStyle(color: Colors.grey, fontSize: 12);
-    final kStyle = TextStyle(color: stockColors.kdjK, fontSize: 12);
-    final dStyle = TextStyle(color: stockColors.kdjD, fontSize: 12);
-    final jStyle = TextStyle(color: stockColors.kdjJ, fontSize: 12);
-
-    // 绘制标题背景
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, indicatorChartTitleBarHeight),
-      Paint()
-        ..color = bgColor
-        ..style = PaintingStyle.fill,
-    );
-
-    // 辅助方法：绘制文本列
-    double drawTextColumn(String label, String? value, Offset baseOffset, TextStyle style) {
-      final text = value != null ? '$label: $value' : '$label: --';
-      final painter = TextPainter(
-        text: TextSpan(text: text, style: style),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      painter.paint(canvas, baseOffset);
-      return painter.width;
-    }
-
-    // 绘制标题和数值列
-    var currentX = textPadding;
-
-    // 标题
-    currentX += drawTextColumn('KDJ(9,3,3)', '', Offset(currentX, textPadding), titleStyle);
-
-    // 数值列
     final k = kdj['K']?.last.toStringAsFixed(2);
     final d = kdj['D']?.last.toStringAsFixed(2);
     final j = kdj['J']?.last.toStringAsFixed(2);
+    List<ColorText> words = [
+      ColorText('KDJ(9,3,3)', Colors.grey),
+      ColorText('K: $k', stockColors.kdjK),
+      ColorText('D: $d', stockColors.kdjD),
+      ColorText('J: $j', stockColors.kdjJ),
+    ];
 
-    currentX += columnSpacing;
-    currentX += drawTextColumn('K', k, Offset(currentX, textPadding), kStyle);
-
-    currentX += columnSpacing;
-    currentX += drawTextColumn('D', d, Offset(currentX, textPadding), dStyle);
-
-    currentX += columnSpacing;
-    drawTextColumn('J', j, Offset(currentX, textPadding), jStyle);
+    drawIndicatorTitleBar(
+      canvas: canvas,
+      words: words,
+      width: size.width,
+      offset: Offset(4, 0),
+      height: indicatorChartTitleBarHeight,
+    );
   }
 
   void drawKdj(Canvas canvas, double height) {

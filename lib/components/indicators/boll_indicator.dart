@@ -147,43 +147,7 @@ class _BollIndicatorPainter extends CustomPainter {
     return false;
   }
 
-  void drawTitleBar(Canvas canvas, Size size) {
-    final textStyle = TextStyle(color: Colors.white, fontSize: 12);
-
-    // 绘制标题背景
-    final bgPaint =
-        Paint()
-          ..color = const Color(0xFF252525)
-          ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, indicatorChartTitleBarHeight), bgPaint);
-
-    // 绘制标题文本
-    final textPainter = TextPainter(
-      text: TextSpan(text: '成交额', style: textStyle.copyWith(color: Colors.grey)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(canvas, const Offset(4, 4));
-
-    // 绘制昨日成交额
-    final yesterdayText = TextPainter(
-      text: TextSpan(
-        text: '昨: ${formatAmount(boll.isNotEmpty ? 0 : 0)}',
-        style: textStyle.copyWith(color: const Color.fromARGB(255, 237, 130, 8)),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    yesterdayText.paint(canvas, Offset(textPainter.width + 12, 4));
-
-    // 绘制今日成交额
-    final todayText = TextPainter(
-      text: TextSpan(
-        text: '今: ${formatAmount(boll.isNotEmpty ? 0 : 0)}',
-        style: textStyle.copyWith(color: Colors.red),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    todayText.paint(canvas, Offset(textPainter.width + yesterdayText.width + 24, 4));
-  }
+  void drawTitleBar(Canvas canvas, Size size) {}
 
   void drawBollingerBands(Canvas canvas, double height) {
     // 参数安全校验

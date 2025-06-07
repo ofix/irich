@@ -16,6 +16,12 @@ enum CrossLineMode {
   followKline, // 跟随K线
 }
 
+class ColorText {
+  String text; // 文本
+  Color color; // 颜色
+  ColorText(this.text, this.color);
+}
+
 class EmaCurveSetting {
   final int period; // 周期
   final Color color; // 颜色
@@ -623,4 +629,44 @@ void drawDashedLine({
 /// 检查Offset是否有效（非Infinity/NaN）
 bool _isValidOffset(Offset offset) {
   return offset.dx.isFinite && offset.dy.isFinite && !offset.dx.isNaN && !offset.dy.isNaN;
+}
+
+/// 绘制K线副图指标标题栏
+/// [canvas] 画布
+/// [words] 标题文字
+/// [offset] 文字起始偏移位置
+/// [width] 标题栏宽度
+/// [height] 标题栏高度
+/// [bgColor] 背景颜色
+/// [spacing] 文字间隔
+/// [fontSize] 字体大小
+void drawIndicatorTitleBar({
+  required Canvas canvas,
+  required List<ColorText> words,
+  required Offset offset,
+  required double width,
+  required double height,
+  Color bgColor = const Color(0xFF252525),
+  double spacing = 6,
+  double fontSize = 12,
+}) {
+  // 绘制标题栏背景
+  final bgPaint =
+      Paint()
+        ..color = bgColor
+        ..style = PaintingStyle.fill;
+  canvas.drawRect(Rect.fromLTWH(0, 0, width, height), bgPaint);
+  // 绘制文本
+  double offsetX = offset.dx;
+  for (int i = 0; i < words.length; i++) {
+    TextPainter painter = TextPainter(
+      text: TextSpan(
+        text: words[i].text,
+        style: TextStyle(color: words[i].color, fontSize: fontSize),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(canvas, Offset(offsetX, offset.dy + 8));
+    offsetX += painter.width + spacing;
+  }
 }

@@ -152,45 +152,30 @@ class _TurnoverRatePainter extends CustomPainter {
   }
 
   void _drawTitleBar(Canvas canvas, Size size) {
-    final textStyle = TextStyle(color: Colors.white, fontSize: 12);
-    // 绘制标题背景
-    final bgPen =
-        Paint()
-          ..color = const Color(0xFF252525)
-          ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, indicatorChartTitleBarHeight), bgPen);
-
-    // 绘制标题文本
-    final textPainter = TextPainter(
-      text: TextSpan(text: '换手率', style: textStyle.copyWith(color: Colors.grey)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(canvas, const Offset(4, 4));
-
-    // 绘制昨日换手率
+    // 昨日换手率
     String yesterdayTurnoverRate = '--';
     if (klines.isNotEmpty) {
       yesterdayTurnoverRate = _formatRate(klines.first.turnoverRate);
     }
-    final yesterdayText = TextPainter(
-      text: TextSpan(
-        text: '昨: $yesterdayTurnoverRate',
-        style: textStyle.copyWith(color: const Color.fromARGB(255, 237, 130, 8)),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    yesterdayText.paint(canvas, Offset(textPainter.width + 12, 4));
-
-    // 绘制今日换手率
+    // 今日换手率
     String todayTurnoverRate = '--';
     if (klines.isNotEmpty) {
       todayTurnoverRate = _formatRate(klines.last.turnoverRate);
     }
-    final todayText = TextPainter(
-      text: TextSpan(text: '今: $todayTurnoverRate', style: textStyle.copyWith(color: Colors.red)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    todayText.paint(canvas, Offset(textPainter.width + yesterdayText.width + 24, 4));
+
+    List<ColorText> words = [
+      ColorText('换手率', Colors.grey),
+      ColorText('昨: $yesterdayTurnoverRate', const Color.fromARGB(255, 237, 130, 8)),
+      ColorText('今: $todayTurnoverRate', Colors.red),
+    ];
+
+    drawIndicatorTitleBar(
+      canvas: canvas,
+      words: words,
+      width: size.width,
+      offset: Offset(4, 0),
+      height: indicatorChartTitleBarHeight,
+    );
   }
 
   void _drawTurnoverRateBars(Canvas canvas, double height) {

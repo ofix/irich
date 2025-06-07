@@ -155,46 +155,30 @@ class _VolumeIndicatorPainter extends CustomPainter {
   }
 
   void drawTitleBar(Canvas canvas, Size size) {
-    final textStyle = TextStyle(color: Colors.white, fontSize: 12);
-
-    // 绘制标题背景
-    final bgPaint =
-        Paint()
-          ..color = const Color(0xFF252525)
-          ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, indicatorChartTitleBarHeight), bgPaint);
-
-    // 绘制标题文本
-    final textPainter = TextPainter(
-      text: TextSpan(text: '成交量', style: textStyle.copyWith(color: Colors.grey)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(canvas, const Offset(4, 4));
-
-    // 绘制昨日成交量
+    // 昨日成交量
     String yesterdayVolume = "--";
     if (klines.isNotEmpty) {
       yesterdayVolume = formatVolume(klines.first.volume.toDouble());
     }
-    final yesterdayText = TextPainter(
-      text: TextSpan(
-        text: '昨: $yesterdayVolume',
-        style: textStyle.copyWith(color: const Color.fromARGB(255, 237, 130, 8)),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    yesterdayText.paint(canvas, Offset(textPainter.width + 12, 4));
-
-    // 绘制今日成交量
+    // 今日成交量
     String todayVolume = "--";
     if (klines.isNotEmpty) {
       todayVolume = formatVolume(klines.last.volume.toDouble());
     }
-    final todayText = TextPainter(
-      text: TextSpan(text: '今: $todayVolume', style: textStyle.copyWith(color: Colors.red)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    todayText.paint(canvas, Offset(textPainter.width + yesterdayText.width + 24, 4));
+
+    List<ColorText> words = [
+      ColorText('成交量', Colors.grey),
+      ColorText('昨: $yesterdayVolume', const Color.fromARGB(255, 191, 28, 28)),
+      ColorText('今: $todayVolume', const Color.fromARGB(255, 49, 96, 224)),
+    ];
+
+    drawIndicatorTitleBar(
+      canvas: canvas,
+      words: words,
+      width: size.width,
+      offset: Offset(4, 0),
+      height: indicatorChartTitleBarHeight,
+    );
   }
 
   void drawVolumeBars(Canvas canvas, double height) {

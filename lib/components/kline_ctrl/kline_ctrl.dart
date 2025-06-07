@@ -292,10 +292,9 @@ class _KlineCtrlState extends State<KlineCtrl> {
       height = height - klineCtrlState.klineCtrlTitleBarHeight + 4;
     }
     klineCtrlState.klineChartHeight = (height * ratio).floorToDouble();
+    double scaleIndicator = (1 - ratio) / klineCtrlState.indicators.length;
     klineCtrlState.indicatorChartHeight =
-        klineCtrlState.indicators.isEmpty
-            ? 0
-            : height * (1 - ratio) / klineCtrlState.indicators.length;
+        klineCtrlState.indicators.isEmpty ? 0 : height * scaleIndicator;
 
     calcVisibleKlineWidth();
   }
@@ -479,10 +478,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     if ((localPosition.dx > klineCtrlState.klineChartLeftMargin) &&
         localPosition.dx < (klineCtrlState.klineChartLeftMargin + klineCtrlState.klineChartWidth)) {
       klineCtrlState.crossLineFollowKlineIndex = calcCrossLineFollowKlineIndex(localPosition);
-      klineCtrlState.crossLineFollowCursorPos = localPosition.translate(
-        -klineCtrlState.klineChartLeftMargin,
-        -klineCtrlState.klineCtrlTitleBarHeight - 8,
-      );
+      klineCtrlState.crossLineFollowCursorPos = localPosition;
       klineCtrlState.crossLineMode = CrossLineMode.followCursor;
       setState(() {});
     }
@@ -499,20 +495,13 @@ class _KlineCtrlState extends State<KlineCtrl> {
 
   // 鼠标移动的时候需要动态绘制十字光标
   void _onMouseMove(Offset localPosition) {
-    klineCtrlState.crossLineMode = CrossLineMode.followCursor;
-
     if ((localPosition.dx > klineCtrlState.klineChartLeftMargin) &&
         localPosition.dx < (klineCtrlState.klineChartLeftMargin + klineCtrlState.klineChartWidth)) {
-      klineCtrlState.crossLineFollowCursorPos = localPosition;
-      klineCtrlState.crossLineFollowKlineIndex = calcCrossLineFollowKlineIndex(localPosition);
-      klineCtrlState.crossLineMode = CrossLineMode.followCursor;
-      setState(() {});
-    }
-    if (klineCtrlState.crossLineMode == CrossLineMode.followCursor) {
-      klineCtrlState.crossLineFollowCursorPos = localPosition.translate(
-        -klineCtrlState.klineChartLeftMargin,
-        -klineCtrlState.klineCtrlTitleBarHeight - 8,
-      );
+      if (klineCtrlState.crossLineMode != CrossLineMode.none) {
+        klineCtrlState.crossLineFollowCursorPos = localPosition;
+        klineCtrlState.crossLineFollowKlineIndex = calcCrossLineFollowKlineIndex(localPosition);
+        klineCtrlState.crossLineMode = CrossLineMode.followCursor;
+      }
       setState(() {});
     }
   }

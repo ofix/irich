@@ -18,6 +18,7 @@ class CrossLinePainter extends CustomPainter {
   List<UiKline> klines; // K线坐标
   List<MinuteKline> minuteKlines; // 分时图数据
   List<MinuteKline> fiveDayMinuteKlines; // 五日分时图数据
+  List<UiIndicator> indicators; // 当前显示的指标副图
   CrossLineMode crossLineMode; // 十字线模式
   int crossLineFollowKlineIndex; // 十字线相对K线偏移下标
   Offset crossLineFollowCursorPos; // 十字线位置
@@ -28,7 +29,8 @@ class CrossLinePainter extends CustomPainter {
   double klineWidth; // K线宽度
   double klineChartWidth; // K线图宽度
   double klineChartHeight; // K线图高度
-  double klineCtrlTitleBarHeight; // K线图标题栏高度
+  double indicatorChartHeight; // k线副图高度
+  double indicatorChartTitleBarHeight; // K线副图图标题栏高度
   double klineChartLeftMargin; // K线图左边距
   double klineChartRightMargin; // K线图右边距
 
@@ -42,6 +44,7 @@ class CrossLinePainter extends CustomPainter {
     required this.klineRng,
     required this.klineRngMinPrice,
     required this.klineRngMaxPrice,
+    required this.indicators,
     required this.crossLineMode,
     required this.crossLineFollowKlineIndex,
     required this.crossLineFollowCursorPos,
@@ -49,7 +52,8 @@ class CrossLinePainter extends CustomPainter {
     required this.klineWidth,
     required this.klineChartWidth,
     required this.klineChartHeight,
-    required this.klineCtrlTitleBarHeight,
+    required this.indicatorChartHeight,
+    required this.indicatorChartTitleBarHeight,
     required this.klineChartLeftMargin,
     required this.klineChartRightMargin,
     required this.stockColors,
@@ -61,6 +65,7 @@ class CrossLinePainter extends CustomPainter {
     if (klineType.isMinuteType) {
       drawMinuteCrossLine(canvas);
     } else {
+      debugPrint("绘制十字线");
       drawDayCrossLine(canvas);
     }
   }
@@ -95,7 +100,6 @@ class CrossLinePainter extends CustomPainter {
         old.fiveDayMinuteKlines.length != fiveDayMinuteKlines.length) {
       return true;
     }
-    debugPrint("不绘制crossLine");
     return false;
   }
 
@@ -111,15 +115,13 @@ class CrossLinePainter extends CustomPainter {
     double x = 0;
     double y = 0;
     if (crossLineMode == CrossLineMode.followCursor) {
-      x = crossLineFollowCursorPos.dx;
-      y = crossLineFollowCursorPos.dy;
+      x = crossLineFollowCursorPos.dx - klineChartLeftMargin;
+      y = crossLineFollowCursorPos.dy - 60;
     } else {
       x = (crossLineFollowKlineIndex - klineRng.begin) * klineStep + klineWidth / 2;
       y = (klineRngMaxPrice - kline.priceClose) * klineChartHeight / priceRange;
     }
 
-    canvas.save();
-    canvas.translate(klineChartLeftMargin, klineCtrlTitleBarHeight);
     // 水平线
     drawDashedLine(
       canvas: canvas,
@@ -131,10 +133,22 @@ class CrossLinePainter extends CustomPainter {
     drawDashedLine(
       canvas: canvas,
       startPoint: Offset(x, 0),
-      endPoint: Offset(x, klineChartHeight - 24),
+      endPoint: Offset(x, klineChartHeight),
       color: stockColors.crossLine,
     );
-
-    canvas.restore();
+    // 绘制副图指标里的垂直竖线
+    double offsetY = klineChartHeight + indicatorChartTitleBarHeight;
+    double indicatorBodyHeight = indicatorChartHeight - indicatorChartTitleBarHeight;
+    for (final indicator in indicators) {
+      if (indicator.visible) {
+        drawDashedLine(
+          canvas: canvas,
+          startPoint: Offset(x, offsetY),
+          endPoint: Offset(x, offsetY + indicatorBodyHeight),
+          color: stockColors.crossLine,
+        );
+        offsetY += indicatorChartHeight;
+      }
+    }
   }
 }

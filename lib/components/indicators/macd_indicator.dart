@@ -145,54 +145,23 @@ class _MacdIndicatorPainter extends CustomPainter {
   }
 
   void drawTitleBar(Canvas canvas, Size size) {
-    // 常量定义
-    const textPadding = 4.0;
-    const columnSpacing = 12.0;
-    final bgColor = const Color(0xFF252525);
-    final titleStyle = TextStyle(color: Colors.grey, fontSize: 12);
-    final macdStyle = TextStyle(color: stockColors.macdRedBar, fontSize: 12);
-    final difStyle = TextStyle(color: stockColors.macdDif, fontSize: 12);
-    final deaStyle = TextStyle(color: stockColors.macdDea, fontSize: 12);
-
-    // 绘制标题背景
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, indicatorChartTitleBarHeight),
-      Paint()
-        ..color = bgColor
-        ..style = PaintingStyle.fill,
-    );
-
-    // 辅助方法：绘制文本列
-    double drawTextColumn(String label, String? value, Offset baseOffset, TextStyle style) {
-      final text = value != null ? '$label: $value' : '$label: --';
-      final painter = TextPainter(
-        text: TextSpan(text: text, style: style),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      painter.paint(canvas, baseOffset);
-      return painter.width;
-    }
-
-    // 绘制标题和数值列
-    var currentX = textPadding;
-
-    // 标题
-    currentX += drawTextColumn('MACD(12,26,9)', '', Offset(currentX, textPadding), titleStyle);
-
-    // 数值列
     final macdValue = macd['MACD']?.last.toStringAsFixed(2);
     final diffValue = macd['DIF']?.last.toStringAsFixed(2);
     final deaValue = macd['DEA']?.last.toStringAsFixed(2);
+    List<ColorText> words = [
+      ColorText('MACD(12,26,9)', Colors.grey),
+      ColorText('MACD: $macdValue', stockColors.macdRedBar),
+      ColorText('DIFF: $diffValue', stockColors.macdDif),
+      ColorText('DEA: $deaValue', stockColors.macdDea),
+    ];
 
-    currentX += columnSpacing;
-    currentX += drawTextColumn('MACD', macdValue, Offset(currentX, textPadding), macdStyle);
-
-    currentX += columnSpacing;
-    currentX += drawTextColumn('DIFF', diffValue, Offset(currentX, textPadding), difStyle);
-
-    currentX += columnSpacing;
-    drawTextColumn('DEA', deaValue, Offset(currentX, textPadding), deaStyle);
+    drawIndicatorTitleBar(
+      canvas: canvas,
+      words: words,
+      width: size.width,
+      offset: Offset(4, 0),
+      height: indicatorChartTitleBarHeight,
+    );
   }
 
   void drawMACD(Canvas canvas, double height) {

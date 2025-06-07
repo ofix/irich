@@ -26,7 +26,8 @@ class CrossLineChart extends StatelessWidget {
       child: CustomPaint(
         painter: CrossLinePainter(
           klines: klineCtrlState.klines,
-          klineCtrlTitleBarHeight: klineCtrlState.klineCtrlTitleBarHeight,
+          indicatorChartHeight: klineCtrlState.indicatorChartHeight,
+          indicatorChartTitleBarHeight: klineCtrlState.indicatorChartTitleBarHeight,
           klineChartWidth: klineCtrlState.klineChartWidth,
           klineChartHeight: klineCtrlState.klineChartHeight,
           klineChartLeftMargin: klineCtrlState.klineChartLeftMargin,
@@ -34,6 +35,7 @@ class CrossLineChart extends StatelessWidget {
           klineType: klineCtrlState.klineType,
           minuteKlines: klineCtrlState.minuteKlines,
           fiveDayMinuteKlines: klineCtrlState.fiveDayMinuteKlines,
+          indicators: klineCtrlState.indicators,
           klineRng: klineCtrlState.klineRng!,
           klineRngMinPrice: klineCtrlState.klineRngMinPrice,
           klineRngMaxPrice: klineCtrlState.klineRngMaxPrice,
