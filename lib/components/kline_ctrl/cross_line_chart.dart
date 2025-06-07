@@ -13,35 +13,35 @@ import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/theme/stock_colors.dart';
 
 class CrossLineChart extends StatelessWidget {
-  final KlineState klineState;
+  final KlineCtrlState klineCtrlState;
   final StockColors stockColors;
-  const CrossLineChart({super.key, required this.klineState, required this.stockColors});
+  const CrossLineChart({super.key, required this.klineCtrlState, required this.stockColors});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: klineState.klineChartWidth,
-      height: klineState.klineCtrlHeight - klineState.klineCtrlTitleBarHeight - 24,
+      width: klineCtrlState.klineChartWidth,
+      height: klineCtrlState.klineCtrlHeight - klineCtrlState.klineCtrlTitleBarHeight - 24,
       color: Colors.transparent,
       child: CustomPaint(
         painter: CrossLinePainter(
-          klines: klineState.klines,
-          klineCtrlTitleBarHeight: klineState.klineCtrlTitleBarHeight,
-          klineChartWidth: klineState.klineChartWidth,
-          klineChartHeight: klineState.klineChartHeight,
-          klineChartLeftMargin: klineState.klineChartLeftMargin,
-          klineChartRightMargin: klineState.klineChartRightMargin,
-          klineType: klineState.klineType,
-          minuteKlines: klineState.minuteKlines,
-          fiveDayMinuteKlines: klineState.fiveDayMinuteKlines,
-          klineRng: klineState.klineRng!,
-          klineRngMinPrice: klineState.klineRngMinPrice,
-          klineRngMaxPrice: klineState.klineRngMaxPrice,
-          crossLineMode: klineState.crossLineMode,
-          crossLineFollowKlineIndex: klineState.crossLineFollowKlineIndex,
-          crossLineFollowCursorPos: klineState.crossLineFollowCursorPos,
-          klineStep: klineState.klineStep,
-          klineWidth: klineState.klineWidth,
+          klines: klineCtrlState.klines,
+          klineCtrlTitleBarHeight: klineCtrlState.klineCtrlTitleBarHeight,
+          klineChartWidth: klineCtrlState.klineChartWidth,
+          klineChartHeight: klineCtrlState.klineChartHeight,
+          klineChartLeftMargin: klineCtrlState.klineChartLeftMargin,
+          klineChartRightMargin: klineCtrlState.klineChartRightMargin,
+          klineType: klineCtrlState.klineType,
+          minuteKlines: klineCtrlState.minuteKlines,
+          fiveDayMinuteKlines: klineCtrlState.fiveDayMinuteKlines,
+          klineRng: klineCtrlState.klineRng!,
+          klineRngMinPrice: klineCtrlState.klineRngMinPrice,
+          klineRngMaxPrice: klineCtrlState.klineRngMaxPrice,
+          crossLineMode: klineCtrlState.crossLineMode,
+          crossLineFollowKlineIndex: klineCtrlState.crossLineFollowKlineIndex,
+          crossLineFollowCursorPos: klineCtrlState.crossLineFollowCursorPos,
+          klineStep: klineCtrlState.klineStep,
+          klineWidth: klineCtrlState.klineWidth,
           stockColors: stockColors,
         ),
       ),

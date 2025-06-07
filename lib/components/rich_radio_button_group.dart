@@ -1,26 +1,26 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/components/text_radio_button_group.dart
-// Purpose:     text radio button group
+// Name:        irich/lib/components/rich_radio_button_group.dart
+// Purpose:     custom radio button group
 // Author:      songhuabiao
-// Created:     2025-04-26 20:30
+// Created:     2025-06-07 20:30
 // Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/widgets.dart';
-import 'package:irich/components/text_radio_button.dart';
+import 'package:irich/components/rich_text_button.dart';
 
-class TextRadioButtonGroup extends StatefulWidget {
+class RichRadioButtonGroup extends StatefulWidget {
   final List<String> options; // 选项列表
   final ValueChanged<String>? onChanged; // 选中变化回调
 
-  const TextRadioButtonGroup({super.key, required this.options, this.onChanged});
+  const RichRadioButtonGroup({super.key, required this.options, this.onChanged});
 
   @override
-  State<TextRadioButtonGroup> createState() => _TextRadioButtonGroupState();
+  State<RichRadioButtonGroup> createState() => _RichRadioButtonGroupState();
 }
 
-class _TextRadioButtonGroupState extends State<TextRadioButtonGroup> {
+class _RichRadioButtonGroupState extends State<RichRadioButtonGroup> {
   String? _selectedValue;
 
   @override
@@ -36,7 +36,7 @@ class _TextRadioButtonGroupState extends State<TextRadioButtonGroup> {
     return Row(
       children:
           widget.options.map((option) {
-            return TextRadioButton(
+            return RichTextButton(
               label: option,
               isSelected: _selectedValue == option,
               onTap: () {

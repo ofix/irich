@@ -13,9 +13,9 @@ import 'package:irich/global/stock.dart';
 import 'package:irich/theme/stock_colors.dart';
 
 class MacdIndicator extends StatefulWidget {
-  final KlineState klineState;
+  final KlineCtrlState klineCtrlState;
   final StockColors stockColors;
-  const MacdIndicator({super.key, required this.klineState, required this.stockColors});
+  const MacdIndicator({super.key, required this.klineCtrlState, required this.stockColors});
   @override
   State<MacdIndicator> createState() => _MacdIndicatorState();
 }
@@ -23,7 +23,7 @@ class MacdIndicator extends StatefulWidget {
 class _MacdIndicatorState extends State<MacdIndicator> {
   @override
   Widget build(BuildContext context) {
-    KlineState state = widget.klineState;
+    KlineCtrlState state = widget.klineCtrlState;
     if (state.klines.isEmpty) {
       return SizedBox(height: state.indicatorChartHeight);
     }

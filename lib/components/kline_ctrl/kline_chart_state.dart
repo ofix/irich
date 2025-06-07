@@ -1,6 +1,6 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/components/kline_ctrl/kline_chart_common.dart
-// Purpose:     kline chart common drawing helper functions
+// Name:        irich/lib/components/kline_ctrl/kline_chart_state.dart
+// Purpose:     kline chart core classes and common drawing helper functions
 // Author:      songhuabiao
 // Created:     2025-06-04 20:30
 // Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
@@ -16,27 +16,57 @@ enum CrossLineMode {
   followKline, // 跟随K线
 }
 
-class KlineState {
+class EmaCurveSetting {
+  final int period; // 周期
+  final Color color; // 颜色
+  final bool visible; // 是否显示
+  const EmaCurveSetting({required this.period, required this.color, this.visible = true});
+  EmaCurveSetting copyWith({int? period, Color? color, bool? visible}) {
+    return EmaCurveSetting(
+      period: period ?? this.period,
+      color: color ?? this.color,
+      visible: visible ?? this.visible,
+    );
+  }
+}
+
+const defaultEmaCurveSettings = [
+  EmaCurveSetting(period: 5, color: Colors.white),
+  EmaCurveSetting(period: 10, color: Color.fromARGB(255, 236, 9, 202)),
+  EmaCurveSetting(period: 20, color: Color.fromARGB(255, 72, 105, 239)),
+  EmaCurveSetting(period: 30, color: Color(0xFFFF9F1A)),
+  EmaCurveSetting(period: 60, color: Color.fromARGB(255, 11, 180, 218)),
+  EmaCurveSetting(period: 255, color: Color.fromARGB(255, 245, 16, 16)),
+  EmaCurveSetting(period: 905, color: Color.fromARGB(255, 7, 131, 75)),
+];
+
+// K线组件核心类
+class KlineCtrlState {
   Share share; // 股票
   KlineType klineType = KlineType.day; // 当前绘制的K线类型
   List<UiKline> klines; // 前复权日K线数据
-  List<MinuteKline> minuteKlines; // 分时K线数据
-  List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
-  List<ShareEmaCurve> emaCurves; // EMA曲线数据
+  List<MinuteKline> minuteKlines; // 分时K线数据，按需填充
+  List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据，按需填充
+  List<ShareEmaCurve> emaCurves; // EMA曲线数据，按需填充
+  // 副图指标数据
   Map<String, List<double>> kdj; // KDJ技术指标数据，按需填充
   Map<String, List<double>> macd; // MACD技术指标数据，按需填充
   Map<String, List<double>> boll; // 布林线技术指标数据，按需填充
   List<UiIndicator> indicators; //  当前显示的指标副图，日/周/月/季/年K线技术指标列表, 分时图技术指标列表,  五日分时图技术指标列表
   List<UiIndicator> dynamicIndicators; // 日/周/月/季/年K线技术指标列表,支持动态添加和删除
+  // EMA曲线
+  List<EmaCurveSetting> emaCurveSettings; // 用户可以自定义EMA曲线样式和数量
   CrossLineMode crossLineMode; // 十字线模式
   Offset crossLineFollowCursorPos; // 十字线，跟随光标位置
   int crossLineFollowKlineIndex; // 十字线，所属K线位置
+  // K线布局参数
   double klineStep; // K线步长
   double klineWidth; // K线宽度
   UiKlineRange? klineRng; // 可视K线范围
   double klineRngMinPrice; // 可见范围K线最低价
   double klineRngMaxPrice; // 可见范围K线最高价
   int visibleKlineCount; // 可视区域K线数量
+  // K线组件布局参数
   double klineCtrlWidth; // K线图容器宽度(主图+左右指示面板)
   double klineCtrlHeight; // K线图容器高度(主图+多个附图)
   double klineCtrlTitleBarHeight; // K线图标题栏高度
@@ -47,25 +77,25 @@ class KlineState {
   double indicatorChartHeight; // 指标附图高度
   double indicatorChartTitleBarHeight; // 指标附图标题栏高度
 
-  KlineState({
+  KlineCtrlState({
     required this.share,
-    required this.klineType,
+    required this.klineType, // 日/周/月/季/年 k线参数
     List<UiKline>? klines,
     List<MinuteKline>? minuteKlines,
     List<MinuteKline>? fiveDayMinuteKlines,
-    List<ShareEmaCurve>? emaCurves,
-    Map<String, List<double>>? kdj,
-    Map<String, List<double>>? macd,
-    Map<String, List<double>>? boll,
-    List<UiIndicator>? indicators,
-    List<UiIndicator>? dynamicIndicators,
     UiKlineRange? klineRng,
     this.klineRngMinPrice = double.infinity,
     this.klineRngMaxPrice = double.negativeInfinity,
-    this.crossLineMode = CrossLineMode.none,
+    List<ShareEmaCurve>? emaCurves, // EMA曲线数据
+    List<UiIndicator>? indicators, // 副图指标数据
+    List<UiIndicator>? dynamicIndicators,
+    Map<String, List<double>>? kdj,
+    Map<String, List<double>>? macd,
+    Map<String, List<double>>? boll,
+    this.crossLineMode = CrossLineMode.none, // 十字线参数
     this.crossLineFollowKlineIndex = -1,
     this.crossLineFollowCursorPos = const Offset(-1, -1),
-    this.klineStep = 17,
+    this.klineStep = 17, // 布局参数
     this.klineWidth = 15,
     this.visibleKlineCount = 120,
     this.klineCtrlWidth = 1200,
@@ -77,6 +107,7 @@ class KlineState {
     this.klineChartRightMargin = 50,
     this.indicatorChartHeight = 80,
     this.indicatorChartTitleBarHeight = 20,
+    List<EmaCurveSetting>? emaCurveSettings,
   }) : klines = klines ?? [], // 使用const空列表避免共享引用
        minuteKlines = minuteKlines ?? [],
        fiveDayMinuteKlines = fiveDayMinuteKlines ?? [],
@@ -86,10 +117,11 @@ class KlineState {
        macd = macd ?? {},
        boll = boll ?? {},
        indicators = indicators ?? [],
-       dynamicIndicators = dynamicIndicators ?? [];
+       dynamicIndicators = dynamicIndicators ?? [],
+       emaCurveSettings = defaultEmaCurveSettings;
 
   // 深拷贝方法（可选）
-  KlineState copyWith({
+  KlineCtrlState copyWith({
     Share? share,
     KlineType? klineType,
     List<UiKline>? klines,
@@ -120,8 +152,9 @@ class KlineState {
     double? klineChartRightMargin,
     double? indicatorChartHeight,
     double? indicatorChartTitleBarHeight,
+    List<EmaCurveSetting>? emaCurveSettings,
   }) {
-    return KlineState(
+    return KlineCtrlState(
       share: share ?? this.share,
       klineType: klineType ?? this.klineType,
       klines: klines ?? this.klines,
@@ -152,6 +185,7 @@ class KlineState {
       indicatorChartHeight: indicatorChartHeight ?? this.indicatorChartHeight,
       indicatorChartTitleBarHeight:
           indicatorChartTitleBarHeight ?? this.indicatorChartTitleBarHeight,
+      emaCurveSettings: emaCurveSettings ?? this.emaCurveSettings,
     );
   }
 }

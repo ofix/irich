@@ -13,9 +13,9 @@ import 'package:irich/global/stock.dart';
 import 'package:irich/theme/stock_colors.dart';
 
 class TurnoverRateIndicator extends StatefulWidget {
-  final KlineState klineState;
+  final KlineCtrlState klineCtrlState;
   final StockColors stockColors;
-  const TurnoverRateIndicator({super.key, required this.klineState, required this.stockColors});
+  const TurnoverRateIndicator({super.key, required this.klineCtrlState, required this.stockColors});
 
   @override
   State<TurnoverRateIndicator> createState() => _TurnoverRateIndicatorState();
@@ -24,7 +24,7 @@ class TurnoverRateIndicator extends StatefulWidget {
 class _TurnoverRateIndicatorState extends State<TurnoverRateIndicator> {
   @override
   Widget build(BuildContext context) {
-    KlineState state = widget.klineState;
+    KlineCtrlState state = widget.klineCtrlState;
     if (state.klines.isEmpty) {
       return SizedBox(height: state.indicatorChartHeight);
     }

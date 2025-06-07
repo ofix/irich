@@ -13,9 +13,9 @@ import 'package:irich/global/stock.dart';
 import 'package:irich/theme/stock_colors.dart';
 
 class KdjIndicator extends StatefulWidget {
-  final KlineState klineState;
+  final KlineCtrlState klineCtrlState;
   final StockColors stockColors;
-  const KdjIndicator({super.key, required this.klineState, required this.stockColors});
+  const KdjIndicator({super.key, required this.klineCtrlState, required this.stockColors});
   @override
   State<KdjIndicator> createState() => _KdjIndicatorState();
 }
@@ -23,7 +23,7 @@ class KdjIndicator extends StatefulWidget {
 class _KdjIndicatorState extends State<KdjIndicator> {
   @override
   Widget build(BuildContext context) {
-    KlineState state = widget.klineState;
+    KlineCtrlState state = widget.klineCtrlState;
     if (state.klines.isEmpty) {
       return SizedBox(height: state.indicatorChartHeight);
     }

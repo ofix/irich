@@ -1,15 +1,15 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/components/text radio button.dart
-// Purpose:     text radio button
+// Name:        irich/lib/components/rich text button.dart
+// Purpose:     custom text button
 // Author:      songhuabiao
-// Created:     2025-04-26 20:30
+// Created:     2025-06-07 20:30
 // Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
 
-class TextRadioButton extends StatelessWidget {
+class RichTextButton extends StatelessWidget {
   final String label; // 选项文字
   final bool isSelected; // 是否选中
   final VoidCallback onTap; // 点击回调
@@ -19,7 +19,7 @@ class TextRadioButton extends StatelessWidget {
   final double borderRadius; // 圆角半径（默认8）
   final double padding; // 内边距（默认12）
 
-  const TextRadioButton({
+  const RichTextButton({
     super.key,
     required this.label,
     required this.isSelected,
