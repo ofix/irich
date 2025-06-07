@@ -261,7 +261,11 @@ class _KlineCtrlState extends State<KlineCtrl> {
                 // K线类型切换
                 Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
                 // K线主图
-                KlineChart(klineCtrlState: klineCtrlState, stockColors: stockColors),
+                KlineChart(
+                  klineCtrlState: klineCtrlState,
+                  stockColors: stockColors,
+                  onToggleEmaCurve: toggleEmaCurve,
+                ),
                 // 技术指标图
                 ..._buildIndicators(context, klineCtrlState, stockColors),
               ],
@@ -269,7 +273,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
             // 十字线
             Positioned(
               left: klineCtrlState.klineChartLeftMargin,
-              top: klineCtrlState.klineCtrlTitleBarHeight,
+              top: klineCtrlState.klineCtrlTitleBarHeight * 2 - KlineCtrlLayout.titleBarMargin,
               child: CrossLineChart(klineCtrlState: klineCtrlState, stockColors: stockColors),
             ),
           ],
@@ -289,7 +293,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
         size.width - klineCtrlState.klineChartLeftMargin - klineCtrlState.klineChartRightMargin;
     double height = size.height - klineCtrlState.klineCtrlTitleBarHeight;
     if (!klineCtrlState.klineType.isMinuteType) {
-      height = height - klineCtrlState.klineCtrlTitleBarHeight + 4;
+      height = height - klineCtrlState.klineCtrlTitleBarHeight + KlineCtrlLayout.titleBarMargin;
     }
     klineCtrlState.klineChartHeight = (height * ratio).floorToDouble();
     double scaleIndicator = (1 - ratio) / klineCtrlState.indicators.length;
@@ -321,6 +325,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
         debugPrint("onclicked ：$value");
         _onKlineTypeChanged(value);
       },
+      height: KlineCtrlLayout.titleBarHeight,
     );
   }
 
@@ -548,6 +553,24 @@ class _KlineCtrlState extends State<KlineCtrl> {
     return result;
   }
 
+  // 不显示EMA曲线
+  bool toggleEmaCurve(int period) {
+    final curves = klineCtrlState.emaCurves;
+    bool bSuccess = false;
+    for (final curve in curves) {
+      if (curve.period == period) {
+        curve.visible = !curve.visible;
+        bSuccess = true;
+      }
+    }
+    if (bSuccess) {
+      klineCtrlState = klineCtrlState.copyWith(emaCurves: curves);
+      calcKlineRngMinMaxPrice();
+      setState(() {});
+    }
+    return bSuccess;
+  }
+
   // 处理放大逻辑,可见的K线数量变少
   void zoomIn() {
     int crossLineFollowKlineIndex = klineCtrlState.crossLineFollowKlineIndex;
@@ -610,6 +633,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     }
     // 可见K线数量大于等于总K线数量，不再缩小
     if (klineCtrlState.visibleKlineCount == klineCtrlState.klines.length) {
+      debugPrint("无法继续缩放了！");
       double klineStep = klineCtrlState.klineChartWidth / klineCtrlState.visibleKlineCount * 0.85;
       int klineWidth = (klineCtrlState.klineStep * 0.8).floor();
       klineWidth = _ensureKlineWidth(klineStep, klineWidth);

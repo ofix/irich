@@ -34,11 +34,18 @@ class CheckBoxOption {
 }
 
 class RichCheckboxButtonGroup extends StatefulWidget {
+  final double height; // 组件高度
   final Map<String, CheckBoxOption> options; // 所有选项及其初始选中状态（例如 {"苹果": true, "香蕉": false}）
   final List<Color>? colors;
   final OnCheckboxChanged? onChanged;
 
-  const RichCheckboxButtonGroup({super.key, required this.options, this.colors, this.onChanged});
+  const RichCheckboxButtonGroup({
+    super.key,
+    required this.options,
+    this.colors,
+    this.onChanged,
+    this.height = 32,
+  });
 
   @override
   State<RichCheckboxButtonGroup> createState() => _RichCheckboxButtonGroupState();
@@ -66,6 +73,7 @@ class _RichCheckboxButtonGroupState extends State<RichCheckboxButtonGroup> {
               selectedColor: option.selectedColor ?? Colors.blue,
               unselectedColor: option.unselectedColor ?? Colors.grey,
               isSelected: option.selected,
+              height: widget.height,
               onTap: () {
                 setState(() {
                   final newOption = option.copyWith(selected: !option.selected);

@@ -29,7 +29,7 @@ class _AmountIndicatorState extends State<AmountIndicator> {
     }
 
     return SizedBox(
-      width: state.klineChartWidth + state.klineChartLeftMargin + state.klineChartRightMargin,
+      width: state.klineCtrlWidth,
       height: state.indicatorChartHeight,
       child: CustomPaint(
         painter: _AmountIndicatorPainter(

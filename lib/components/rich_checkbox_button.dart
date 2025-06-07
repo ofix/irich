@@ -17,6 +17,7 @@ class RichCheckboxButton extends StatelessWidget {
   final Color unselectedColor; // 未选中时的背景色（默认灰色）
   final double borderRadius; // 圆角半径（默认8）
   final double padding; // 内边距（默认12）
+  final double height;
 
   const RichCheckboxButton({
     super.key,
@@ -27,6 +28,7 @@ class RichCheckboxButton extends StatelessWidget {
     this.unselectedColor = const Color(0xFF2E343B),
     this.borderRadius = 0,
     this.padding = 8,
+    this.height = 32,
   });
 
   @override
@@ -36,7 +38,7 @@ class RichCheckboxButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 32,
+          height: height,
           padding: EdgeInsets.fromLTRB(padding, 4, padding, 4),
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(borderRadius)),
           child: Center(

@@ -29,7 +29,7 @@ class _MacdIndicatorState extends State<MacdIndicator> {
     }
 
     return SizedBox(
-      width: state.klineChartWidth + state.klineChartLeftMargin + state.klineChartRightMargin,
+      width: state.klineCtrlWidth,
       height: state.indicatorChartHeight,
       child: CustomPaint(
         painter: _MacdIndicatorPainter(

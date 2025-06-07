@@ -36,6 +36,14 @@ class EmaCurveSetting {
   }
 }
 
+// K线组件布局相关默认值
+class KlineCtrlLayout {
+  static const double titleBarHeight = 32;
+  static const double titleBarMargin = 4;
+  static const double klineChartLeftMargin = 50;
+  static const double klineChartRightMargin = 50;
+}
+
 const defaultEmaCurveSettings = [
   EmaCurveSetting(period: 5, color: Colors.white),
   EmaCurveSetting(period: 10, color: Color.fromARGB(255, 236, 9, 202)),
@@ -106,13 +114,13 @@ class KlineCtrlState {
     this.visibleKlineCount = 120,
     this.klineCtrlWidth = 1200,
     this.klineCtrlHeight = 800,
-    this.klineCtrlTitleBarHeight = 60,
+    this.klineCtrlTitleBarHeight = 32,
     this.klineChartWidth = 800,
     this.klineChartHeight = 600,
-    this.klineChartLeftMargin = 50,
-    this.klineChartRightMargin = 50,
+    this.klineChartLeftMargin = KlineCtrlLayout.klineChartLeftMargin,
+    this.klineChartRightMargin = KlineCtrlLayout.klineChartRightMargin,
     this.indicatorChartHeight = 80,
-    this.indicatorChartTitleBarHeight = 32,
+    this.indicatorChartTitleBarHeight = KlineCtrlLayout.titleBarHeight,
     List<EmaCurveSetting>? emaCurveSettings,
   }) : klines = klines ?? [], // 使用const空列表避免共享引用
        minuteKlines = minuteKlines ?? [],

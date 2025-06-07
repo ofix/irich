@@ -13,8 +13,9 @@ import 'package:irich/components/rich_text_button.dart';
 class RichRadioButtonGroup extends StatefulWidget {
   final List<String> options; // 选项列表
   final ValueChanged<String>? onChanged; // 选中变化回调
+  final double height; // 组件高度
 
-  const RichRadioButtonGroup({super.key, required this.options, this.onChanged});
+  const RichRadioButtonGroup({super.key, required this.options, this.onChanged, this.height = 32});
 
   @override
   State<RichRadioButtonGroup> createState() => _RichRadioButtonGroupState();
@@ -43,6 +44,7 @@ class _RichRadioButtonGroupState extends State<RichRadioButtonGroup> {
                 setState(() => _selectedValue = option);
                 widget.onChanged?.call(option);
               },
+              height: widget.height,
             );
           }).toList(),
     );

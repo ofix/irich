@@ -113,14 +113,20 @@ class CrossLinePainter extends CustomPainter {
     final priceRange = klineRngMaxPrice - klineRngMinPrice;
     double x = 0;
     double y = 0;
+    double topMargin = KlineCtrlLayout.titleBarHeight * 2 - KlineCtrlLayout.titleBarMargin;
     if (crossLineMode == CrossLineMode.followCursor) {
       x = crossLineFollowCursorPos.dx - klineChartLeftMargin;
-      y = crossLineFollowCursorPos.dy - 60;
+      y = crossLineFollowCursorPos.dy - topMargin;
+      ;
     } else {
       x = (crossLineFollowKlineIndex - klineRng.begin) * klineStep + klineWidth / 2;
       y = (klineRngMaxPrice - kline.priceClose) * klineChartHeight / priceRange;
     }
 
+    if (y <= 8) {
+      y = 8;
+      return;
+    }
     // 水平线
     drawDashedLine(
       canvas: canvas,

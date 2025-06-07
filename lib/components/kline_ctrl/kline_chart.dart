@@ -13,10 +13,18 @@ import 'package:irich/components/kline_ctrl/kline_chart_painter.dart';
 import 'package:irich/components/rich_checkbox_button_group.dart';
 import 'package:irich/theme/stock_colors.dart';
 
+typedef OnToggleEmaCurve = void Function(int period);
+
 class KlineChart extends StatefulWidget {
   final KlineCtrlState klineCtrlState;
   final StockColors stockColors;
-  const KlineChart({super.key, required this.klineCtrlState, required this.stockColors});
+  final OnToggleEmaCurve onToggleEmaCurve;
+  const KlineChart({
+    super.key,
+    required this.klineCtrlState,
+    required this.stockColors,
+    required this.onToggleEmaCurve,
+  });
 
   @override
   State<KlineChart> createState() => _KlineChartState();
@@ -24,6 +32,7 @@ class KlineChart extends StatefulWidget {
 
 class _KlineChartState extends State<KlineChart> {
   // EMA日K线
+  int emaCurveChanged = 0;
   @override
   Widget build(BuildContext context) {
     final state = widget.klineCtrlState;
@@ -34,7 +43,14 @@ class _KlineChartState extends State<KlineChart> {
       child: Stack(
         children: [
           if (!state.klineType.isMinuteType)
-            Positioned(top: -4, child: _buildEmaCurveButtons(context, state.emaCurveSettings)),
+            Positioned(
+              top: -KlineCtrlLayout.titleBarMargin,
+              child: _buildEmaCurveButtons(
+                context,
+                state.emaCurveSettings,
+                widget.onToggleEmaCurve,
+              ),
+            ),
           Positioned(
             top: state.klineType.isMinuteType ? 0 : 28,
             child: Column(
@@ -58,6 +74,7 @@ class _KlineChartState extends State<KlineChart> {
                       klineRngMinPrice: state.klineRngMinPrice,
                       klineRngMaxPrice: state.klineRngMaxPrice,
                       emaCurves: state.emaCurves,
+                      emaCurveChanged: emaCurveChanged,
                       crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
                       klineStep: state.klineStep,
                       klineWidth: state.klineWidth,
@@ -74,7 +91,11 @@ class _KlineChartState extends State<KlineChart> {
   }
 
   // 绘制EMA曲线按钮组
-  Widget _buildEmaCurveButtons(BuildContext context, List<EmaCurveSetting> emaCurveSettings) {
+  Widget _buildEmaCurveButtons(
+    BuildContext context,
+    List<EmaCurveSetting> emaCurveSettings,
+    OnToggleEmaCurve onToggleEmaCurve,
+  ) {
     Map<String, CheckBoxOption> options = {};
     for (final emaCurveSetting in emaCurveSettings) {
       String key = 'EMA${emaCurveSetting.period}';
@@ -83,6 +104,14 @@ class _KlineChartState extends State<KlineChart> {
         selected: emaCurveSetting.visible,
       );
     }
-    return RichCheckboxButtonGroup(options: options);
+    return RichCheckboxButtonGroup(
+      options: options,
+      height: KlineCtrlLayout.titleBarHeight,
+      onChanged: (key, option, allOptions) {
+        int period = int.parse(key.substring(3));
+        onToggleEmaCurve(period);
+        emaCurveChanged++;
+      },
+    );
   }
 }

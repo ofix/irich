@@ -19,10 +19,12 @@ class CrossLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: klineCtrlState.klineChartWidth,
-      height: klineCtrlState.klineCtrlHeight - klineCtrlState.klineCtrlTitleBarHeight - 24,
-      color: Colors.transparent,
+      height:
+          klineCtrlState.klineCtrlHeight -
+          klineCtrlState.klineCtrlTitleBarHeight * 2 +
+          KlineCtrlLayout.titleBarMargin,
       child: CustomPaint(
         painter: CrossLinePainter(
           klines: klineCtrlState.klines,

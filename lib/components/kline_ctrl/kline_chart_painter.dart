@@ -22,6 +22,7 @@ class KlinePainter extends CustomPainter {
   List<MinuteKline> fiveDayMinuteKlines; // 五日分时K线数据
   UiKlineRange klineRng; // 可视K线范围
   List<ShareEmaCurve> emaCurves; // EMA曲线数据
+  int emaCurveChanged;
   int crossLineFollowKlineIndex; // 十字线位置
   double klineStep; // K线步长
   double klineWidth; // K线宽度
@@ -45,6 +46,7 @@ class KlinePainter extends CustomPainter {
     required this.klineRngBegin,
     required this.klineRngEnd,
     required this.emaCurves,
+    required this.emaCurveChanged,
     required this.crossLineFollowKlineIndex,
     required this.klineStep,
     required this.klineWidth,
@@ -99,7 +101,8 @@ class KlinePainter extends CustomPainter {
     }
 
     // 深度比较列表内容（假设列表顺序和长度决定是否更新）
-    if (old.klines.length != klines.length ||
+    if (old.emaCurveChanged != emaCurveChanged ||
+        old.klines.length != klines.length ||
         old.minuteKlines.length != minuteKlines.length ||
         old.fiveDayMinuteKlines.length != fiveDayMinuteKlines.length ||
         old.emaCurves.length != emaCurves.length) {
@@ -113,6 +116,8 @@ class KlinePainter extends CustomPainter {
       debugPrint("日K线数据不完整");
       return;
     }
+
+    debugPrint("K线步长: $klineStep");
 
     final priceRange = klineRngMaxPrice - klineRngMinPrice;
     final priceRatio = klineChartHeight / priceRange;

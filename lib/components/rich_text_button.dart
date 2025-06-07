@@ -18,6 +18,7 @@ class RichTextButton extends StatelessWidget {
   final Color textColor; // 文字颜色（默认白色）
   final double borderRadius; // 圆角半径（默认8）
   final double padding; // 内边距（默认12）
+  final double height; // 组件高度
 
   const RichTextButton({
     super.key,
@@ -29,6 +30,7 @@ class RichTextButton extends StatelessWidget {
     this.textColor = const Color.fromARGB(255, 7, 232, 244),
     this.borderRadius = 0,
     this.padding = 8,
+    this.height = 32,
   });
 
   @override
@@ -38,7 +40,7 @@ class RichTextButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 32,
+          height: height,
           padding: EdgeInsets.symmetric(horizontal: padding, vertical: 4),
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(borderRadius)),
           child: Center(
