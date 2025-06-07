@@ -8,7 +8,6 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'dart:math';
@@ -32,6 +31,8 @@ class KlinePainter extends CustomPainter {
   double klineChartRightMargin; // K线图右边距
   double klineRngMinPrice; // 可视K线区域最低价
   double klineRngMaxPrice; // 可视K线区域最高价
+  int klineRngBegin;
+  int klineRngEnd;
 
   StockColors stockColors; // 主题色
 
@@ -41,7 +42,8 @@ class KlinePainter extends CustomPainter {
     required this.klines,
     required this.minuteKlines,
     required this.fiveDayMinuteKlines,
-    required this.klineRng,
+    required this.klineRngBegin,
+    required this.klineRngEnd,
     required this.emaCurves,
     required this.crossLineFollowKlineIndex,
     required this.klineStep,
@@ -53,7 +55,7 @@ class KlinePainter extends CustomPainter {
     required this.klineRngMinPrice,
     required this.klineRngMaxPrice,
     required this.stockColors,
-  });
+  }) : klineRng = UiKlineRange(begin: klineRngBegin, end: klineRngEnd);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -88,7 +90,8 @@ class KlinePainter extends CustomPainter {
         old.klineType != klineType ||
         old.klineChartWidth != klineChartWidth ||
         old.klineChartHeight != klineChartHeight ||
-        old.klineRng != klineRng ||
+        old.klineRng.begin != klineRng.begin ||
+        old.klineRng.end != klineRng.end ||
         old.stockColors != stockColors ||
         old.klineChartLeftMargin != klineChartLeftMargin ||
         old.klineChartRightMargin != klineChartRightMargin) {

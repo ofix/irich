@@ -65,7 +65,6 @@ class CrossLinePainter extends CustomPainter {
     if (klineType.isMinuteType) {
       drawMinuteCrossLine(canvas);
     } else {
-      debugPrint("绘制十字线");
       drawDayCrossLine(canvas);
     }
   }
