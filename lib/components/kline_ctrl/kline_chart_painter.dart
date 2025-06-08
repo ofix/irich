@@ -117,8 +117,6 @@ class KlinePainter extends CustomPainter {
       return;
     }
 
-    debugPrint("K线步长: $klineStep");
-
     final priceRange = klineRngMaxPrice - klineRngMinPrice;
     final priceRatio = klineChartHeight / priceRange;
 

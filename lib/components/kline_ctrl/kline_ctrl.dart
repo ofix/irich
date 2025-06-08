@@ -124,6 +124,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
           klineType == KlineType.quarter ||
           klineType == KlineType.year) {
         klineCtrlState.emaCurves.clear();
+        initKlineRange(); // 初始化可见K线范围
         addEmaCurve(10, Color.fromARGB(255, 255, 255, 255));
         addEmaCurve(20, Color.fromARGB(255, 239, 72, 111));
         addEmaCurve(30, Color.fromARGB(255, 255, 159, 26));
@@ -131,9 +132,11 @@ class _KlineCtrlState extends State<KlineCtrl> {
         addEmaCurve(99, Color.fromARGB(255, 255, 0, 255));
         addEmaCurve(255, Color.fromARGB(255, 255, 255, 0));
         addEmaCurve(905, Color.fromARGB(255, 0, 255, 0));
-        initKlineRange(); // 初始化可见K线范围
       }
       initIndicators(); // 初始化附图指标
+      if (klineCtrlState.crossLineMode == CrossLineMode.followCursor) {
+        updateCrossLine(klineCtrlState.crossLineFollowCursorPos);
+      }
       setState(() {});
     } catch (e, stackTrace) {
       debugPrint(e.toString());
@@ -393,11 +396,13 @@ class _KlineCtrlState extends State<KlineCtrl> {
 
   Future<RichResult> _queryKlines(StoreKlines store, String stockCode, KlineType type) async {
     final klines = _getKlinesListForType(type);
+    klines.clear();
     return switch (type) {
       KlineType.day => store.queryDayKlines(stockCode, klines as List<UiKline>),
       KlineType.minute => store.queryMinuteKlines(stockCode, klines as List<MinuteKline>),
       KlineType.week => store.queryWeekKlines(stockCode, klines as List<UiKline>),
       KlineType.month => store.queryMonthKlines(stockCode, klines as List<UiKline>),
+      KlineType.quarter => store.queryQuarterKlines(stockCode, klines as List<UiKline>),
       KlineType.year => store.queryYearKlines(stockCode, klines as List<UiKline>),
       KlineType.fiveDay => store.queryFiveDayMinuteKlines(stockCode, klines as List<MinuteKline>),
       _ => error(RichStatus.shareNotExist, desc: 'Unsupported KlineType: $type'),
@@ -419,6 +424,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
   void _onKlineTypeChanged(String value) async {
     klineCtrlState.klineType = klineTypeMap[value]!;
     await loadKlines();
+    updateCrossLine(klineCtrlState.crossLineFollowCursorPos);
     setState(() {});
   }
 
@@ -521,12 +527,17 @@ class _KlineCtrlState extends State<KlineCtrl> {
     final RenderBox box = context.findRenderObject() as RenderBox;
     final localPosition = box.globalToLocal(details.globalPosition);
     // 计算点击的K线索引
+    updateCrossLine(localPosition);
+    setState(() {});
+  }
+
+  // 切换日/周/月/年K线时，需要重新计算十字线相对当前K线范围的位置，尤其是 crossLineFollowKlineIndex
+  void updateCrossLine(Offset localPosition) {
     if ((localPosition.dx > klineCtrlState.klineChartLeftMargin) &&
         localPosition.dx < (klineCtrlState.klineChartLeftMargin + klineCtrlState.klineChartWidth)) {
       klineCtrlState.crossLineFollowKlineIndex = calcCrossLineFollowKlineIndex(localPosition);
       klineCtrlState.crossLineFollowCursorPos = localPosition;
       klineCtrlState.crossLineMode = CrossLineMode.followCursor;
-      setState(() {});
     }
   }
 

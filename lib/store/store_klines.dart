@@ -10,6 +10,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
 import 'package:irich/global/stock.dart';
@@ -61,6 +62,11 @@ class StoreKlines {
   final MemoryKline<UiKline> _monthKlines = MemoryKline<UiKline>(300);
   final MemoryKline<UiKline> _quarterKlines = MemoryKline<UiKline>(300);
   final MemoryKline<UiKline> _yearKlines = MemoryKline<UiKline>(300);
+
+  // 必须单例模式
+  static final StoreKlines _instance = StoreKlines._internal();
+  factory StoreKlines() => _instance;
+  StoreKlines._internal();
 
   /// 获取单个股票分时K线
   Future<RichResult> queryMinuteKlines(String shareCode, List<MinuteKline> minuteKlines) async {
@@ -188,7 +194,9 @@ class StoreKlines {
   ) async {
     List<UiKline>? periodKlineInMemory = memoryCache.query(shareCode);
     if (periodKlineInMemory != null) {
-      periodKlines = periodKlineInMemory;
+      periodKlines
+        ..clear()
+        ..addAll(periodKlineInMemory);
       return success();
     }
     // 检查日K线缓存，如果不存在或者过期，需要重新拉取
@@ -200,7 +208,9 @@ class StoreKlines {
     // 根据最新的日K线，计算 周/月/季/年K线
     List<UiKline> tmpKlines = generateCallback(dayklines); // 计算数据
     memoryCache.add(shareCode, tmpKlines); // 将计算好的 周/月/季/年K线缓存到内存中
-    periodKlines = tmpKlines;
+    periodKlines
+      ..clear()
+      ..addAll(tmpKlines);
     return success();
   }
 
@@ -355,20 +365,35 @@ class StoreKlines {
     return success();
   }
 
+  /// Calculates number of weeks for a given year as per https://en.wikipedia.org/wiki/ISO_week_date#Weeks_per_year
+  int numOfWeeks(int year) {
+    DateTime dec28 = DateTime(year, 12, 28);
+    int dayOfDec28 = int.parse(DateFormat("D").format(dec28));
+    return ((dayOfDec28 - dec28.weekday + 10) / 7).floor();
+  }
+
   bool _getYearWeek(String day, Ref<int> week) {
     try {
       final date = DateTime.parse(day);
-      week.value = (date.weekday % 7);
+      int dayOfYear = int.parse(DateFormat("D").format(date));
+      int woy = ((dayOfYear - date.weekday + 10) / 7).floor();
+      if (woy < 1) {
+        woy = numOfWeeks(date.year - 1);
+      } else if (woy > numOfWeeks(date.year)) {
+        woy = 1;
+      }
+      week.value = woy;
       return true;
     } catch (e) {
-      return false;
+      debugPrint("error:${e.toString()}");
+      return false; // 格式错误或无效日期
     }
   }
 
   bool _getYearMonth(String day, Ref<int> month) {
-    String m = day.substring(5, 2);
+    String m = day.substring(5, 7);
     if (m[0] == '0') {
-      month.value = int.parse(m.substring(1, 1));
+      month.value = int.parse(m.substring(1, 2));
       return true;
     }
     month.value = int.parse(m);
@@ -378,7 +403,7 @@ class StoreKlines {
   bool _getYearQuarter(String day, Ref<int> quarter) {
     Ref<int> month = Ref<int>(0);
     _getYearMonth(day, month);
-    quarter.value = (month.value / 4 + 1) as int;
+    quarter.value = (month.value / 4 + 1).toInt();
     return true;
   }
 
@@ -386,6 +411,26 @@ class StoreKlines {
     String y = day.substring(0, 4);
     year.value = int.parse(y); // atoi
     return true;
+  }
+
+  // --- 关键辅助函数 ---
+  UiKline _copyKline(UiKline src) {
+    return UiKline(
+      day: src.day,
+      marketCap: src.marketCap,
+      changeRate: src.changeRate,
+      changeAmount: src.changeAmount,
+      volume: src.volume,
+      amount: src.amount,
+      priceOpen: src.priceOpen,
+      priceClose: src.priceClose,
+      priceMax: src.priceMax,
+      priceMin: src.priceMin,
+      priceNow: src.priceNow,
+      turnoverRate: src.turnoverRate,
+      danger: src.danger,
+      favorite: src.favorite,
+    );
   }
 
   List<UiKline> _generatePeriodKlines(
@@ -400,7 +445,8 @@ class StoreKlines {
     String periodStartDay = "";
 
     periodStartDay = dayKlines[0].day;
-    kline = dayKlines[0];
+    kline = _copyKline(dayKlines[0]); // 必须深度拷贝，否则价格会错乱
+
     periodFunc(periodStartDay, prevPeriod);
     prevPeriodPriceClose = (dayKlines[0]).priceMin; // 将第一天上市的最低价(发行价)作为基准价
 
@@ -418,7 +464,7 @@ class StoreKlines {
         //////////// 初始化本周K线数据
         periodStartDay = dayKline.day;
         prevPeriod.value = currPeriod.value;
-        kline = dayKline;
+        kline = _copyKline(dayKline);
       } else {
         kline.marketCap = dayKline.marketCap; // 股票市值
         kline.volume += dayKline.volume; // 周期成交量
