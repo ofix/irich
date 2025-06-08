@@ -123,15 +123,15 @@ class _KlineCtrlState extends State<KlineCtrl> {
           klineType == KlineType.month ||
           klineType == KlineType.quarter ||
           klineType == KlineType.year) {
-        klineCtrlState.emaCurves.clear();
         initKlineRange(); // 初始化可见K线范围
-        addEmaCurve(10, Color.fromARGB(255, 255, 255, 255));
-        addEmaCurve(20, Color.fromARGB(255, 239, 72, 111));
-        addEmaCurve(30, Color.fromARGB(255, 255, 159, 26));
-        addEmaCurve(60, Color.fromARGB(255, 201, 243, 240));
-        addEmaCurve(99, Color.fromARGB(255, 255, 0, 255));
-        addEmaCurve(255, Color.fromARGB(255, 255, 255, 0));
-        addEmaCurve(905, Color.fromARGB(255, 0, 255, 0));
+        if (klineCtrlState.emaCurves.isEmpty) {
+          for (final setting in klineCtrlState.emaCurveSettings) {
+            addEmaCurve(setting.period, setting.color);
+          }
+        } else {
+          updateAllEmaCurves();
+        }
+        calcKlineRngMinMaxPrice();
       }
       initIndicators(); // 初始化附图指标
       if (klineCtrlState.crossLineMode == CrossLineMode.followCursor) {
@@ -160,7 +160,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
       }
       klineCtrlState.klineRng!.end = klineCtrlState.klines.length - 1;
     }
-    calcKlineRngMinMaxPrice();
   }
 
   // 初始化附图指标，有可能需要从文件中加载
@@ -333,7 +332,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
     return RichRadioButtonGroup(
       options: ["日K", "周K", "月K", "季K", "年K", "分时", "五日"],
       onChanged: (value) {
-        debugPrint("onclicked ：$value");
         _onKlineTypeChanged(value);
       },
       height: KlineCtrlLayout.titleBarHeight,
@@ -344,7 +342,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
   void _onToggleFavoriteButton() {
     klineCtrlState.share.isFavorite = !klineCtrlState.share.isFavorite;
     StoreQuote.addFavoriteShare(klineCtrlState.share.code);
-    debugPrint("isFavorite: ${klineCtrlState.share.isFavorite}");
     setState(() {});
   }
 
@@ -592,6 +589,14 @@ class _KlineCtrlState extends State<KlineCtrl> {
     calcKlineRngMinMaxPrice();
     // 刷新
     return true;
+  }
+
+  // 切换K线类别的时候，需要重新计算EMA平价格曲线
+  void updateAllEmaCurves() {
+    for (final curve in klineCtrlState.emaCurves) {
+      curve.emaPrice.clear();
+      curve.emaPrice = FormulaEma.calc(klineCtrlState.klines, curve.period);
+    }
   }
 
   // 移除所有匹配指定周期的曲线

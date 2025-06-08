@@ -498,7 +498,10 @@ class KlinePainter extends CustomPainter {
           ..lineTo(0, klineChartHeight)
           ..close();
     final gradient = LinearGradient(
-      colors: [Colors.red.withOpacity(0.24), Colors.red.withOpacity(0.02)],
+      colors: [
+        const Color.fromARGB(255, 5, 107, 209).withOpacity(0.24),
+        const Color.fromARGB(255, 156, 195, 240).withOpacity(0.02),
+      ],
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
     );

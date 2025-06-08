@@ -107,8 +107,9 @@ class CrossLinePainter extends CustomPainter {
 
   // 日/周/月/季/年K线绘制
   void drawDayCrossLine(Canvas canvas) {
-    if (klines.isEmpty) return;
+    if (klines.isEmpty || crossLineFollowKlineIndex > klines.length - 1) return;
     // 获取当前K线数据
+
     final kline = klines[crossLineFollowKlineIndex];
     final priceRange = klineRngMaxPrice - klineRngMinPrice;
     double x = 0;
