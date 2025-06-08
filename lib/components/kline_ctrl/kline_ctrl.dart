@@ -485,8 +485,10 @@ class _KlineCtrlState extends State<KlineCtrl> {
         klineCtrlState.crossLineFollowKlineIndex = -1; // 清除十字线
         klineCtrlState.crossLineFollowCursorPos = Offset.zero;
       } else if (event.logicalKey == LogicalKeyboardKey.home) {
+        klineCtrlState.crossLineMode = CrossLineMode.followKline;
         klineCtrlState.crossLineFollowKlineIndex = klineCtrlState.klineRng!.begin;
       } else if (event.logicalKey == LogicalKeyboardKey.end) {
+        klineCtrlState.crossLineMode = CrossLineMode.followKline;
         klineCtrlState.crossLineFollowKlineIndex = klineCtrlState.klineRng!.end;
       }
       setState(() {});
