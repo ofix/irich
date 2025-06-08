@@ -10,22 +10,73 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:irich/router/router_provider.dart';
 import 'package:irich/store/state_quote.dart';
 
 // 自选股组件
-class MarektShareTab extends ConsumerWidget {
+class MarektShareTab extends ConsumerStatefulWidget {
   const MarektShareTab({super.key});
+  @override
+  ConsumerState<MarektShareTab> createState() => _MarektShareTabState();
+}
+
+class _MarektShareTabState extends ConsumerState<MarektShareTab>
+    with AutomaticKeepAliveClientMixin, RouteAware {
+  @override
+  bool get wantKeepAlive => true;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      scrollToCurrentIndex(); // 初始化时滚动
+    });
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void didPopNext() {
+    scrollToCurrentIndex(); // 返回时恢复
+    super.didPopNext();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  void scrollToCurrentIndex() {
+    final index = ref.read(currentShareIndexProvider);
+    final controller = ref.read(scrollControllerProvider);
+    if (controller.hasClients) {
+      controller.jumpTo(index * 56.0);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
     final shareList = ref.watch(shareListProvider);
     final currentShareIndex = ref.watch(currentShareIndexProvider);
-    final notifier = ref.watch(shareListProvider.notifier);
-    final ScrollController scrollController = ScrollController();
+    final notifier = ref.read(currentShareIndexProvider.notifier);
+    final scrollController = ref.watch(scrollControllerProvider);
+    int? _lastScrolledIndex; // 类成员变量
+
+    void _scrollToIndex(int index) {
+      if (_lastScrolledIndex == index || !scrollController.hasClients) return;
+      _lastScrolledIndex = index;
+      final targetOffset = index * 56.0; // 与 itemExtent 一致
+      if ((scrollController.offset - targetOffset).abs() > 1) {
+        scrollController.animateTo(
+          index * 48.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    }
 
     // 监听选中索引变化，自动滚动到对应位置
     ref.listen(currentShareIndexProvider, (_, newIndex) {
-      _scrollToIndex(newIndex, scrollController);
+      _scrollToIndex(newIndex);
     });
 
     return ListView.builder(
@@ -34,41 +85,45 @@ class MarektShareTab extends ConsumerWidget {
       itemExtent: 56, // 固定高度提升性能
       itemBuilder: (context, index) {
         final share = shareList[index];
-        return ListTile(
-          title: Text(share.name),
-          subtitle: Text(share.code),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                share.priceNow.toStringAsFixed(2),
-                style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+        return SizedBox(
+          height: 56,
+          child: Material(
+            color: Colors.transparent,
+            child: ListTile(
+              tileColor: currentShareIndex == index ? Colors.blue : Color.fromARGB(255, 24, 24, 24),
+              selectedTileColor: const Color.fromARGB(255, 26, 26, 26),
+              selectedColor: Color.fromARGB(255, 240, 190, 131),
+              dense: true, // 紧凑模式
+              visualDensity: VisualDensity.compact, // 减少默认高
+              title: Text(share.name),
+              subtitle: Text(share.code),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    share.priceNow.toStringAsFixed(2),
+                    style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+                  ),
+                  Text(
+                    '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
+                    style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+                  ),
+                ],
               ),
-              Text(
-                '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
-                style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
-              ),
-            ],
+              selected: index == currentShareIndex,
+              onTap: () {
+                notifier.setSelected(index);
+                ref.read(lastScrollOffsetProvider.notifier).state = scrollController.offset;
+                debugPrint("设置当前选中的股票索引为: $index");
+                GoRouter.of(context).push('/share/${share.code}');
+              },
+            ),
           ),
-          selected: index == currentShareIndex,
-          onTap: () {
-            notifier.setSelectedIndex(index);
-            GoRouter.of(context).push('/share/${share.code}');
-          },
         );
       },
     );
   }
 
   // 滚动到指定索引
-  void _scrollToIndex(int index, ScrollController controller) {
-    final double itemHeight = 50.0; // 假设列表项高度固定
-    final double offset = index * itemHeight;
-    controller.animateTo(
-      offset,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
-  }
 }

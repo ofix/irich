@@ -39,7 +39,7 @@ class _KlineChartState extends State<KlineChart> {
     return Container(
       width: state.klineCtrlWidth,
       height: state.klineType.isMinuteType ? state.klineChartHeight : state.klineChartHeight + 22,
-      color: const Color.fromARGB(255, 28, 29, 33),
+      color: const Color.fromARGB(255, 24, 24, 24 /*28, 29, 33*/),
       child: Stack(
         children: [
           if (!state.klineType.isMinuteType)

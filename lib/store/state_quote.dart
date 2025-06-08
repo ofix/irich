@@ -8,6 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 // 行情列表数据
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/global/stock.dart';
@@ -42,8 +43,6 @@ final quoteProvider = StateNotifierProvider<QuoteNotifier, AsyncValue<List<Share
 
 // 状态管理类
 class ShareListNotifier extends StateNotifier<List<Share>> {
-  int _selectedIndex = 0; // 私有索引，避免外部直接修改
-
   ShareListNotifier() : super([]) {
     // 初始化示例数据（可替换为实际数据源）
     final shares = StoreQuote.shares;
@@ -56,31 +55,6 @@ class ShareListNotifier extends StateNotifier<List<Share>> {
     );
     state = shares;
   }
-
-  // 获取当前选中股票
-  Share get currentShare => state[_selectedIndex];
-
-  // 获取选中索引
-  int get selectedIndex => _selectedIndex;
-
-  void prevShare() {
-    final int newIndex = _selectedIndex - 1;
-    _selectedIndex = newIndex.clamp(0, state.length - 1);
-    state = [...state]; // 触发
-  }
-
-  // 切换股票（向上/向下）
-  void nextShare() {
-    final int newIndex = _selectedIndex + 1;
-    _selectedIndex = newIndex.clamp(0, state.length - 1);
-    state = [...state]; // 触发状态更新
-  }
-
-  // 直接设置选中索引（用于列表点击）
-  void setSelectedIndex(int index) {
-    _selectedIndex = index.clamp(0, state.length - 1);
-    state = [...state]; // 触发状态更新
-  }
 }
 
 // 创建 RiverPod 提供者
@@ -88,15 +62,53 @@ final shareListProvider = StateNotifierProvider<ShareListNotifier, List<Share>>(
   (ref) => ShareListNotifier(),
 );
 
-// 便捷提供者：直接获取选中股票
-final currentShareProvider = Provider<Share>((ref) {
-  final shareList = ref.watch(shareListProvider);
-  final notifier = ref.watch(shareListProvider.notifier);
-  return shareList[notifier.selectedIndex];
+class CurrentShareIndexNotifier extends StateNotifier<int> {
+  final Ref _ref;
+
+  CurrentShareIndexNotifier(this._ref) : super(0) {
+    // 初始化时默认选中第一个股票（如果列表非空）
+    final shares = _ref.read(shareListProvider);
+    state = shares.isEmpty ? -1 : 0;
+  }
+
+  // 上一个股票
+  void previous() {
+    final shares = _ref.read(shareListProvider);
+    if (shares.isEmpty) return;
+    state = (state - 1).clamp(0, shares.length - 1);
+  }
+
+  // 下一个股票
+  void next() {
+    final shares = _ref.read(shareListProvider);
+    if (shares.isEmpty) return;
+    state = (state + 1).clamp(0, shares.length - 1);
+  }
+
+  // 设置选中的股票
+  void setSelected(int index) {
+    final shares = _ref.read(shareListProvider);
+    if (shares.isEmpty) return;
+    state = index.clamp(0, shares.length - 1);
+  }
+
+  // 跳转到指定索引
+  void jumpTo(int index) {
+    final shares = _ref.read(shareListProvider);
+    if (shares.isEmpty) return;
+    state = index.clamp(0, shares.length - 1);
+  }
+}
+
+final currentShareIndexProvider = StateNotifierProvider<CurrentShareIndexNotifier, int>(
+  (ref) => CurrentShareIndexNotifier(ref),
+);
+
+// 创建全局 ScrollController 提供者
+final scrollControllerProvider = Provider<ScrollController>((ref) {
+  final controller = ScrollController();
+  ref.onDispose(() => controller.dispose()); // 自动释放资源
+  return controller;
 });
 
-// 便捷提供者：获取选中索引
-final currentShareIndexProvider = Provider<int>((ref) {
-  final notifier = ref.watch(shareListProvider.notifier);
-  return notifier.selectedIndex;
-});
+final lastScrollOffsetProvider = StateProvider<double>((ref) => 0.0);

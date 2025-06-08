@@ -47,9 +47,9 @@ class _FavoriteShareTabState extends State<FavoriteShareTab> with AutomaticKeepA
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.star_border, size: 48, color: Colors.grey),
+          Icon(Icons.star_border, size: 48, color: const Color.fromARGB(255, 65, 64, 64)),
           SizedBox(height: 16),
-          Text('暂无自选股', style: TextStyle(color: Colors.grey, fontSize: 16)),
+          Text('暂无自选股', style: TextStyle(color: Color.fromARGB(255, 24, 24, 24), fontSize: 16)),
           SizedBox(height: 8),
           ElevatedButton(
             onPressed: () => GoRouter.of(context).push('/share/search'),

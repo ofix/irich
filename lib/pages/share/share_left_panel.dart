@@ -20,7 +20,6 @@ class ShareLeftPanel extends StatefulWidget {
 
 class _ShareLeftPanelState extends State<ShareLeftPanel> with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  Color? _selectedColor;
 
   @override
   void initState() {
@@ -31,7 +30,7 @@ class _ShareLeftPanelState extends State<ShareLeftPanel> with SingleTickerProvid
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _selectedColor = Theme.of(context).primaryColor;
+    _tabController.index = 0;
   }
 
   @override
@@ -44,7 +43,7 @@ class _ShareLeftPanelState extends State<ShareLeftPanel> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Container(
       width: 300,
-      color: const Color.fromARGB(255, 28, 29, 33),
+      color: const Color.fromARGB(255, 24, 24, 24),
       child: Column(
         children: [
           Row(
@@ -53,13 +52,13 @@ class _ShareLeftPanelState extends State<ShareLeftPanel> with SingleTickerProvid
                 icon: Icons.trending_up,
                 label: '市场行情',
                 isSelected: _tabController.index == 0,
-                onTap: () => _tabController.animateTo(1),
+                onTap: () => onToggleTab(0),
               ),
               _buildTab(
                 icon: Icons.star,
                 label: '自选股',
                 isSelected: _tabController.index == 1,
-                onTap: () => _tabController.animateTo(0),
+                onTap: () => onToggleTab(1),
               ),
             ],
           ),
@@ -81,30 +80,47 @@ class _ShareLeftPanelState extends State<ShareLeftPanel> with SingleTickerProvid
     required VoidCallback onTap,
   }) {
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? _selectedColor : const Color.fromARGB(255, 81, 80, 80),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 20, color: isSelected ? _selectedColor : Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? _selectedColor : Colors.grey[600],
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click, // 设置光标为可点击样式
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            decoration: BoxDecoration(color: const Color.fromARGB(255, 28, 29, 33)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 20,
+                  color:
+                      isSelected
+                          ? Color.fromARGB(255, 7, 232, 244)
+                          : Color.fromARGB(255, 255, 255, 255),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color:
+                        isSelected
+                            ? Color.fromARGB(255, 7, 232, 244)
+                            : Color.fromARGB(255, 255, 255, 255),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  void onToggleTab(tabIndex) {
+    _tabController.index = tabIndex;
+    _tabController.animateTo(_tabController.index);
+    setState(() {});
   }
 }

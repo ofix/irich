@@ -63,11 +63,11 @@ class _MarketPageState extends State<MarketPage> {
                   child: TrinaGrid(
                     configuration: TrinaGridConfiguration(
                       style: TrinaGridStyleConfig(
-                        gridBackgroundColor: Color(0xff000000),
+                        gridBackgroundColor: Color.fromARGB(255, 24, 24, 24),
                         enableColumnBorderVertical: true,
                         activatedBorderColor: Colors.transparent,
                         inactivatedBorderColor: const Color.fromARGB(255, 39, 38, 38),
-                        rowColor: Color(0xff000000),
+                        rowColor: Color.fromARGB(255, 24, 24, 24),
                         activatedColor: Color(0xff284468),
                         borderColor: const Color.fromARGB(255, 39, 38, 38),
                         cellCheckedColor: Colors.transparent,

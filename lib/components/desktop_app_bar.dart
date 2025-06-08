@@ -92,7 +92,7 @@ class DesktopAppBar extends ConsumerWidget implements PreferredSizeWidget {
         child: Container(
           height: 48,
           decoration: BoxDecoration(
-            color: const Color(0xFF333436),
+            color: const Color.fromARGB(255, 31, 31, 31),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.2),
