@@ -10,7 +10,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:irich/router/router_provider.dart';
 import 'package:irich/store/state_quote.dart';
 
 // 自选股组件
@@ -113,6 +112,7 @@ class _MarektShareTabState extends ConsumerState<MarektShareTab>
               ),
               selected: index == currentShareIndex,
               onTap: () {
+                ref.read(shareTabIndexProvider.notifier).state = 0; // 自选股是第二个 Tab
                 notifier.setSelected(index);
                 ref.read(lastScrollOffsetProvider.notifier).state = scrollController.offset;
                 debugPrint("设置当前选中的股票索引为: $index");

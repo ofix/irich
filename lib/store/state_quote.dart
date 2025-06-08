@@ -112,3 +112,6 @@ final scrollControllerProvider = Provider<ScrollController>((ref) {
 });
 
 final lastScrollOffsetProvider = StateProvider<double>((ref) => 0.0);
+
+// 在全局 Provider 中定义 Tab 索引状态
+final shareTabIndexProvider = StateProvider<int>((ref) => 0);

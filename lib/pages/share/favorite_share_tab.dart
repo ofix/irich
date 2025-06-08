@@ -10,19 +10,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:irich/global/stock.dart';
-import 'package:irich/pages/share/share_page_common.dart';
+import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/store_quote.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// 自选股组件
-class FavoriteShareTab extends StatefulWidget {
+class FavoriteShareTab extends ConsumerStatefulWidget {
   const FavoriteShareTab({super.key});
 
   @override
-  State<FavoriteShareTab> createState() => _FavoriteShareTabState();
+  ConsumerState<FavoriteShareTab> createState() => _FavoriteShareTabState();
 }
 
-class _FavoriteShareTabState extends State<FavoriteShareTab> with AutomaticKeepAliveClientMixin {
-  List<Share> _favoriteshares = []; // 自选股
+class _FavoriteShareTabState extends ConsumerState<FavoriteShareTab>
+    with AutomaticKeepAliveClientMixin {
+  List<Share> _favoriteshares = [];
 
   @override
   bool get wantKeepAlive => true;
@@ -42,18 +43,53 @@ class _FavoriteShareTabState extends State<FavoriteShareTab> with AutomaticKeepA
     return buildShareList(context, _favoriteshares);
   }
 
+  Widget buildShareList(BuildContext context, List<Share> shares) {
+    return ListView.builder(
+      itemCount: shares.length,
+      itemExtent: 56,
+      itemBuilder: (context, index) {
+        final share = shares[index];
+        return ListTile(
+          title: Text(share.name),
+          subtitle: Text(share.code),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                share.priceNow.toStringAsFixed(2),
+                style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+              ),
+              Text(
+                '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
+                style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+              ),
+            ],
+          ),
+          onTap: () => _onShareSelected(context, share.code),
+        );
+      },
+    );
+  }
+
+  void _onShareSelected(BuildContext context, String shareCode) {
+    // 2. 跳转前强制设置 Tab 为自选股（索引为1）
+    ref.read(shareTabIndexProvider.notifier).state = 1;
+    GoRouter.of(context).push('/share/$shareCode');
+  }
+
   Widget _buildEmptyView(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.star_border, size: 48, color: const Color.fromARGB(255, 65, 64, 64)),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Text('暂无自选股', style: TextStyle(color: Color.fromARGB(255, 24, 24, 24), fontSize: 16)),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () => GoRouter.of(context).push('/share/search'),
-            child: Text('添加自选股'),
+            child: const Text('添加自选股'),
           ),
         ],
       ),
