@@ -62,6 +62,7 @@ class StoreQuote {
   static void addFavoriteShare(String shareCode) {
     Share? share = query(shareCode);
     if (share != null) {
+      share.isFavorite = true;
       _favoriteShares.add(share);
       saveFavoriteShares();
     }
@@ -69,8 +70,12 @@ class StoreQuote {
 
   /// 从自选股中删除股票
   static void removeFavoriteShare(String shareCode) {
-    _favoriteShares.removeWhere((share) => share.code == shareCode);
-    saveFavoriteShares();
+    Share? share = query(shareCode);
+    if (share != null) {
+      share.isFavorite = false;
+      _favoriteShares.removeWhere((share) => share.code == shareCode);
+      saveFavoriteShares();
+    }
   }
 
   /// 从文件中加载最选股列表

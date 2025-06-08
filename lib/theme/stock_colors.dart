@@ -15,6 +15,7 @@ class StockColors extends ThemeExtension<StockColors> {
   final Color ma20;
   final Color ma30;
   final Color crossLine;
+  final Color hilight; // 高亮颜色
 
   const StockColors({
     required this.klineUp,
@@ -31,6 +32,7 @@ class StockColors extends ThemeExtension<StockColors> {
     required this.ma20,
     required this.ma30,
     required this.crossLine,
+    required this.hilight,
   });
 
   factory StockColors.light() {
@@ -49,6 +51,7 @@ class StockColors extends ThemeExtension<StockColors> {
       ma10: Colors.yellow.shade700,
       ma20: Colors.purple,
       ma30: Colors.orange,
+      hilight: const Color.fromARGB(255, 7, 232, 244),
     );
   }
 
@@ -68,6 +71,7 @@ class StockColors extends ThemeExtension<StockColors> {
       ma10: Colors.yellow.shade600,
       ma20: Colors.purple.shade200,
       ma30: Colors.orange.shade300,
+      hilight: const Color.fromARGB(255, 7, 232, 244),
     );
   }
 
@@ -94,6 +98,7 @@ class StockColors extends ThemeExtension<StockColors> {
     Color? ma30,
     Color? crossLine,
     Color? verticalLine,
+    Color? hilight,
   }) {
     return StockColors(
       klineUp: klineUp ?? this.klineUp,
@@ -110,6 +115,7 @@ class StockColors extends ThemeExtension<StockColors> {
       ma20: ma20 ?? this.ma20,
       ma30: ma30 ?? this.ma30,
       crossLine: crossLine ?? this.crossLine,
+      hilight: hilight ?? this.hilight,
     );
   }
 
@@ -131,6 +137,7 @@ class StockColors extends ThemeExtension<StockColors> {
       ma20: Color.lerp(ma20, other.ma20, t)!,
       ma30: Color.lerp(ma30, other.ma30, t)!,
       crossLine: Color.lerp(crossLine, other.crossLine, t)!,
+      hilight: Color.lerp(hilight, other.hilight, t)!,
     );
   }
 }

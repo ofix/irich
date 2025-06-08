@@ -30,6 +30,7 @@ import 'package:irich/formula/formula_kdj.dart';
 import 'package:irich/formula/formula_macd.dart';
 import 'package:irich/store/store_klines.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/store/store_quote.dart';
 import 'package:irich/theme/stock_colors.dart';
 import 'package:irich/utils/rich_result.dart';
 
@@ -259,7 +260,14 @@ class _KlineCtrlState extends State<KlineCtrl> {
             Column(
               children: [
                 // K线类型切换
-                Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
+                    // 自选按钮
+                    _buildFavoriteButton(klineCtrlState.share.isFavorite, stockColors),
+                  ],
+                ),
                 // K线主图
                 KlineChart(
                   klineCtrlState: klineCtrlState,
@@ -326,6 +334,39 @@ class _KlineCtrlState extends State<KlineCtrl> {
         _onKlineTypeChanged(value);
       },
       height: KlineCtrlLayout.titleBarHeight,
+    );
+  }
+
+  // 添加股票到自选池
+  void _onToggleFavoriteButton() {
+    klineCtrlState.share.isFavorite = !klineCtrlState.share.isFavorite;
+    StoreQuote.addFavoriteShare(klineCtrlState.share.code);
+    debugPrint("isFavorite: ${klineCtrlState.share.isFavorite}");
+    setState(() {});
+  }
+
+  // 构建自选按钮
+  Widget _buildFavoriteButton(bool isFavorite, StockColors stockColors) {
+    return // 自选按钮
+    MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: _onToggleFavoriteButton,
+        child: Row(
+          children: [
+            Icon(isFavorite ? Icons.remove : Icons.add, size: 18, color: stockColors.hilight),
+            Text(
+              "自选",
+              style: TextStyle(
+                backgroundColor: Colors.transparent,
+                color: stockColors.hilight,
+                fontSize: 14,
+              ),
+            ),
+            SizedBox(width: 8),
+          ],
+        ),
+      ),
     );
   }
 

@@ -235,6 +235,7 @@ class Share {
   double? pb; // 市净率
   double? roe; // 净资产收益率
   double turnoverRate; // 换手率
+  bool isFavorite; // 是否已添加自选
   double? revenue; // 当前营收
   double? bonus; // 当前分红
   double? historyBonus; // 历史分红总额
@@ -287,6 +288,7 @@ class Share {
     this.concepts,
     this.briefInfo,
     this.basicInfo,
+    this.isFavorite = false,
   });
 }
 
