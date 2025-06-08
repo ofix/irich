@@ -201,11 +201,13 @@ class StoreQuote {
       await loadLocalIndustryFile();
       await loadLocalConceptFile();
       _buildShareTrie(_shares);
+      // 加载自选股列表
+      await loadFavoriteShares();
       return success();
     }
+
     // 加载自选股列表
     await loadFavoriteShares();
-
     final responseBk = await scheduler.addTask(TaskSyncShareBk(params: {}));
     // 如果本地地域板块文件不存在或者过期，则创建下载任务，否则直接加载本地数据
     if (!await FileTool.isFileExist(_pathIndexFileProvince) ||
