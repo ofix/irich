@@ -7,6 +7,8 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
+import 'dart:math';
+
 import 'package:irich/formula/formula.dart';
 import 'package:irich/formula/formula_ema.dart';
 import 'package:irich/global/stock.dart';
@@ -64,17 +66,20 @@ class FormulaMacd implements Formula {
 
   static List<double> calcEma(List<double> prices, int period) {
     final ema = List<double>.filled(prices.length, 0);
-    final multiplier = 2 / (period + 1);
+
+    // 防止K线数量小于period，内存下标越界
+    final safePeriod = min(period, prices.length);
+    final multiplier = 2 / (safePeriod + 1);
 
     // 第一个EMA是简单移动平均
     double sum = 0;
-    for (int i = 0; i < period; i++) {
+    for (int i = 0; i < safePeriod; i++) {
       sum += prices[i];
-      ema[i] = i == period - 1 ? sum / period : 0;
+      ema[i] = i == safePeriod - 1 ? sum / safePeriod : 0;
     }
 
     // 计算后续EMA
-    for (int i = period; i < prices.length; i++) {
+    for (int i = safePeriod; i < prices.length; i++) {
       ema[i] = (prices[i] - ema[i - 1]) * multiplier + ema[i - 1];
     }
 
