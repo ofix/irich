@@ -37,39 +37,42 @@ class _FavoriteShareTabState extends ConsumerState<FavoriteShareTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final favoirteTabScrollController = ref.watch(favoriteTabScrollControllerProvider);
+
+    Widget buildShareList(BuildContext context, List<Share> shares) {
+      return ListView.builder(
+        controller: favoirteTabScrollController,
+        itemCount: shares.length,
+        itemExtent: 56,
+        itemBuilder: (context, index) {
+          final share = shares[index];
+          return ListTile(
+            title: Text(share.name),
+            subtitle: Text(share.code),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  share.priceNow.toStringAsFixed(2),
+                  style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+                ),
+                Text(
+                  '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
+                  style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+                ),
+              ],
+            ),
+            onTap: () => _onShareSelected(context, share.code),
+          );
+        },
+      );
+    }
+
     if (_favoriteshares.isEmpty) {
       return _buildEmptyView(context);
     }
     return buildShareList(context, _favoriteshares);
-  }
-
-  Widget buildShareList(BuildContext context, List<Share> shares) {
-    return ListView.builder(
-      itemCount: shares.length,
-      itemExtent: 56,
-      itemBuilder: (context, index) {
-        final share = shares[index];
-        return ListTile(
-          title: Text(share.name),
-          subtitle: Text(share.code),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                share.priceNow.toStringAsFixed(2),
-                style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
-              ),
-              Text(
-                '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
-                style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
-              ),
-            ],
-          ),
-          onTap: () => _onShareSelected(context, share.code),
-        );
-      },
-    );
   }
 
   void _onShareSelected(BuildContext context, String shareCode) {

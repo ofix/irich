@@ -111,6 +111,12 @@ final scrollControllerProvider = Provider<ScrollController>((ref) {
   return controller;
 });
 
+final favoriteTabScrollControllerProvider = Provider<ScrollController>((ref) {
+  final controller = ScrollController();
+  ref.onDispose(() => controller.dispose()); // 自动释放资源
+  return controller;
+});
+
 final lastScrollOffsetProvider = StateProvider<double>((ref) => 0.0);
 
 // 在全局 Provider 中定义 Tab 索引状态
