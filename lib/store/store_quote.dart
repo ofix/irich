@@ -168,6 +168,13 @@ class StoreQuote {
     return true;
   }
 
+  // 只加载行情数据，不保存到文件，用于定时刷新行情数据
+  static Future<RichResult> loadQuote() async {
+    final scheduler = await TaskScheduler.getInstance();
+    _shares = await scheduler.addTask(TaskSyncShareQuote(params: {}));
+    return success();
+  }
+
   /// 获取所有股票列表
   static Future<RichResult> load() async {
     if (_loaded) {

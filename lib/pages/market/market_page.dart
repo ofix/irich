@@ -8,6 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:irich/components/desktop_layout.dart';
@@ -15,6 +16,7 @@ import 'package:irich/components/progress_popup.dart';
 import 'package:irich/components/trina_column_type_stock.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/store_quote.dart';
+import 'package:irich/utils/date_time.dart';
 import 'package:trina_grid/trina_grid.dart';
 
 class MarketPage extends StatefulWidget {
@@ -25,12 +27,12 @@ class MarketPage extends StatefulWidget {
   State<MarketPage> createState() => _MarketPageState();
 }
 
-class _MarketPageState extends State<MarketPage> {
+class _MarketPageState extends State<MarketPage> with WidgetsBindingObserver {
   late List<TrinaRow> rows;
   late List<TrinaColumn> cols;
   late List<Share> shares;
 
-  Timer? timer;
+  late bool startRefresh; // 停止行情数据刷新的标志位
   Color? backgroundColor;
 
   late TrinaGridStateManager stateManager;
@@ -38,6 +40,8 @@ class _MarketPageState extends State<MarketPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    startRefresh = true;
     rows = [];
     cols = [];
     shares = [];
@@ -46,7 +50,8 @@ class _MarketPageState extends State<MarketPage> {
 
   @override
   void dispose() {
-    timer?.cancel();
+    startRefresh = false;
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -119,20 +124,38 @@ class _MarketPageState extends State<MarketPage> {
         hideProgressPopup(context);
       }
     });
-    // _startTimer();
+    refreshQuote();
+  }
+
+  // 监听应用生命周期
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    setState(() {
+      startRefresh = state == AppLifecycleState.resumed; // 仅在前台时刷新
+    });
+    if (startRefresh) refreshQuote(); // 恢复刷新
   }
 
   // 定时加载行情数据
-  Future<void> _startTimer() async {
-    timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      await _load();
+  Future<void> refreshQuote() async {
+    debugPrint("开始刷新行情数据");
+    int delaySeconds = Random().nextInt(5) + 5;
+    await Future.delayed(Duration(seconds: delaySeconds));
+    final random = Random();
+    while (startRefresh) {
+      // 只要标志位为 true，就继续循环
+      await StoreQuote.loadQuote();
+      final currTime = now('yyyy-MM-dd HH:mm:ss');
+      debugPrint("[$currTime] 刷新行情数据");
       shares = StoreQuote.shares;
       rows = _buildRows(shares);
-      // cols = _buildColumns();
       stateManager.removeAllRows();
       stateManager.appendRows(rows);
       setState(() {});
-    });
+      int delaySeconds = 5 + random.nextInt(6); // 随机延迟 5~10 秒
+      await Future.delayed(Duration(seconds: delaySeconds));
+    }
+    debugPrint("停止刷新行情数据！");
   }
 
   // 构建表格标题栏
