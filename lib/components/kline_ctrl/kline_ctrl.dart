@@ -12,6 +12,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/components/indicators/amount_indicator.dart';
 import 'package:irich/components/indicators/boll_indicator.dart';
 import 'package:irich/components/indicators/kdj_indicator.dart';
@@ -28,23 +29,20 @@ import 'package:irich/formula/formula_boll.dart';
 import 'package:irich/formula/formula_ema.dart';
 import 'package:irich/formula/formula_kdj.dart';
 import 'package:irich/formula/formula_macd.dart';
+import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/store_klines.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/theme/stock_colors.dart';
 import 'package:irich/utils/rich_result.dart';
 
-class KlineCtrl extends StatefulWidget {
-  final Share share;
-  const KlineCtrl({super.key, required this.share});
+class KlineCtrl extends ConsumerStatefulWidget {
+  const KlineCtrl({super.key});
   @override
-  State<KlineCtrl> createState() => _KlineCtrlState();
+  ConsumerState<ConsumerStatefulWidget> createState() => _KlineCtrlState();
 }
 
-class _KlineCtrlState extends State<KlineCtrl> {
-  late KlineCtrlState klineCtrlState;
-  late final FocusNode _focusNode;
-
+class _KlineCtrlState extends ConsumerState<KlineCtrl> {
   // K线类型
   static const Map<String, KlineType> klineTypeMap = {
     '分时': KlineType.minute,
@@ -55,6 +53,17 @@ class _KlineCtrlState extends State<KlineCtrl> {
     '季K': KlineType.quarter,
     '年K': KlineType.year,
   };
+  late KlineCtrlState klineCtrlState;
+  Share? share;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    klineCtrlState = KlineCtrlState(klineType: KlineType.day);
+    _focusNode = FocusNode();
+    _focusNode.requestFocus();
+  }
 
   // 指标附图高度动态比例(最多4个指标附图)
   static const Map<int, double> chartHeightMap = {
@@ -96,22 +105,15 @@ class _KlineCtrlState extends State<KlineCtrl> {
             (state, colors) => BollIndicator(klineCtrlState: state, stockColors: colors),
       };
 
-  @override
-  void initState() {
-    super.initState();
-    klineCtrlState = KlineCtrlState(share: widget.share, klineType: KlineType.day);
-    klineCtrlState.klineStep = 7;
-    klineCtrlState.klineWidth = 5;
-    _focusNode = FocusNode();
-    _focusNode.requestFocus();
-    loadKlines(); // 加载K线数据
-  }
-
   // 加载K线数据
   Future<void> loadKlines() async {
     try {
       final store = StoreKlines();
-      final result = await _queryKlines(store, klineCtrlState.share.code, klineCtrlState.klineType);
+      final result = await _queryKlines(
+        store,
+        klineCtrlState.share!.code,
+        klineCtrlState.klineType,
+      );
       if (!result.ok()) {
         debugPrint("数据加载失败!,${klineCtrlState.klineType.name}");
         return;
@@ -137,7 +139,6 @@ class _KlineCtrlState extends State<KlineCtrl> {
       if (klineCtrlState.crossLineMode == CrossLineMode.followCursor) {
         updateCrossLine(klineCtrlState.crossLineFollowCursorPos);
       }
-      setState(() {});
     } catch (e, stackTrace) {
       debugPrint(e.toString());
       debugPrint(stackTrace.toString());
@@ -228,13 +229,17 @@ class _KlineCtrlState extends State<KlineCtrl> {
   }
 
   @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final shareCode = ref.watch(currentShareCodeProvider);
+    share = StoreQuote.query(shareCode);
+    if (share != null) {
+      klineCtrlState.share = share;
+      klineCtrlState.klineStep = 7;
+      klineCtrlState.klineWidth = 5;
+      debugPrint("初始化KlineCtrl");
+      loadKlines(); // 加载K线数据
+    }
+
     // final parentWidth = MediaQuery.of(context).size.width; 此方法获取的是屏幕宽度
     final stockColors = Theme.of(context).extension<StockColors>()!;
     return Focus(
@@ -267,7 +272,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
                   children: [
                     Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
                     // 自选按钮
-                    _buildFavoriteButton(klineCtrlState.share.isFavorite, stockColors),
+                    _buildFavoriteButton(klineCtrlState.share!.isFavorite, stockColors),
                   ],
                 ),
                 // K线主图
@@ -275,6 +280,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
                   klineCtrlState: klineCtrlState,
                   stockColors: stockColors,
                   onToggleEmaCurve: toggleEmaCurve,
+                  share: share!,
                 ),
                 // 技术指标图
                 ..._buildIndicators(context, klineCtrlState, stockColors),
@@ -317,7 +323,7 @@ class _KlineCtrlState extends State<KlineCtrl> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 8), // 左右各16像素
       child: Text(
-        widget.share.name,
+        share!.name,
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.bold,
@@ -340,8 +346,8 @@ class _KlineCtrlState extends State<KlineCtrl> {
 
   // 添加股票到自选池
   void _onToggleFavoriteButton() {
-    klineCtrlState.share.isFavorite = !klineCtrlState.share.isFavorite;
-    StoreQuote.addFavoriteShare(klineCtrlState.share.code);
+    share!.isFavorite = !share!.isFavorite;
+    StoreQuote.addFavoriteShare(share!.code);
     setState(() {});
   }
 

@@ -56,7 +56,7 @@ const defaultEmaCurveSettings = [
 
 // K线组件核心类
 class KlineCtrlState {
-  Share share; // 股票
+  Share? share; // 股票
   KlineType klineType = KlineType.day; // 当前绘制的K线类型
   List<UiKline> klines; // 前复权日K线数据
   List<MinuteKline> minuteKlines; // 分时K线数据，按需填充
@@ -92,7 +92,6 @@ class KlineCtrlState {
   double indicatorChartTitleBarHeight; // 指标附图标题栏高度
 
   KlineCtrlState({
-    required this.share,
     required this.klineType, // 日/周/月/季/年 k线参数
     List<UiKline>? klines,
     List<MinuteKline>? minuteKlines,
@@ -136,7 +135,6 @@ class KlineCtrlState {
 
   // 深拷贝方法（可选）
   KlineCtrlState copyWith({
-    Share? share,
     KlineType? klineType,
     List<UiKline>? klines,
     List<MinuteKline>? minuteKlines,
@@ -169,7 +167,6 @@ class KlineCtrlState {
     List<EmaCurveSetting>? emaCurveSettings,
   }) {
     return KlineCtrlState(
-      share: share ?? this.share,
       klineType: klineType ?? this.klineType,
       klines: klines ?? this.klines,
       minuteKlines: minuteKlines ?? this.minuteKlines,

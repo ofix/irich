@@ -42,12 +42,11 @@ final appRouter = GoRouter(
               NoTransitionPage(key: state.pageKey, child: const FavoritePage(title: '自选')),
     ),
     GoRoute(
-      path: '/share/:shareCode', // 动态参数
+      path: '/share', // 动态参数
       pageBuilder: (context, state) {
-        final shareCode = state.pathParameters['shareCode']!; // 获取参数
         return NoTransitionPage(
           key: state.pageKey,
-          child: SharePage(shareCode: shareCode), // 传递参数
+          child: SharePage(), // 传递参数
         );
       },
     ),

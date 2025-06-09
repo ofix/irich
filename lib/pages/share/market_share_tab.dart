@@ -16,16 +16,18 @@ import 'package:irich/store/state_quote.dart';
 class MarektShareTab extends ConsumerStatefulWidget {
   const MarektShareTab({super.key});
   @override
-  ConsumerState<MarektShareTab> createState() => _MarektShareTabState();
+  ConsumerState<MarektShareTab> createState() => _MarketShareTabState();
 }
 
-class _MarektShareTabState extends ConsumerState<MarektShareTab>
+class _MarketShareTabState extends ConsumerState<MarektShareTab>
     with AutomaticKeepAliveClientMixin, RouteAware {
   @override
   bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
+    debugPrint("初始化行情股票");
     WidgetsBinding.instance.addPostFrameCallback((_) {
       scrollToCurrentIndex(); // 初始化时滚动
     });
@@ -44,7 +46,7 @@ class _MarektShareTabState extends ConsumerState<MarektShareTab>
 
   void scrollToCurrentIndex() {
     final index = ref.read(currentShareIndexProvider);
-    final controller = ref.read(scrollControllerProvider);
+    final controller = ref.read(marketScrollControllerProvider);
     if (controller.hasClients) {
       controller.jumpTo(index * 56.0);
     }
@@ -57,15 +59,16 @@ class _MarektShareTabState extends ConsumerState<MarektShareTab>
     final shareList = ref.watch(shareListProvider);
     final currentShareIndex = ref.watch(currentShareIndexProvider);
     final notifier = ref.read(currentShareIndexProvider.notifier);
-    final scrollController = ref.watch(scrollControllerProvider);
+    final marketScrollController = ref.watch(marketScrollControllerProvider);
+    // 重复执行会绑定重复view
     int? _lastScrolledIndex; // 类成员变量
 
     void _scrollToIndex(int index) {
-      if (_lastScrolledIndex == index || !scrollController.hasClients) return;
+      if (_lastScrolledIndex == index || !marketScrollController.hasClients) return;
       _lastScrolledIndex = index;
       final targetOffset = index * 56.0; // 与 itemExtent 一致
-      if ((scrollController.offset - targetOffset).abs() > 1) {
-        scrollController.animateTo(
+      if ((marketScrollController.offset - targetOffset).abs() > 1) {
+        marketScrollController.animateTo(
           index * 48.0,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
@@ -79,7 +82,7 @@ class _MarektShareTabState extends ConsumerState<MarektShareTab>
     });
 
     return ListView.builder(
-      controller: scrollController,
+      controller: marketScrollController,
       itemCount: shareList.length,
       itemExtent: 56, // 固定高度提升性能
       itemBuilder: (context, index) {
@@ -114,9 +117,9 @@ class _MarektShareTabState extends ConsumerState<MarektShareTab>
               onTap: () {
                 ref.read(shareTabIndexProvider.notifier).state = 0; // 自选股是第二个 Tab
                 notifier.setSelected(index);
-                ref.read(lastScrollOffsetProvider.notifier).state = scrollController.offset;
+                ref.read(lastScrollOffsetProvider.notifier).state = marketScrollController.offset;
                 debugPrint("设置当前选中的股票索引为: $index");
-                GoRouter.of(context).push('/share/${share.code}');
+                ref.read(currentShareCodeProvider.notifier).select(share.code);
               },
             ),
           ),

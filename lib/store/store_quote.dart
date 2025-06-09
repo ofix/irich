@@ -171,7 +171,22 @@ class StoreQuote {
   // 只加载行情数据，不保存到文件，用于定时刷新行情数据
   static Future<RichResult> loadQuote() async {
     final scheduler = await TaskScheduler.getInstance();
-    _shares = await scheduler.addTask(TaskSyncShareQuote(params: {}));
+    final newShares = await scheduler.addTask(TaskSyncShareQuote(params: {}));
+    for (final share in newShares) {
+      // 必须增量更新，否则行业和地域信息信息会丢失
+      Share? oldShare = query(share.code);
+      if (oldShare != null) {
+        oldShare.priceNow = share.priceNow;
+        oldShare.priceMin = share.priceMin;
+        oldShare.priceMax = share.priceMax;
+        oldShare.volume = share.volume;
+        oldShare.amount = share.amount;
+        oldShare.pe = share.pe;
+        oldShare.priceAmplitude = share.priceAmplitude;
+        oldShare.qrr = share.qrr;
+        oldShare.turnoverRate = share.turnoverRate;
+      }
+    }
     return success();
   }
 

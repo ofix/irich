@@ -62,6 +62,20 @@ final shareListProvider = StateNotifierProvider<ShareListNotifier, List<Share>>(
   (ref) => ShareListNotifier(),
 );
 
+class CurrentShareCodeNotifier extends StateNotifier<String> {
+  final Ref _ref;
+  CurrentShareCodeNotifier(this._ref) : super("") {
+    state = "";
+  }
+  void select(String shareCode) {
+    state = shareCode;
+  }
+}
+
+final currentShareCodeProvider = StateNotifierProvider<CurrentShareCodeNotifier, String>(
+  (ref) => CurrentShareCodeNotifier(ref),
+);
+
 class CurrentShareIndexNotifier extends StateNotifier<int> {
   final Ref _ref;
 
@@ -105,7 +119,7 @@ final currentShareIndexProvider = StateNotifierProvider<CurrentShareIndexNotifie
 );
 
 // 创建全局 ScrollController 提供者
-final scrollControllerProvider = Provider<ScrollController>((ref) {
+final marketScrollControllerProvider = Provider<ScrollController>((ref) {
   final controller = ScrollController();
   ref.onDispose(() => controller.dispose()); // 自动释放资源
   return controller;

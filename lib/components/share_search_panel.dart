@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/router/router_provider.dart';
+import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/state_share_search.dart';
 
 class OverlayManager {
@@ -107,7 +108,12 @@ class _ShareSearchPanelContent extends ConsumerWidget {
   void onShareSelect(Share share, BuildContext context, WidgetRef ref) {
     ShareSearchPanel.hide();
     final router = ref.watch(routerProvider);
-    router.push('/share/${share.code}');
+    ref.read(currentShareCodeProvider.notifier).select(share.code);
+    final url = router.routerDelegate.currentConfiguration.uri.path;
+    // 如果当前不是股票详情页面，则跳转，否则会出现重复刷新的问题
+    if (!url.startsWith('/share')) {
+      router.push('/share/${share.code}');
+    }
   }
 
   Widget _buildSearchPanelBody(

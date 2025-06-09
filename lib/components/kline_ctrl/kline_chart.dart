@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_painter.dart';
 import 'package:irich/components/rich_checkbox_button_group.dart';
+import 'package:irich/global/stock.dart';
 import 'package:irich/theme/stock_colors.dart';
 
 typedef OnToggleEmaCurve = void Function(int period);
@@ -19,11 +20,13 @@ class KlineChart extends StatefulWidget {
   final KlineCtrlState klineCtrlState;
   final StockColors stockColors;
   final OnToggleEmaCurve onToggleEmaCurve;
+  final Share share;
   const KlineChart({
     super.key,
     required this.klineCtrlState,
     required this.stockColors,
     required this.onToggleEmaCurve,
+    required this.share,
   });
 
   @override
@@ -60,7 +63,7 @@ class _KlineChartState extends State<KlineChart> {
                   child: CustomPaint(
                     size: Size(state.klineCtrlWidth, state.klineChartHeight),
                     painter: KlinePainter(
-                      share: state.share,
+                      share: widget.share,
                       klineChartWidth: state.klineChartWidth,
                       klineChartHeight: state.klineChartHeight,
                       klineChartLeftMargin: state.klineChartLeftMargin,

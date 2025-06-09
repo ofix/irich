@@ -10,11 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:irich/pages/share/favorite_share_tab.dart';
 import 'package:irich/pages/share/market_share_tab.dart';
-
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/pages/share/favorite_share_tab.dart';
-import 'package:irich/pages/share/market_share_tab.dart';
 import 'package:irich/store/state_quote.dart';
 
 // 1. 定义全局 Provider 管理 Tab 状态

@@ -31,6 +31,7 @@ class _FavoriteShareTabState extends ConsumerState<FavoriteShareTab>
   @override
   void initState() {
     super.initState();
+    debugPrint('FavoriteShareTab initState');
     _favoriteshares = StoreQuote.favoriteShares;
   }
 
@@ -78,7 +79,7 @@ class _FavoriteShareTabState extends ConsumerState<FavoriteShareTab>
   void _onShareSelected(BuildContext context, String shareCode) {
     // 2. 跳转前强制设置 Tab 为自选股（索引为1）
     ref.read(shareTabIndexProvider.notifier).state = 1;
-    GoRouter.of(context).push('/share/$shareCode');
+    ref.read(currentShareCodeProvider.notifier).select(shareCode);
   }
 
   Widget _buildEmptyView(BuildContext context) {

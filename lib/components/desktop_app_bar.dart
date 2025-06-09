@@ -17,6 +17,8 @@ import 'package:go_router/go_router.dart';
 import 'package:irich/components/desktop_app_buttons.dart';
 import 'package:irich/components/share_search_panel.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/router/router_provider.dart';
+import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/state_share_search.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:window_manager/window_manager.dart';
@@ -42,9 +44,15 @@ class DesktopAppBar extends ConsumerWidget implements PreferredSizeWidget {
     });
   }
 
-  void onShareSelect(Share share, BuildContext context) {
-    context.push('/share/${share.code}');
+  void onShareSelect(Share share, BuildContext context, WidgetRef ref) {
     ShareSearchPanel.hide();
+    final router = ref.watch(routerProvider);
+    ref.read(currentShareCodeProvider.notifier).select(share.code);
+    final url = router.routerDelegate.currentConfiguration.uri.path;
+    // 如果当前不是股票详情页面，则跳转，否则会出现重复刷新的问题
+    if (!url.startsWith('/share')) {
+      router.push('/share/${share.code}');
+    }
   }
 
   @override
@@ -74,7 +82,7 @@ class DesktopAppBar extends ConsumerWidget implements PreferredSizeWidget {
         // 清除输入框内容
         inputController.text = "";
         inputController.selection = TextSelection.collapsed(offset: inputController.text.length);
-        onShareSelect(shares[selectedIndex], context);
+        onShareSelect(shares[selectedIndex], context, ref);
       }
     }
 

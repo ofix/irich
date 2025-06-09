@@ -10,24 +10,26 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:irich/components/desktop_layout.dart';
 import 'package:irich/components/progress_popup.dart';
 import 'package:irich/components/trina_column_type_stock.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/utils/date_time.dart';
 import 'package:trina_grid/trina_grid.dart';
 
-class MarketPage extends StatefulWidget {
+class MarketPage extends ConsumerStatefulWidget {
   final String title;
   const MarketPage({super.key, required this.title});
 
   @override
-  State<MarketPage> createState() => _MarketPageState();
+  ConsumerState<MarketPage> createState() => _MarketPageState();
 }
 
-class _MarketPageState extends State<MarketPage> with WidgetsBindingObserver {
+class _MarketPageState extends ConsumerState<MarketPage> with WidgetsBindingObserver {
   late List<TrinaRow> rows;
   late List<TrinaColumn> cols;
   late List<Share> shares;
@@ -90,7 +92,8 @@ class _MarketPageState extends State<MarketPage> with WidgetsBindingObserver {
                     onRowDoubleTap: (TrinaGridOnRowDoubleTapEvent event) {
                       String shareCode = (event.row.cells['code']?.value) as String;
                       if (shareCode.isNotEmpty) {
-                        context.push('/share/$shareCode');
+                        ref.read(currentShareCodeProvider.notifier).select(shareCode);
+                        context.push('/share');
                       }
                     },
                     mode: TrinaGridMode.readOnly,
@@ -115,6 +118,8 @@ class _MarketPageState extends State<MarketPage> with WidgetsBindingObserver {
     // 异步加载行情数据,初始加载还要额外加载概念/地域/行业映射数据
     await StoreQuote.load();
     shares = StoreQuote.shares;
+    // 默认按股票涨幅倒序排列显示
+    shares.sort((a, b) => b.changeRate.compareTo(a.changeRate));
     rows = _buildRows(shares);
     cols = _buildColumns();
     setState(() {});
@@ -138,7 +143,6 @@ class _MarketPageState extends State<MarketPage> with WidgetsBindingObserver {
 
   // 定时加载行情数据
   Future<void> refreshQuote() async {
-    debugPrint("开始刷新行情数据");
     int delaySeconds = Random().nextInt(5) + 5;
     await Future.delayed(Duration(seconds: delaySeconds));
     final random = Random();
@@ -148,6 +152,8 @@ class _MarketPageState extends State<MarketPage> with WidgetsBindingObserver {
       final currTime = now('yyyy-MM-dd HH:mm:ss');
       debugPrint("[$currTime] 刷新行情数据");
       shares = StoreQuote.shares;
+      // 默认按股票涨幅倒序排列显示
+      shares.sort((a, b) => b.changeRate.compareTo(a.changeRate));
       rows = _buildRows(shares);
       stateManager.removeAllRows();
       stateManager.appendRows(rows);
