@@ -76,7 +76,7 @@ class KlineCtrlState {
   // K线布局参数
   double klineStep; // K线步长
   double klineWidth; // K线宽度
-  UiKlineRange? klineRng; // 可视K线范围
+  UiKlineRange klineRng; // 可视K线范围
   double klineRngMinPrice; // 可见范围K线最低价
   double klineRngMaxPrice; // 可见范围K线最高价
   int visibleKlineCount; // 可视区域K线数量

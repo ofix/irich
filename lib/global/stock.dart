@@ -212,6 +212,36 @@ class ShareBriefInfo {
     required this.officeAddress,
     required this.companyProfile,
   });
+
+  ShareBriefInfo copyWith({
+    String? companyName,
+    String? oldNames,
+    String? companyWebsite,
+    String? registerAddress,
+    int? staffNum,
+    double? registerCapital,
+    String? lawOffice,
+    String? accountingOffice,
+    String? ceo,
+    String? boardSecretary,
+    String? officeAddress,
+    String? companyProfile,
+  }) {
+    return ShareBriefInfo(
+      companyName: companyName ?? this.companyName,
+      oldNames: oldNames ?? this.oldNames,
+      companyWebsite: companyWebsite ?? this.companyWebsite,
+      registerAddress: registerAddress ?? this.registerAddress,
+      staffNum: staffNum ?? this.staffNum,
+      registerCapital: registerCapital ?? this.registerCapital,
+      lawOffice: lawOffice ?? this.lawOffice,
+      accountingOffice: accountingOffice ?? this.accountingOffice,
+      ceo: ceo ?? this.ceo,
+      boardSecretary: boardSecretary ?? this.boardSecretary,
+      officeAddress: officeAddress ?? this.officeAddress,
+      companyProfile: companyProfile ?? this.companyProfile,
+    );
+  }
 }
 
 class Share {
@@ -382,6 +412,15 @@ class ShareEmaCurve {
     required this.visible,
     required this.emaPrice,
   });
+
+  ShareEmaCurve copyWith({int? period, Color? color, bool? visible, List<double>? emaPrice}) {
+    return ShareEmaCurve(
+      period: period ?? this.period,
+      color: color ?? this.color,
+      visible: visible ?? this.visible,
+      emaPrice: emaPrice ?? this.emaPrice,
+    );
+  }
 }
 
 // 自选股
@@ -403,6 +442,25 @@ class FavoriteShare {
     required this.recentMonthChangeRate,
     required this.recentYearChangeRate,
   });
+  FavoriteShare copyWith({
+    Share? share,
+    String? favoriateDate,
+    double? addPrice,
+    double? totalChangeRate,
+    double? recent5DaysChangeRate,
+    double? recentMonthChangeRate,
+    double? recentYearChangeRate,
+  }) {
+    return FavoriteShare(
+      share: share?.copyWith() ?? this.share,
+      favoriateDate: favoriateDate ?? this.favoriateDate,
+      addPrice: addPrice ?? this.addPrice,
+      totalChangeRate: totalChangeRate ?? this.totalChangeRate,
+      recent5DaysChangeRate: recent5DaysChangeRate ?? this.recent5DaysChangeRate,
+      recentMonthChangeRate: recentMonthChangeRate ?? this.recentMonthChangeRate,
+      recentYearChangeRate: recentYearChangeRate ?? this.recentYearChangeRate,
+    );
+  }
 }
 
 // 自选股分组
