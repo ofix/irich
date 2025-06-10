@@ -15,13 +15,18 @@ import 'package:irich/formula/formula_ema.dart';
 import 'package:irich/formula/formula_kdj.dart';
 import 'package:irich/formula/formula_macd.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/store_klines.dart';
-import 'package:irich/store/store_quote.dart';
 import 'package:irich/utils/rich_result.dart';
 
-final klineCtrlProvider = StateNotifierProvider<KlineCtrlNotifier, KlineCtrlState>(
-  (ref) => KlineCtrlNotifier(),
-);
+final klineCtrlProvider = StateNotifierProvider<KlineCtrlNotifier, KlineCtrlState>((ref) {
+  final notifier = KlineCtrlNotifier();
+  // 监听股票代码变化，自动触发更新
+  ref.listen<String>(currentShareCodeProvider, (_, newCode) {
+    if (newCode.isNotEmpty) notifier.changeShareCode(newCode);
+  });
+  return notifier;
+});
 
 class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
   // 技术指标映射关系图
@@ -45,7 +50,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
   KlineCtrlNotifier() : super(KlineCtrlState(klineType: KlineType.day));
 
   // 切换股票代码的时候需要重新初始化
-  void changeShare(String shareCode) async {
+  void changeShareCode(String shareCode) async {
     // 更新股票
     // Share? share = StoreQuote.query(shareCode);
     RichResult result = await _queryKlines(storeKlines, shareCode, state.klineType);
