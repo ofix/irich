@@ -46,13 +46,8 @@ class ShareListNotifier extends StateNotifier<List<Share>> {
   ShareListNotifier() : super([]) {
     // 初始化示例数据（可替换为实际数据源）
     final shares = StoreQuote.shares;
-    bool sortDescending = true;
-    shares.sort(
-      (a, b) =>
-          sortDescending
-              ? b.changeRate.compareTo(a.changeRate)
-              : a.changeRate.compareTo(b.changeRate),
-    );
+    // bool sortDescending = true;
+    shares.sort((a, b) => b.changeRate.compareTo(a.changeRate));
     state = shares;
   }
 }

@@ -47,7 +47,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
   // 切换股票代码的时候需要重新初始化
   void changeShare(String shareCode) async {
     // 更新股票
-    Share? share = StoreQuote.query(shareCode);
+    // Share? share = StoreQuote.query(shareCode);
     RichResult result = await _queryKlines(storeKlines, shareCode, state.klineType);
     if (!result.ok()) {
       return;

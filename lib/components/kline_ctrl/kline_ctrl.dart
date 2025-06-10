@@ -24,7 +24,6 @@ import 'package:irich/components/kline_ctrl/kline_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/rich_radio_button_group.dart';
 import 'package:irich/store/state_kline_ctrl.dart';
-import 'package:irich/store/state_quote.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/theme/stock_colors.dart';
@@ -86,7 +85,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
 
   @override
   Widget build(BuildContext context) {
-    final shareCode = ref.watch(currentShareCodeProvider);
+    // final shareCode = ref.watch(currentShareCodeProvider);
     // final parentWidth = MediaQuery.of(context).size.width; 此方法获取的是屏幕宽度
     final stockColors = Theme.of(context).extension<StockColors>()!;
     return Focus(
