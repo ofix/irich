@@ -398,30 +398,43 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
   }
 
   Future<RichResult> _queryKlines(StoreKlines store, String stockCode, KlineType type) async {
-    final klines = _getKlinesListForType(type);
-    klines.clear();
-    return switch (type) {
-      KlineType.day => store.queryDayKlines(stockCode, klines as List<UiKline>),
-      KlineType.minute => store.queryMinuteKlines(stockCode, klines as List<MinuteKline>),
-      KlineType.week => store.queryWeekKlines(stockCode, klines as List<UiKline>),
-      KlineType.month => store.queryMonthKlines(stockCode, klines as List<UiKline>),
-      KlineType.quarter => store.queryQuarterKlines(stockCode, klines as List<UiKline>),
-      KlineType.year => store.queryYearKlines(stockCode, klines as List<UiKline>),
-      KlineType.fiveDay => store.queryFiveDayMinuteKlines(stockCode, klines as List<MinuteKline>),
-      _ => error(RichStatus.shareNotExist, desc: 'Unsupported KlineType: $type'),
-    };
-  }
-
-  List<dynamic> _getKlinesListForType(KlineType klineType) {
-    if (klineType.isMinuteType) {
-      if (klineType == KlineType.minute) {
-        return klineCtrlState.minuteKlines;
-      } else {
-        return klineCtrlState.fiveDayMinuteKlines;
-      }
-    } else {
-      return klineCtrlState.klines;
+    // 统一处理所有返回 (RichResult, List<T>) 的K线类型
+    Future<RichResult> handleQuery<T>(
+      Future<(RichResult, List<T>)> Function(String) queryFn,
+      void Function(List<T>) assignFn,
+    ) async {
+      final (result, data) = await queryFn(stockCode);
+      if (result.ok()) assignFn(data);
+      return result;
     }
+
+    return switch (type) {
+      KlineType.day => handleQuery<UiKline>(store.queryDayKlines, (v) => klineCtrlState.klines = v),
+      KlineType.week => handleQuery<UiKline>(
+        store.queryWeekKlines,
+        (v) => klineCtrlState.klines = v,
+      ),
+      KlineType.month => handleQuery<UiKline>(
+        store.queryMonthKlines,
+        (v) => klineCtrlState.klines = v,
+      ),
+      KlineType.quarter => handleQuery<UiKline>(
+        store.queryQuarterKlines,
+        (v) => klineCtrlState.klines = v,
+      ),
+      KlineType.year => handleQuery<UiKline>(
+        store.queryYearKlines,
+        (v) => klineCtrlState.klines = v,
+      ),
+      KlineType.minute => handleQuery<MinuteKline>(
+        store.queryMinuteKlines,
+        (v) => klineCtrlState.minuteKlines = v,
+      ),
+      KlineType.fiveDay => handleQuery<MinuteKline>(
+        store.queryFiveDayMinuteKlines,
+        (v) => klineCtrlState.fiveDayMinuteKlines = v,
+      ),
+    };
   }
 
   void _onKlineTypeChanged(String value) async {

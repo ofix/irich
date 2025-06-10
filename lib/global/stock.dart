@@ -75,8 +75,7 @@ enum KlineType {
   week, // 周K线
   month, // 月K线
   quarter, // 季度K线
-  year, // 年K线
-  all; // 以上所有K线
+  year; // 年K线
 
   bool get isMinuteType => this == KlineType.minute || this == KlineType.fiveDay;
 }
