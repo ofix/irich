@@ -500,6 +500,18 @@ class UiKlineRange {
   int end; // 结束K线下标
 
   UiKlineRange({required this.begin, required this.end});
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is UiKlineRange && other.begin == begin && other.end == end;
+  }
+
+  @override
+  int get hashCode => begin.hashCode ^ end.hashCode;
+
+  // 可选：添加 toString 方便调试
+  @override
+  String toString() => 'UiKlineRange(begin: $begin, end: $end)';
 }
 
 // (五日)分时图数据

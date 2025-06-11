@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/store/state_kline_ctrl.dart
+// Name:        irich/lib/store/provider_kline_ctrl.dart
 // Purpose:     kline ctrl provider
 // Author:      songhuabiao
 // Created:     2025-06-11 20:30
@@ -355,34 +355,32 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
   }
 
   // 更新十字线模式和位置
-  void updateCrossLine(CrossLineMode mode, int klineIndex) {
-    state = state.copyWith(crossLineFollowKlineIndex: klineIndex, crossLineMode: mode);
-  }
+  void updateCrossLine({CrossLineMode? mode, int? klineIndex, Offset? pos}) {
+    if (pos != null) {
+      if ((pos.dx > state.klineChartLeftMargin) &&
+          pos.dx < (state.klineChartLeftMargin + state.klineChartWidth)) {
+        if (state.crossLineMode != CrossLineMode.none) {
+          final klineIndex = _calcCrossLineFollowKlineIndex(pos);
 
-  // 更新十字线位置
-  void updateCrossLinePos(Offset pos) {
-    if ((pos.dx > state.klineChartLeftMargin) &&
-        pos.dx < (state.klineChartLeftMargin + state.klineChartWidth)) {
-      if (state.crossLineMode != CrossLineMode.none) {
-        final klineIndex = _calcCrossLineFollowKlineIndex(pos);
-
-        state = state.copyWith(
-          crossLineFollowCursorPos: pos,
-          crossLineFollowKlineIndex: klineIndex,
-          crossLineMode: CrossLineMode.followCursor,
-        );
+          state = state.copyWith(
+            crossLineFollowCursorPos: pos,
+            crossLineFollowKlineIndex: klineIndex,
+            crossLineMode: CrossLineMode.followCursor,
+          );
+        }
       }
+    }
+    if (klineIndex != null) {
+      state = state.copyWith(crossLineFollowKlineIndex: klineIndex);
+    }
+    if (mode != null) {
+      state = state.copyWith(crossLineMode: mode);
     }
   }
 
   int _calcCrossLineFollowKlineIndex(Offset localPosition) {
     final index = (localPosition.dx / state.klineStep).floor();
     return index + state.klineRng.begin;
-  }
-
-  // 更新十字线模式
-  void updateCrossLineMode(CrossLineMode mode) {
-    state = state.copyWith(crossLineMode: mode);
   }
 
   // 放大
@@ -466,6 +464,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
         state.emaCurves,
       );
       state = state.copyWith(
+        klineRng: klineRng,
         klineStep: klineStep,
         klineWidth: klineWidth.toDouble(),
         klineRngMinPrice: klineRngMinPrice,

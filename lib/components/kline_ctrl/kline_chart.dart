@@ -32,9 +32,14 @@ class _KlineChartState extends ConsumerState<KlineChart> {
   @override
   Widget build(BuildContext context) {
     ref.watch(
-      klineCtrlProvider(
-        KlineCtrlParams(shareCode: widget.shareCode),
-      ).select((state) => (state.klineChartWidth, state.klineRng)),
+      klineCtrlProvider(KlineCtrlParams(shareCode: widget.shareCode)).select(
+        (state) => (
+          state.klineChartWidth,
+          state.klineRng.begin,
+          state.klineRng.end,
+          state.klineWidth,
+        ),
+      ),
     );
     final state = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: widget.shareCode)));
     return Container(

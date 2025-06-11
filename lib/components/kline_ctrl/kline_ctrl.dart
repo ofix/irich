@@ -285,10 +285,13 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
           notifier.hideCrossLine();
           return KeyEventResult.handled;
         case LogicalKeyboardKey.home:
-          notifier.updateCrossLine(CrossLineMode.followKline, state.klineRng.begin);
+          notifier.updateCrossLine(
+            mode: CrossLineMode.followKline,
+            klineIndex: state.klineRng.begin,
+          );
           return KeyEventResult.handled;
         case LogicalKeyboardKey.end:
-          notifier.updateCrossLine(CrossLineMode.followKline, state.klineRng.end);
+          notifier.updateCrossLine(mode: CrossLineMode.followKline, klineIndex: state.klineRng.end);
           return KeyEventResult.handled;
         default:
           return KeyEventResult.ignored;
@@ -318,7 +321,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     final shareCode = ref.read(currentShareCodeProvider);
     ref
         .read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).notifier)
-        .updateCrossLinePos(localPosition);
+        .updateCrossLine(mode: CrossLineMode.followCursor, pos: localPosition);
   }
 
   /// 鼠标移动事件
@@ -331,7 +334,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     final shareCode = ref.read(currentShareCodeProvider);
     ref
         .read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).notifier)
-        .updateCrossLinePos(localPosition);
+        .updateCrossLine(pos: localPosition);
   }
 
   // 鼠标滚轮事件处理,可以用来切换股票
