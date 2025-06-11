@@ -151,6 +151,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     debugPrint("++++++++++++++++++++++++++++++++++++++++++++");
     state = state.copyWith(
       share: share,
+      shareCode: shareCode,
       klineChartWidth: klineChartWidth,
       klineChartHeight: klineChartHeight,
       indicatorChartHeight: indicatorChartHeight,
