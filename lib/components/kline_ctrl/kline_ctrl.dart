@@ -86,11 +86,11 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     final shareCode = ref.watch(currentShareCodeProvider);
     final stockColors = Theme.of(context).extension<StockColors>()!;
     ref.watch(
-      klineCtrlProvider(
-        KlineCtrlParams(shareCode: shareCode),
-      ).select((s) => (s.klineCtrlWidth, s.klineCtrlHeight)),
+      klineCtrlProvider.select(
+        (s) => (s.klineCtrlWidth, s.klineCtrlHeight, s.klineRng.begin, s.klineRng.end),
+      ),
     );
-    final klineCtrlState = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)));
+    final klineCtrlState = ref.read(klineCtrlProvider);
     return Focus(
       autofocus: true,
       focusNode: _focusNode,
@@ -108,22 +108,19 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     );
   }
 
-  Widget buildKlineCtrl(StockColors stockColors, KlineCtrlState klineCtrlState) {
+  Widget buildKlineCtrl(StockColors stockColors, KlineCtrlState state) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         // final parentWidth = constraints.maxWidth; // 父容器可用宽度
         Size size = Size(constraints.maxWidth, constraints.maxHeight);
-        final notifier = ref.read(
-          klineCtrlProvider(KlineCtrlParams(shareCode: klineCtrlState.shareCode)).notifier,
-        );
-        if (size.width != klineCtrlState.klineCtrlWidth ||
-            size.height != klineCtrlState.klineCtrlHeight) {
+        final notifier = ref.read(klineCtrlProvider.notifier);
+        if (size.width != state.klineCtrlWidth || size.height != state.klineCtrlHeight) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             notifier.updateLayoutSize(size);
           });
         }
         // 第一次初始化的时候只显示背景
-        if (klineCtrlState.klineCtrlWidth == 0 || klineCtrlState.klineCtrlHeight == 0) {
+        if (state.klineCtrlWidth == 0 || state.klineCtrlHeight == 0 || state.klines.isEmpty) {
           return Container(
             width: size.width,
             height: size.height,
@@ -139,26 +136,21 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        _buildKlineName(klineCtrlState.share!.name),
-                        _buildKlineTypeTabs(),
-                      ],
-                    ),
+                    Row(children: [_buildKlineName(state.share!.name), _buildKlineTypeTabs()]),
                     // 自选按钮
-                    _buildFavoriteButton(klineCtrlState, stockColors),
+                    _buildFavoriteButton(state, stockColors),
                   ],
                 ),
                 // K线主图
-                KlineChart(stockColors: stockColors, shareCode: klineCtrlState.shareCode),
+                KlineChart(stockColors: stockColors, shareCode: state.shareCode),
                 // 技术指标图
-                ..._buildIndicators(context, klineCtrlState, stockColors),
+                ..._buildIndicators(context, state, stockColors),
               ],
             ),
             // 十字线
             Positioned(
-              left: klineCtrlState.klineChartLeftMargin,
-              top: klineCtrlState.klineCtrlTitleBarHeight * 2 - KlineCtrlLayout.titleBarMargin,
+              left: state.klineChartLeftMargin,
+              top: state.klineCtrlTitleBarHeight * 2 - KlineCtrlLayout.titleBarMargin,
               child: CrossLineChart(stockColors: stockColors),
             ),
           ],
@@ -255,19 +247,15 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
   /// 切换股票类别
   void _onKlineTypeChanged(String value) async {
     final klineType = klineTypeMap[value]!;
-    final shareCode = ref.read(currentShareCodeProvider);
-    ref
-        .read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).notifier)
-        .changeKlineType(klineType);
+    ref.read(klineCtrlProvider.notifier).changeKlineType(klineType);
   }
 
   // 键盘上/下/左/右/Escape/Home/End功能键 事件响应
   KeyEventResult _onKeyEvent(FocusNode focusNode, KeyEvent event) {
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
       // 提前获取 notifier 和 state，避免重复读取
-      final shareCode = ref.read(currentShareCodeProvider);
-      final notifier = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).notifier);
-      final state = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)));
+      final notifier = ref.read(klineCtrlProvider.notifier);
+      final state = ref.read(klineCtrlProvider);
       switch (event.logicalKey) {
         case LogicalKeyboardKey.arrowLeft:
           notifier.keyDownArrowLeft();
@@ -318,9 +306,8 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     final RenderBox box = context.findRenderObject() as RenderBox;
     final localPosition = box.globalToLocal(details.globalPosition);
     // 计算点击的K线索引
-    final shareCode = ref.read(currentShareCodeProvider);
     ref
-        .read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).notifier)
+        .read(klineCtrlProvider.notifier)
         .updateCrossLine(mode: CrossLineMode.followCursor, pos: localPosition);
   }
 
@@ -331,10 +318,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
 
   // 鼠标移动的时候需要动态绘制十字光标
   void _onMouseMove(Offset localPosition) {
-    final shareCode = ref.read(currentShareCodeProvider);
-    ref
-        .read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).notifier)
-        .updateCrossLine(pos: localPosition);
+    ref.read(klineCtrlProvider.notifier).updateCrossLine(pos: localPosition);
   }
 
   // 鼠标滚轮事件处理,可以用来切换股票

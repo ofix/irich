@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 import 'package:irich/components/desktop_app_buttons.dart';
 import 'package:irich/components/share_search_panel.dart';
 import 'package:irich/global/stock.dart';
@@ -51,7 +50,7 @@ class DesktopAppBar extends ConsumerWidget implements PreferredSizeWidget {
     final url = router.routerDelegate.currentConfiguration.uri.path;
     // 如果当前不是股票详情页面，则跳转，否则会出现重复刷新的问题
     if (!url.startsWith('/share')) {
-      router.push('/share/${share.code}');
+      router.push('/share');
     }
   }
 

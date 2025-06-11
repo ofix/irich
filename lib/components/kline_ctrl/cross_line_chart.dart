@@ -12,7 +12,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/components/kline_ctrl/cross_line_painter.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/store/provider_kline_ctrl.dart';
-import 'package:irich/store/state_quote.dart';
 import 'package:irich/theme/stock_colors.dart';
 
 class CrossLineChart extends ConsumerWidget {
@@ -21,9 +20,8 @@ class CrossLineChart extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final shareCode = ref.watch(currentShareCodeProvider);
     ref.watch(
-      klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).select(
+      klineCtrlProvider.select(
         (state) => (
           state.crossLineMode,
           state.crossLineFollowCursorPos,
@@ -31,7 +29,7 @@ class CrossLineChart extends ConsumerWidget {
         ),
       ),
     );
-    final klineCtrlState = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)));
+    final klineCtrlState = ref.read(klineCtrlProvider);
     return SizedBox(
       width: klineCtrlState.klineChartWidth,
       height:

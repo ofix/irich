@@ -17,6 +17,7 @@ import 'package:irich/formula/formula_macd.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/store_klines.dart';
+import 'package:irich/store/store_quote.dart';
 import 'package:irich/utils/rich_result.dart';
 
 class KlineCtrlParams {
@@ -37,7 +38,7 @@ class KlineCtrlParams {
   int get hashCode => shareCode.hashCode;
 }
 
-final klineCtrlProvider =
+final klineCtrlMultiProviders =
     StateNotifierProvider.family<KlineCtrlNotifier, KlineCtrlState, KlineCtrlParams>((ref, params) {
       final notifier = KlineCtrlNotifier(
         shareCode: params.shareCode,
@@ -49,14 +50,25 @@ final klineCtrlProvider =
       if (currentCode != "") {
         notifier.changeShareCode(currentCode);
       }
-
-      // 监听全局股票代码变化
-      ref.listen<String>(
-        currentShareCodeProvider,
-        (_, newCode) => notifier.changeShareCode(newCode),
-      );
       return notifier;
     });
+
+final klineCtrlProvider = StateNotifierProvider<KlineCtrlNotifier, KlineCtrlState>((ref) {
+  final notifier = KlineCtrlNotifier(
+    shareCode: "",
+    wndMode: KlineWndMode.full,
+    klineType: KlineType.day,
+  );
+  // ✅ 关键修复：主动获取当前值并同步
+  final currentCode = ref.read(currentShareCodeProvider);
+  if (currentCode != "") {
+    notifier.changeShareCode(currentCode);
+  }
+
+  // 监听全局股票代码变化
+  ref.listen<String>(currentShareCodeProvider, (_, newCode) => notifier.changeShareCode(newCode));
+  return notifier;
+});
 
 class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
   // 技术指标映射关系图
@@ -85,42 +97,68 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
 
   // 切换股票代码的时候需要重新初始化
   void changeShareCode(String shareCode) async {
-    // 更新股票
-    // Share? share = StoreQuote.query(shareCode);
+    debugPrint("############### changeShareCode ##################");
+    Share? share = StoreQuote.query(shareCode);
+    // 更新股票K线数据
     RichResult result = await _queryKlines(storeKlines, shareCode, state.klineType);
     if (!result.ok()) {
       return;
     }
-    final klineRng = _initKlineRng(state.klines);
-    final visibleKlineCount = klineRng.end - klineRng.begin + 1;
-
-    double klineStep = _calcVisibleKlineStep(visibleKlineCount);
-    double klineWidth = _calcVisibleKlineWidth(klineStep);
-
-    // 先初始化EMA曲线和EMA价格
-    if (state.emaCurves.isEmpty) {
-      for (final setting in state.emaCurveSettings) {
-        addEmaCurve(setting.period, setting.color);
-      }
-    } else {
-      updateAllEmaCurves();
-    }
     // 初始化技术指标附图
     List<UiIndicator> indicators = _initIndicators(state.klineType);
+    // 初始化子控件宽高
+    double ratio = 1;
+    if (indicators.length <= 4) {
+      ratio = chartHeightMap[indicators.length]!;
+    }
+    final klineChartWidth =
+        state.klineCtrlWidth - state.klineChartLeftMargin - state.klineChartRightMargin;
+    final klineChartHeight = _getKlineChartHeight(state.klineCtrlHeight, state.klineType, ratio);
+    final indicatorChartHeight = _getIndicatorChartHeight(
+      state.klineCtrlHeight,
+      state.klineType,
+      ratio,
+      indicators.length,
+    );
+    final klineRng = _initKlineRng(state.klines);
+    final visibleKlineCount = klineRng.end - klineRng.begin + 1;
+    double klineStep = _calcVisibleKlineStep(visibleKlineCount, klineChartWidth);
+    double klineWidth = _calcVisibleKlineWidth(klineStep);
+    // 先初始化EMA曲线和EMA价格
+    List<ShareEmaCurve> emaCurves = [];
+    for (final setting in state.emaCurveSettings) {
+      final curve = _initEmaCurve(setting.period, setting.color, state.klines);
+      emaCurves.add(curve);
+    }
     // 填充技术指标数据
     _calcIndicators(indicators, state.klines);
     // 初始化可见范围最高价/最低价
     final (klineRngMinPrice, klineRngMaxPrice) = _calcKlineRngMinMaxPrice(
       klineRng,
       state.klines,
-      state.emaCurves,
+      emaCurves,
     );
-
+    debugPrint("++++++++++++++++++++++++++++++++++++++++++++");
+    debugPrint("klineChartWidth = $klineChartWidth");
+    debugPrint("klineChartHeight = $klineChartHeight");
+    debugPrint("indicatorChartHeight = $indicatorChartHeight");
+    debugPrint("klineRng = $klineRng");
+    debugPrint("klineStep = $klineStep");
+    debugPrint("klineWidth = $klineWidth");
+    debugPrint("emaCurves.length = ${emaCurves.length}");
+    debugPrint("klineRngMinPrice = $klineRngMinPrice");
+    debugPrint("klineRngMaxPrice = $klineRngMaxPrice");
+    debugPrint("++++++++++++++++++++++++++++++++++++++++++++");
     state = state.copyWith(
+      share: share,
+      klineChartWidth: klineChartWidth,
+      klineChartHeight: klineChartHeight,
+      indicatorChartHeight: indicatorChartHeight,
       klineRng: klineRng,
       visibleKlineCount: visibleKlineCount,
       klineStep: klineStep,
       klineWidth: klineWidth,
+      emaCurves: emaCurves,
       indicators: indicators,
       dynamicIndicators: indicators,
       klineRngMinPrice: klineRngMinPrice,
@@ -140,23 +178,35 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     }
 
     return switch (type) {
-      KlineType.day => handleQuery<UiKline>(store.queryDayKlines, (v) => state.klines = v),
-      KlineType.week => handleQuery<UiKline>(store.queryWeekKlines, (v) => state.klines = v),
-      KlineType.month => handleQuery<UiKline>(store.queryMonthKlines, (v) => state.klines = v),
-      KlineType.quarter => handleQuery<UiKline>(store.queryQuarterKlines, (v) => state.klines = v),
-      KlineType.year => handleQuery<UiKline>(store.queryYearKlines, (v) => state.klines = v),
-      KlineType.minute => handleQuery<MinuteKline>(
-        store.queryMinuteKlines,
-        (v) => state.minuteKlines = v,
-      ),
-      KlineType.fiveDay => handleQuery<MinuteKline>(
-        store.queryFiveDayMinuteKlines,
-        (v) => state.fiveDayMinuteKlines = v,
-      ),
+      KlineType.day => handleQuery<UiKline>(store.queryDayKlines, (v) {
+        state = state.copyWith(klines: v);
+      }),
+      KlineType.week => handleQuery<UiKline>(store.queryWeekKlines, (v) {
+        state = state.copyWith(klines: v);
+      }),
+      KlineType.month => handleQuery<UiKline>(store.queryMonthKlines, (v) {
+        state = state.copyWith(klines: v);
+      }),
+      KlineType.quarter => handleQuery<UiKline>(store.queryQuarterKlines, (v) {
+        state = state.copyWith(klines: v);
+      }),
+      KlineType.year => handleQuery<UiKline>(store.queryYearKlines, (v) {
+        state = state.copyWith(klines: v);
+      }),
+      KlineType.minute => handleQuery<MinuteKline>(store.queryMinuteKlines, (v) {
+        state = state.copyWith(minuteKlines: v);
+      }),
+
+      KlineType.fiveDay => handleQuery<MinuteKline>(store.queryFiveDayMinuteKlines, (v) {
+        state = state.copyWith(fiveDayMinuteKlines: v);
+      }),
     };
   }
 
-  void changeKlineType(KlineType type) {}
+  void changeKlineType(KlineType type) {
+    state = state.copyWith(klineType: type);
+    changeShareCode(state.shareCode);
+  }
 
   // 切换K线类别的时候，需要重新计算EMA曲线价格
   void updateAllEmaCurves() {
@@ -171,6 +221,17 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
       newCurve.emaPrice = FormulaEma.calc(state.klines, curve.period);
     }
     state = state.copyWith(emaCurves: emaCurves);
+  }
+
+  ShareEmaCurve _initEmaCurve(int period, Color color, List<UiKline> klines) {
+    final emaValues = FormulaEma.calc(klines, period);
+    // 3. 创建新曲线（使用const构造器如果可能）
+    return ShareEmaCurve(
+      color: color,
+      period: period,
+      visible: true,
+      emaPrice: emaValues, // 直接初始化避免二次赋值
+    );
   }
 
   // 添加EMA曲线
@@ -229,28 +290,31 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
   }
 
   // EMA曲线显示或隐藏
-  bool toggleEmaCurve(int period) {
-    final curves = state.emaCurves;
-    bool bSuccess = false;
-    for (final curve in curves) {
-      if (curve.period == period) {
-        curve.visible = !curve.visible;
-        bSuccess = true;
-      }
-    }
-    if (bSuccess) {
-      final (klineRngMinPrice, klineRngMaxPrice) = _calcKlineRngMinMaxPrice(
-        state.klineRng,
-        state.klines,
-        state.emaCurves,
-      );
-      state = state.copyWith(
-        emaCurves: curves,
-        klineRngMinPrice: klineRngMinPrice,
-        klineRngMaxPrice: klineRngMaxPrice,
-      );
-    }
-    return bSuccess;
+  void toggleEmaCurve(int period) {
+    // 1. 创建新的 ShareEmaCurve 列表（确保每个修改的元素是新对象）
+    final newCurves =
+        state.emaCurves.map((curve) {
+          if (curve.period == period) {
+            return curve.copyWith(
+              visible: !curve.visible,
+            ); // ShareEmaCurve 必须是不可变的,否则RiverPod 无法检测改变
+          }
+          return curve; // 未修改的元素可以直接复用（无需新引用）
+        }).toList(); // 转换为新列表
+
+    // 2. 计算价格范围（使用更新后的 newCurves）
+    final (klineRngMinPrice, klineRngMaxPrice) = _calcKlineRngMinMaxPrice(
+      state.klineRng,
+      state.klines,
+      newCurves,
+    );
+
+    // 3. 更新状态（确保所有层级都是新引用）
+    state = state.copyWith(
+      emaCurves: newCurves, // 新列表
+      klineRngMinPrice: klineRngMinPrice,
+      klineRngMaxPrice: klineRngMaxPrice,
+    );
   }
 
   // 添加技术指标
@@ -264,14 +328,20 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     if (state.indicators.length <= 4) {
       ratio = chartHeightMap[state.indicators.length]!;
     }
-    double klineStep = _calcVisibleKlineStep(state.visibleKlineCount);
+    final klineChartWidth = size.width - state.klineChartLeftMargin - state.klineChartRightMargin;
+    double klineStep = _calcVisibleKlineStep(state.visibleKlineCount, klineChartWidth);
     double klineWidth = _calcVisibleKlineWidth(klineStep);
     state = state.copyWith(
       klineCtrlWidth: size.width,
       klineCtrlHeight: size.height,
-      klineChartWidth: size.width - state.klineChartLeftMargin - state.klineChartRightMargin,
+      klineChartWidth: klineChartWidth,
       klineChartHeight: _getKlineChartHeight(size.height, state.klineType, ratio),
-      indicatorChartHeight: _getIndicatorChartHeight(size.height, state.klineType, ratio),
+      indicatorChartHeight: _getIndicatorChartHeight(
+        size.height,
+        state.klineType,
+        ratio,
+        state.indicators.length,
+      ),
       klineStep: klineStep,
       klineWidth: klineWidth,
     );
@@ -414,7 +484,8 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     if (klineRng.end > state.klines.length - 1) {
       klineRng.end = state.klines.length - 1;
     }
-    double klineStep = _calcVisibleKlineStep(state.visibleKlineCount);
+    int visibleKlineCount = klineRng.end - klineRng.begin + 1;
+    double klineStep = _calcVisibleKlineStep(visibleKlineCount, state.klineChartWidth);
     double klineWidth = _calcVisibleKlineWidth(klineStep);
     final (klineRngMinPrice, klineRngMaxPrice) = _calcKlineRngMinMaxPrice(
       klineRng,
@@ -423,7 +494,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     );
     state = state.copyWith(
       klineRng: klineRng,
-      visibleKlineCount: klineRng.end - klineRng.begin + 1,
+      visibleKlineCount: visibleKlineCount,
       crossLineFollowKlineIndex: crossLineFollowKlineIndex,
       crossLineMode: CrossLineMode.followKline,
       klineStep: klineStep,
@@ -458,6 +529,8 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
       double klineStep = state.klineChartWidth / state.visibleKlineCount * 0.85;
       int klineWidth = (state.klineStep * 0.8).floor();
       klineWidth = _ensureKlineWidth(klineStep, klineWidth);
+      klineRng.begin = 0;
+      klineRng.end = state.klines.length - 1;
       final (klineRngMinPrice, klineRngMaxPrice) = _calcKlineRngMinMaxPrice(
         klineRng,
         state.klines,
@@ -488,7 +561,8 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     if (klineRng.end > state.klines.length - 1) {
       klineRng.end = state.klines.length - 1;
     }
-    double klineStep = _calcVisibleKlineStep(state.visibleKlineCount);
+    int visibleKlineCount = klineRng.end - klineRng.begin + 1;
+    double klineStep = _calcVisibleKlineStep(visibleKlineCount, state.klineChartWidth);
     double klineWidth = _calcVisibleKlineWidth(klineStep);
     final (klineRngMinPrice, klineRngMaxPrice) = _calcKlineRngMinMaxPrice(
       klineRng,
@@ -497,7 +571,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     );
     state = state.copyWith(
       klineRng: klineRng,
-      visibleKlineCount: klineRng.end - klineRng.begin + 1,
+      visibleKlineCount: visibleKlineCount,
       crossLineFollowKlineIndex: crossLineFollowKlineIndex,
       crossLineMode: CrossLineMode.followKline,
       klineStep: klineStep,
@@ -606,17 +680,17 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     switch (type) {
       case UiIndicatorType.macd:
         {
-          state.macd = value;
+          state = state.copyWith(macd: value);
           break;
         }
       case UiIndicatorType.kdj:
         {
-          state.kdj = value;
+          state = state.copyWith(kdj: value);
           break;
         }
       case UiIndicatorType.boll:
         {
-          state.boll = value;
+          state = state.copyWith(boll: value);
           break;
         }
       default:
@@ -624,12 +698,8 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     }
   }
 
-  double _calcVisibleKlineStep(int visibleKlineCount) {
-    Size size = Size(state.klineChartWidth, state.klineChartHeight);
-    if (state.klines.isEmpty) {
-      return 1;
-    }
-    double klineStep = size.width / visibleKlineCount;
+  double _calcVisibleKlineStep(int visibleKlineCount, double klineChartWidth) {
+    double klineStep = klineChartWidth / visibleKlineCount;
     return klineStep;
   }
 
@@ -643,15 +713,21 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     if (!klineType.isMinuteType) {
       height = height - state.klineCtrlTitleBarHeight + KlineCtrlLayout.titleBarMargin;
     }
+    debugPrint("klineChart height: $height  &  ratio: $ratio");
     return (height * ratio).floorToDouble();
   }
 
-  double _getIndicatorChartHeight(double height, KlineType klineType, double ratio) {
+  double _getIndicatorChartHeight(
+    double height,
+    KlineType klineType,
+    double ratio,
+    int indicatorCount,
+  ) {
     height = height - state.klineCtrlTitleBarHeight;
     if (!klineType.isMinuteType) {
       height = height - state.klineCtrlTitleBarHeight + KlineCtrlLayout.titleBarMargin;
     }
-    double scaleIndicator = (1 - ratio) / state.indicators.length;
-    return state.indicators.isEmpty ? 0 : height * scaleIndicator;
+    double scaleIndicator = (1 - ratio) / indicatorCount;
+    return indicatorCount == 0 ? 0 : height * scaleIndicator;
   }
 }

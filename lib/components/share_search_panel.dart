@@ -112,7 +112,7 @@ class _ShareSearchPanelContent extends ConsumerWidget {
     final url = router.routerDelegate.currentConfiguration.uri.path;
     // 如果当前不是股票详情页面，则跳转，否则会出现重复刷新的问题
     if (!url.startsWith('/share')) {
-      router.push('/share/${share.code}');
+      router.push('/share');
     }
   }
 

@@ -32,16 +32,20 @@ class _KlineChartState extends ConsumerState<KlineChart> {
   @override
   Widget build(BuildContext context) {
     ref.watch(
-      klineCtrlProvider(KlineCtrlParams(shareCode: widget.shareCode)).select(
+      klineCtrlProvider.select(
         (state) => (
           state.klineChartWidth,
           state.klineRng.begin,
           state.klineRng.end,
           state.klineWidth,
+          state.klineRngMinPrice,
+          state.klineRngMaxPrice,
+          state.emaCurves,
+          state.klineType,
         ),
       ),
     );
-    final state = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: widget.shareCode)));
+    final state = ref.read(klineCtrlProvider);
     return Container(
       width: state.klineCtrlWidth,
       height: state.klineType.isMinuteType ? state.klineChartHeight : state.klineChartHeight + 22,
@@ -107,9 +111,7 @@ class _KlineChartState extends ConsumerState<KlineChart> {
       height: KlineCtrlLayout.titleBarHeight,
       onChanged: (key, option, allOptions) {
         int period = int.parse(key.substring(3));
-        ref
-            .read(klineCtrlProvider(KlineCtrlParams(shareCode: widget.shareCode)).notifier)
-            .toggleEmaCurve(period);
+        ref.read(klineCtrlProvider.notifier).toggleEmaCurve(period);
         emaCurveChanged++;
       },
     );
