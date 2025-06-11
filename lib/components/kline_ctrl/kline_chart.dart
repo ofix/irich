@@ -12,22 +12,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_painter.dart';
 import 'package:irich/components/rich_checkbox_button_group.dart';
-import 'package:irich/global/stock.dart';
-import 'package:irich/store/state_kline_ctrl.dart';
+import 'package:irich/store/provider_kline_ctrl.dart';
 import 'package:irich/theme/stock_colors.dart';
 
 typedef OnToggleEmaCurve = void Function(int period);
 
 class KlineChart extends ConsumerStatefulWidget {
-  final KlineCtrlState klineCtrlState;
   final StockColors stockColors;
-  final Share share;
-  const KlineChart({
-    super.key,
-    required this.klineCtrlState,
-    required this.stockColors,
-    required this.share,
-  });
+  final String shareCode;
+  const KlineChart({super.key, required this.stockColors, required this.shareCode});
 
   @override
   ConsumerState<KlineChart> createState() => _KlineChartState();
@@ -38,7 +31,12 @@ class _KlineChartState extends ConsumerState<KlineChart> {
   int emaCurveChanged = 0;
   @override
   Widget build(BuildContext context) {
-    final state = widget.klineCtrlState;
+    ref.watch(
+      klineCtrlProvider(
+        KlineCtrlParams(shareCode: widget.shareCode),
+      ).select((state) => (state.klineChartWidth, state.klineRng)),
+    );
+    final state = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: widget.shareCode)));
     return Container(
       width: state.klineCtrlWidth,
       height: state.klineType.isMinuteType ? state.klineChartHeight : state.klineChartHeight + 22,
@@ -59,7 +57,7 @@ class _KlineChartState extends ConsumerState<KlineChart> {
                   child: CustomPaint(
                     size: Size(state.klineCtrlWidth, state.klineChartHeight),
                     painter: KlinePainter(
-                      share: widget.share,
+                      share: state.share!,
                       klineChartWidth: state.klineChartWidth,
                       klineChartHeight: state.klineChartHeight,
                       klineChartLeftMargin: state.klineChartLeftMargin,
@@ -104,7 +102,9 @@ class _KlineChartState extends ConsumerState<KlineChart> {
       height: KlineCtrlLayout.titleBarHeight,
       onChanged: (key, option, allOptions) {
         int period = int.parse(key.substring(3));
-        ref.read(klineCtrlProvider.notifier).toggleEmaCurve(period);
+        ref
+            .read(klineCtrlProvider(KlineCtrlParams(shareCode: widget.shareCode)).notifier)
+            .toggleEmaCurve(period);
         emaCurveChanged++;
       },
     );

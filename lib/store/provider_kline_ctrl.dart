@@ -2,7 +2,7 @@
 // Name:        irich/lib/store/state_kline_ctrl.dart
 // Purpose:     kline ctrl provider
 // Author:      songhuabiao
-// Created:     2025-06-10 20:30
+// Created:     2025-06-11 20:30
 // Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
@@ -19,14 +19,44 @@ import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/store_klines.dart';
 import 'package:irich/utils/rich_result.dart';
 
-final klineCtrlProvider = StateNotifierProvider<KlineCtrlNotifier, KlineCtrlState>((ref) {
-  final notifier = KlineCtrlNotifier();
-  // 监听股票代码变化，自动触发更新
-  ref.listen<String>(currentShareCodeProvider, (_, newCode) {
-    if (newCode.isNotEmpty) notifier.changeShareCode(newCode);
+class KlineCtrlParams {
+  final String shareCode;
+  final KlineWndMode wndMode;
+  final KlineType klineType;
+
+  KlineCtrlParams({
+    required this.shareCode,
+    this.wndMode = KlineWndMode.full, // 类内定义默认值
+    this.klineType = KlineType.day,
   });
-  return notifier;
-});
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || (other is KlineCtrlParams && shareCode == other.shareCode);
+
+  @override
+  int get hashCode => shareCode.hashCode;
+}
+
+final klineCtrlProvider =
+    StateNotifierProvider.family<KlineCtrlNotifier, KlineCtrlState, KlineCtrlParams>((ref, params) {
+      final notifier = KlineCtrlNotifier(
+        shareCode: params.shareCode,
+        wndMode: params.wndMode,
+        klineType: params.klineType,
+      );
+      // ✅ 关键修复：主动获取当前值并同步
+      final currentCode = ref.read(currentShareCodeProvider);
+      if (currentCode != "") {
+        notifier.changeShareCode(currentCode);
+      }
+
+      // 监听全局股票代码变化
+      ref.listen<String>(
+        currentShareCodeProvider,
+        (_, newCode) => notifier.changeShareCode(newCode),
+      );
+      return notifier;
+    });
 
 class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
   // 技术指标映射关系图
@@ -47,7 +77,11 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
 
   StoreKlines storeKlines = StoreKlines();
 
-  KlineCtrlNotifier() : super(KlineCtrlState(klineType: KlineType.day));
+  KlineCtrlNotifier({
+    required String shareCode,
+    KlineWndMode wndMode = KlineWndMode.full,
+    KlineType klineType = KlineType.day,
+  }) : super(KlineCtrlState(shareCode: shareCode, wndMode: wndMode, klineType: klineType));
 
   // 切换股票代码的时候需要重新初始化
   void changeShareCode(String shareCode) async {

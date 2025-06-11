@@ -9,11 +9,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/store/store_quote.dart';
 
 enum CrossLineMode {
   none, // 不显示
   followCursor, // 跟随光标
   followKline, // 跟随K线
+}
+
+enum KlineWndMode {
+  full, // 全功能界面
+  mini, // 迷你模式
 }
 
 class ColorText {
@@ -56,6 +62,8 @@ const defaultEmaCurveSettings = [
 
 // K线组件核心类
 class KlineCtrlState {
+  KlineWndMode wndMode; // 窗口模式
+  String shareCode; // 股票代码
   Share? share; // 股票
   KlineType klineType = KlineType.day; // 当前绘制的K线类型
   List<UiKline> klines; // 前复权日K线数据
@@ -92,30 +100,33 @@ class KlineCtrlState {
   double indicatorChartTitleBarHeight; // 指标附图标题栏高度
 
   KlineCtrlState({
+    required this.shareCode,
     required this.klineType, // 日/周/月/季/年 k线参数
+    Share? share,
     List<UiKline>? klines,
     List<MinuteKline>? minuteKlines,
     List<MinuteKline>? fiveDayMinuteKlines,
     UiKlineRange? klineRng,
-    this.klineRngMinPrice = double.infinity,
-    this.klineRngMaxPrice = double.negativeInfinity,
     List<ShareEmaCurve>? emaCurves, // EMA曲线数据
     List<UiIndicator>? indicators, // 副图指标数据
     List<UiIndicator>? dynamicIndicators,
     Map<String, List<double>>? kdj,
     Map<String, List<double>>? macd,
     Map<String, List<double>>? boll,
+    this.wndMode = KlineWndMode.full,
+    this.klineRngMinPrice = double.infinity,
+    this.klineRngMaxPrice = double.negativeInfinity,
     this.crossLineMode = CrossLineMode.none, // 十字线参数
     this.crossLineFollowKlineIndex = -1,
     this.crossLineFollowCursorPos = const Offset(-1, -1),
     this.klineStep = 17, // 布局参数
     this.klineWidth = 15,
     this.visibleKlineCount = 120,
-    this.klineCtrlWidth = 1200,
-    this.klineCtrlHeight = 800,
+    this.klineCtrlWidth = 0,
+    this.klineCtrlHeight = 0,
     this.klineCtrlTitleBarHeight = 32,
-    this.klineChartWidth = 800,
-    this.klineChartHeight = 600,
+    this.klineChartWidth = 0,
+    this.klineChartHeight = 0,
     this.klineChartLeftMargin = KlineCtrlLayout.klineChartLeftMargin,
     this.klineChartRightMargin = KlineCtrlLayout.klineChartRightMargin,
     this.indicatorChartHeight = 80,
@@ -131,10 +142,14 @@ class KlineCtrlState {
        boll = boll ?? {},
        indicators = indicators ?? [],
        dynamicIndicators = dynamicIndicators ?? [],
+       share = share ?? StoreQuote.query(shareCode),
        emaCurveSettings = defaultEmaCurveSettings;
 
   // 深拷贝方法（可选）
   KlineCtrlState copyWith({
+    String? shareCode,
+    Share? share,
+    KlineWndMode? wndMode,
     KlineType? klineType,
     List<UiKline>? klines,
     List<MinuteKline>? minuteKlines,
@@ -167,6 +182,9 @@ class KlineCtrlState {
     List<EmaCurveSetting>? emaCurveSettings,
   }) {
     return KlineCtrlState(
+      wndMode: wndMode ?? this.wndMode,
+      shareCode: shareCode ?? this.shareCode,
+      share: share ?? this.share,
       klineType: klineType ?? this.klineType,
       klines: klines ?? this.klines,
       minuteKlines: minuteKlines ?? this.minuteKlines,
@@ -197,6 +215,44 @@ class KlineCtrlState {
       indicatorChartTitleBarHeight:
           indicatorChartTitleBarHeight ?? this.indicatorChartTitleBarHeight,
       emaCurveSettings: emaCurveSettings ?? this.emaCurveSettings,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is KlineCtrlState &&
+        other.wndMode == wndMode &&
+        other.shareCode == shareCode &&
+        other.klineType == klineType &&
+        other.emaCurveSettings == emaCurveSettings &&
+        other.crossLineMode == crossLineMode &&
+        other.crossLineFollowCursorPos == crossLineFollowCursorPos &&
+        other.crossLineFollowKlineIndex == crossLineFollowKlineIndex &&
+        other.klineRng.begin == klineRng.begin &&
+        other.klineRng.end == klineRng.end &&
+        other.klineCtrlWidth == klineCtrlWidth &&
+        other.klineCtrlHeight == klineCtrlHeight &&
+        other.klineChartWidth == klineChartWidth &&
+        other.klineChartHeight == klineChartHeight;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      wndMode,
+      shareCode,
+      klineType,
+      emaCurveSettings,
+      crossLineMode,
+      crossLineFollowCursorPos,
+      crossLineFollowKlineIndex,
+      klineRng.begin, // 直接取范围值
+      klineRng.end,
+      klineCtrlWidth,
+      klineCtrlHeight,
+      klineChartWidth,
+      klineChartHeight,
     );
   }
 }

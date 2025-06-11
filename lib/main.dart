@@ -14,6 +14,7 @@ import 'package:irich/components/share_search_panel.dart';
 import 'package:irich/router/router_provider.dart';
 import 'package:irich/service/sql_service.dart';
 import 'package:irich/service/trading_calendar.dart';
+import 'package:irich/store/provider_debug.dart';
 import 'package:irich/store/state_share_search.dart';
 import 'package:irich/theme/app_theme.dart';
 import 'package:irich/utils/file_tool.dart';
@@ -33,7 +34,7 @@ void main() async {
   await hideOriginTitleBar();
   // 最大化窗口
   await maximizeWnd();
-  runApp(ProviderScope(child: RichApp()));
+  runApp(ProviderScope(observers: [RichProviderObserver()], child: RichApp()));
   // 注册全局键盘监听回调
   // registerGlobalKeyEventListener();
 }

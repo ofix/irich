@@ -8,17 +8,30 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/components/kline_ctrl/cross_line_painter.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
+import 'package:irich/store/provider_kline_ctrl.dart';
+import 'package:irich/store/state_quote.dart';
 import 'package:irich/theme/stock_colors.dart';
 
-class CrossLineChart extends StatelessWidget {
-  final KlineCtrlState klineCtrlState;
+class CrossLineChart extends ConsumerWidget {
   final StockColors stockColors;
-  const CrossLineChart({super.key, required this.klineCtrlState, required this.stockColors});
+  const CrossLineChart({super.key, required this.stockColors});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shareCode = ref.watch(currentShareCodeProvider);
+    ref.watch(
+      klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).select(
+        (state) => (
+          state.crossLineMode,
+          state.crossLineFollowCursorPos,
+          state.crossLineFollowKlineIndex,
+        ),
+      ),
+    );
+    final klineCtrlState = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)));
     return SizedBox(
       width: klineCtrlState.klineChartWidth,
       height:

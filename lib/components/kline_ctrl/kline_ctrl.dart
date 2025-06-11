@@ -23,8 +23,9 @@ import 'package:irich/components/kline_ctrl/cross_line_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/rich_radio_button_group.dart';
-import 'package:irich/store/state_kline_ctrl.dart';
+import 'package:irich/store/provider_kline_ctrl.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/theme/stock_colors.dart';
 
@@ -45,14 +46,10 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     '季K': KlineType.quarter,
     '年K': KlineType.year,
   };
-  late KlineCtrlState klineCtrlState;
-  Share? share;
   late final FocusNode _focusNode;
-
   @override
   void initState() {
     super.initState();
-    klineCtrlState = KlineCtrlState(klineType: KlineType.day);
     _focusNode = FocusNode();
     _focusNode.requestFocus();
   }
@@ -82,12 +79,18 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
       };
 
   // 加载K线数据
-
   @override
   Widget build(BuildContext context) {
     // final shareCode = ref.watch(currentShareCodeProvider);
     // final parentWidth = MediaQuery.of(context).size.width; 此方法获取的是屏幕宽度
+    final shareCode = ref.watch(currentShareCodeProvider);
     final stockColors = Theme.of(context).extension<StockColors>()!;
+    ref.watch(
+      klineCtrlProvider(
+        KlineCtrlParams(shareCode: shareCode),
+      ).select((s) => (s.klineCtrlWidth, s.klineCtrlHeight)),
+    );
+    final klineCtrlState = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)));
     return Focus(
       autofocus: true,
       focusNode: _focusNode,
@@ -96,17 +99,37 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
         onHover: _onPointerHover, // 解决Listerner的onPointerHover方法无法触发鼠标移动的bug
         child: Listener(
           onPointerSignal: _onMouseScroll,
-          child: GestureDetector(onTapDown: _onTapDown, child: buildKlineCtrl(stockColors)),
+          child: GestureDetector(
+            onTapDown: _onTapDown,
+            child: buildKlineCtrl(stockColors, klineCtrlState),
+          ),
         ),
       ),
     );
   }
 
-  Widget buildKlineCtrl(StockColors stockColors) {
+  Widget buildKlineCtrl(StockColors stockColors, KlineCtrlState klineCtrlState) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         // final parentWidth = constraints.maxWidth; // 父容器可用宽度
-        // Size size = Size(constraints.maxWidth, constraints.maxHeight);
+        Size size = Size(constraints.maxWidth, constraints.maxHeight);
+        final notifier = ref.read(
+          klineCtrlProvider(KlineCtrlParams(shareCode: klineCtrlState.shareCode)).notifier,
+        );
+        if (size.width != klineCtrlState.klineCtrlWidth ||
+            size.height != klineCtrlState.klineCtrlHeight) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            notifier.updateLayoutSize(size);
+          });
+        }
+        // 第一次初始化的时候只显示背景
+        if (klineCtrlState.klineCtrlWidth == 0 || klineCtrlState.klineCtrlHeight == 0) {
+          return Container(
+            width: size.width,
+            height: size.height,
+            color: const Color.fromARGB(255, 24, 24, 24),
+          );
+        }
         // updateSize(size); // 计算K线图宽高,当前显示的K线图范围
         return Stack(
           children: [
@@ -116,13 +139,18 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(children: [_buildKlineName(), _buildKlineTypeTabs()]),
+                    Row(
+                      children: [
+                        _buildKlineName(klineCtrlState.share!.name),
+                        _buildKlineTypeTabs(),
+                      ],
+                    ),
                     // 自选按钮
-                    _buildFavoriteButton(klineCtrlState.share!.isFavorite, stockColors),
+                    _buildFavoriteButton(klineCtrlState, stockColors),
                   ],
                 ),
                 // K线主图
-                KlineChart(klineCtrlState: klineCtrlState, stockColors: stockColors, share: share!),
+                KlineChart(stockColors: stockColors, shareCode: klineCtrlState.shareCode),
                 // 技术指标图
                 ..._buildIndicators(context, klineCtrlState, stockColors),
               ],
@@ -131,7 +159,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
             Positioned(
               left: klineCtrlState.klineChartLeftMargin,
               top: klineCtrlState.klineCtrlTitleBarHeight * 2 - KlineCtrlLayout.titleBarMargin,
-              child: CrossLineChart(klineCtrlState: klineCtrlState, stockColors: stockColors),
+              child: CrossLineChart(stockColors: stockColors),
             ),
           ],
         );
@@ -140,11 +168,11 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
   }
 
   /// 股票名称组件
-  Widget _buildKlineName() {
+  Widget _buildKlineName(String shareName) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 8), // 左右各16像素
       child: Text(
-        share!.name,
+        shareName,
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.bold,
@@ -167,7 +195,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
   }
 
   // 自选按钮组件
-  Widget _buildFavoriteButton(bool isFavorite, StockColors stockColors) {
+  Widget _buildFavoriteButton(KlineCtrlState klineState, StockColors stockColors) {
     return // 自选按钮
     MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -175,7 +203,11 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
         onTap: _onToggleFavoriteButton,
         child: Row(
           children: [
-            Icon(isFavorite ? Icons.remove : Icons.add, size: 18, color: stockColors.hilight),
+            Icon(
+              klineState.share!.isFavorite ? Icons.remove : Icons.add,
+              size: 18,
+              color: stockColors.hilight,
+            ),
             Text(
               "自选",
               style: TextStyle(
@@ -194,7 +226,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
   // 技术指标副图组件
   List<Widget> _buildIndicators(
     BuildContext context,
-    KlineCtrlState klienState,
+    KlineCtrlState klineCtrlState,
     StockColors stockColors,
   ) {
     final indicators = klineCtrlState.indicators;
@@ -214,66 +246,68 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
 
   /// 添加股票到自选池
   void _onToggleFavoriteButton() {
-    share!.isFavorite = !share!.isFavorite;
-    StoreQuote.addFavoriteShare(share!.code);
+    final shareCode = ref.read(currentShareCodeProvider);
+    Share share = StoreQuote.query(shareCode)!;
+    share.isFavorite = !share.isFavorite;
+    StoreQuote.addFavoriteShare(share.code);
   }
 
   /// 切换股票类别
   void _onKlineTypeChanged(String value) async {
     final klineType = klineTypeMap[value]!;
-    ref.read(klineCtrlProvider.notifier).changeKlineType(klineType);
+    final shareCode = ref.read(currentShareCodeProvider);
+    ref
+        .read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).notifier)
+        .changeKlineType(klineType);
   }
 
   // 键盘上/下/左/右/Escape/Home/End功能键 事件响应
-  KeyEventResult _onKeyEvent(FocusNode focosNode, KeyEvent event) {
-    if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        ref.read(klineCtrlProvider.notifier).keyDownArrowLeft();
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        ref.read(klineCtrlProvider.notifier).keyDownArrowRight();
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-        ref.read(klineCtrlProvider.notifier).zoomIn();
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-        ref.read(klineCtrlProvider.notifier).zoomOut();
-      } else if (event.logicalKey == LogicalKeyboardKey.escape) {
-        ref.read(klineCtrlProvider.notifier).hideCrossLine();
-      } else if (event.logicalKey == LogicalKeyboardKey.home) {
-        ref
-            .read(klineCtrlProvider.notifier)
-            .updateCrossLine(CrossLineMode.followKline, ref.read(klineCtrlProvider).klineRng.begin);
-      } else if (event.logicalKey == LogicalKeyboardKey.end) {
-        ref
-            .read(klineCtrlProvider.notifier)
-            .updateCrossLine(CrossLineMode.followKline, ref.read(klineCtrlProvider).klineRng.end);
+  KeyEventResult _onKeyEvent(FocusNode focusNode, KeyEvent event) {
+    if (event is KeyDownEvent || event is KeyRepeatEvent) {
+      // 提前获取 notifier 和 state，避免重复读取
+      final shareCode = ref.read(currentShareCodeProvider);
+      final notifier = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).notifier);
+      final state = ref.read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)));
+      switch (event.logicalKey) {
+        case LogicalKeyboardKey.arrowLeft:
+          notifier.keyDownArrowLeft();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.arrowRight:
+          notifier.keyDownArrowRight();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.arrowUp:
+          notifier.zoomIn();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.arrowDown:
+          notifier.zoomOut();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.escape:
+          notifier.hideCrossLine();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.home:
+          notifier.updateCrossLine(CrossLineMode.followKline, state.klineRng.begin);
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.end:
+          notifier.updateCrossLine(CrossLineMode.followKline, state.klineRng.end);
+          return KeyEventResult.handled;
+        default:
+          return KeyEventResult.ignored;
       }
-      return KeyEventResult.handled;
     } else if (event is KeyUpEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-          event.logicalKey == LogicalKeyboardKey.arrowRight ||
-          event.logicalKey == LogicalKeyboardKey.arrowUp ||
-          event.logicalKey == LogicalKeyboardKey.arrowDown ||
-          event.logicalKey == LogicalKeyboardKey.escape ||
-          event.logicalKey == LogicalKeyboardKey.home ||
-          event.logicalKey == LogicalKeyboardKey.end) {
-        return KeyEventResult.handled;
-      }
-    } else if (event is KeyRepeatEvent) {
-      // 支持重复按键事件
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        ref.read(klineCtrlProvider.notifier).keyDownArrowLeft();
-        return KeyEventResult.handled;
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        ref.read(klineCtrlProvider.notifier).keyDownArrowRight();
-        return KeyEventResult.handled;
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
-          event.logicalKey == LogicalKeyboardKey.arrowDown ||
-          event.logicalKey == LogicalKeyboardKey.escape ||
-          event.logicalKey == LogicalKeyboardKey.home ||
-          event.logicalKey == LogicalKeyboardKey.end) {
-        return KeyEventResult.handled;
-      }
+      Set<LogicalKeyboardKey> handledKeys = {
+        LogicalKeyboardKey.arrowLeft,
+        LogicalKeyboardKey.arrowRight,
+        LogicalKeyboardKey.arrowUp,
+        LogicalKeyboardKey.arrowDown,
+        LogicalKeyboardKey.escape,
+        LogicalKeyboardKey.home,
+        LogicalKeyboardKey.end,
+      };
+      return handledKeys.contains(event.logicalKey)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
     }
-    return KeyEventResult.ignored; // 继续键盘事件传播
+    return KeyEventResult.ignored;
   }
 
   /// 用户单击鼠标的时候也需要记住单击位置所在的K线下标，以此为中心点进行缩放
@@ -281,7 +315,10 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     final RenderBox box = context.findRenderObject() as RenderBox;
     final localPosition = box.globalToLocal(details.globalPosition);
     // 计算点击的K线索引
-    ref.read(klineCtrlProvider.notifier).updateCrossLinePos(localPosition);
+    final shareCode = ref.read(currentShareCodeProvider);
+    ref
+        .read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).notifier)
+        .updateCrossLinePos(localPosition);
   }
 
   /// 鼠标移动事件
@@ -291,7 +328,10 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
 
   // 鼠标移动的时候需要动态绘制十字光标
   void _onMouseMove(Offset localPosition) {
-    ref.read(klineCtrlProvider.notifier).updateCrossLinePos(localPosition);
+    final shareCode = ref.read(currentShareCodeProvider);
+    ref
+        .read(klineCtrlProvider(KlineCtrlParams(shareCode: shareCode)).notifier)
+        .updateCrossLinePos(localPosition);
   }
 
   // 鼠标滚轮事件处理,可以用来切换股票
