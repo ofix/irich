@@ -43,7 +43,7 @@ class _MarketPageState extends ConsumerState<MarketPage> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    startRefresh = true;
+    startRefresh = false;
     rows = [];
     cols = [];
     shares = [];
@@ -129,17 +129,16 @@ class _MarketPageState extends ConsumerState<MarketPage> with WidgetsBindingObse
         hideProgressPopup(context);
       }
     });
-    refreshQuote();
   }
 
   // 监听应用生命周期
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    setState(() {
-      startRefresh = state == AppLifecycleState.resumed; // 仅在前台时刷新
-    });
-    if (startRefresh) refreshQuote(); // 恢复刷新
-  }
+  // @override
+  // void didChangeAppLifecycleState(AppLifecycleState state) {
+  //   setState(() {
+  //     startRefresh = state == AppLifecycleState.resumed; // 仅在前台时刷新
+  //   });
+  //   if (startRefresh) refreshQuote(); // 恢复刷新
+  // }
 
   // 定时加载行情数据
   Future<void> refreshQuote() async {

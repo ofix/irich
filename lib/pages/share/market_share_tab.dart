@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:irich/global/stock.dart';
 import 'package:irich/store/state_quote.dart';
 
 // 自选股组件
@@ -22,20 +23,30 @@ class _MarketShareTabState extends ConsumerState<MarektShareTab>
     with AutomaticKeepAliveClientMixin, RouteAware {
   @override
   bool get wantKeepAlive => true;
+  late ScrollController _scrollController;
+
+  int _lastShareIndex = 0; // 上一次股票的序号
+  int _currentShareIndex = 0; // 这一次股票的序号
+  late List<Share> shareList;
+  Map<String, int> _indexMap = {};
 
   @override
   void initState() {
     super.initState();
-    debugPrint("初始化行情股票");
+    // 初始化滚动控制器
+    _scrollController = ScrollController();
+    // 读取股票列表并映射股票在列表中的位置序号
+    shareList = ref.read(shareListProvider);
+    for (int i = 0; i < shareList.length; i++) {
+      _indexMap[shareList[i].code] = i;
+    }
+    // 读取当前设置的股票代码
+    String shareCode = ref.read(currentShareCodeProvider);
+    // 获取当前股票位置序号
+    _currentShareIndex = getScrollIndex(shareCode);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       scrollToCurrentIndex(); // 初始化时滚动
     });
-  }
-
-  @override
-  void didPopNext() {
-    scrollToCurrentIndex(); // 返回时恢复
-    super.didPopNext();
   }
 
   @override
@@ -43,45 +54,34 @@ class _MarketShareTabState extends ConsumerState<MarektShareTab>
     super.dispose();
   }
 
+  int getScrollIndex(shareCode) {
+    return _indexMap[shareCode]!;
+  }
+
   void scrollToCurrentIndex() {
-    final index = ref.read(currentShareIndexProvider);
-    final controller = ref.read(marketScrollControllerProvider);
-    if (controller.hasClients) {
-      controller.jumpTo(index * 56.0);
+    if (_lastShareIndex == _currentShareIndex || !_scrollController.hasClients) return;
+    _lastShareIndex = _currentShareIndex;
+    final targetOffset = _currentShareIndex * 56.0; // 与 itemExtent 一致
+    if ((_scrollController.offset - targetOffset).abs() > 1) {
+      _scrollController.animateTo(
+        _currentShareIndex * 56.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-
-    final shareList = ref.watch(shareListProvider);
-    final currentShareIndex = ref.watch(currentShareIndexProvider);
-    final notifier = ref.read(currentShareIndexProvider.notifier);
-    final marketScrollController = ref.watch(marketScrollControllerProvider);
-    // 重复执行会绑定重复view
-    int? _lastScrolledIndex; // 类成员变量
-
-    void _scrollToIndex(int index) {
-      if (_lastScrolledIndex == index || !marketScrollController.hasClients) return;
-      _lastScrolledIndex = index;
-      final targetOffset = index * 56.0; // 与 itemExtent 一致
-      if ((marketScrollController.offset - targetOffset).abs() > 1) {
-        marketScrollController.animateTo(
-          index * 48.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    }
-
-    // 监听选中索引变化，自动滚动到对应位置
-    ref.listen(currentShareIndexProvider, (_, newIndex) {
-      _scrollToIndex(newIndex);
+    // 监听用户输入股票变化，自动滚动到对应位置，用户单击列表本身不触发滚动
+    ref.listen(currentShareCodeProvider, (_, newShareCode) {
+      _currentShareIndex = getScrollIndex(newShareCode);
+      debugPrint("Market Share Scroll to $newShareCode");
+      scrollToCurrentIndex();
     });
-
     return ListView.builder(
-      controller: marketScrollController,
+      controller: _scrollController,
       itemCount: shareList.length,
       itemExtent: 56, // 固定高度提升性能
       itemBuilder: (context, index) {
@@ -91,7 +91,8 @@ class _MarketShareTabState extends ConsumerState<MarektShareTab>
           child: Material(
             color: Colors.transparent,
             child: ListTile(
-              tileColor: currentShareIndex == index ? Colors.blue : Color.fromARGB(255, 24, 24, 24),
+              tileColor:
+                  _currentShareIndex == index ? Colors.blue : Color.fromARGB(255, 24, 24, 24),
               selectedTileColor: const Color.fromARGB(255, 26, 26, 26),
               selectedColor: Color.fromARGB(255, 240, 190, 131),
               dense: true, // 紧凑模式
@@ -112,12 +113,11 @@ class _MarketShareTabState extends ConsumerState<MarektShareTab>
                   ),
                 ],
               ),
-              selected: index == currentShareIndex,
+              selected: index == _currentShareIndex,
               onTap: () {
-                ref.read(shareTabIndexProvider.notifier).state = 0; // 自选股是第二个 Tab
-                notifier.setSelected(index);
-                ref.read(lastScrollOffsetProvider.notifier).state = marketScrollController.offset;
-                debugPrint("设置当前选中的股票索引为: $index");
+                _lastShareIndex = index;
+                _currentShareIndex = index;
+                setState(() {});
                 ref.read(currentShareCodeProvider.notifier).select(share.code);
               },
             ),

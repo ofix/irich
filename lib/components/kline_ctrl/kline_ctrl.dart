@@ -84,6 +84,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     // final shareCode = ref.watch(currentShareCodeProvider);
     // final parentWidth = MediaQuery.of(context).size.width; 此方法获取的是屏幕宽度
     final shareCode = ref.watch(currentShareCodeProvider);
+    ref.watch(watchShareListProvider);
     final stockColors = Theme.of(context).extension<StockColors>()!;
     ref.watch(
       klineCtrlProvider.select(
@@ -241,7 +242,11 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     final shareCode = ref.read(currentShareCodeProvider);
     Share share = StoreQuote.query(shareCode)!;
     share.isFavorite = !share.isFavorite;
-    StoreQuote.addFavoriteShare(share.code);
+    if (share.isFavorite) {
+      ref.read(watchShareListProvider.notifier).add(shareCode);
+    } else {
+      ref.read(watchShareListProvider.notifier).remove(shareCode);
+    }
   }
 
   /// 切换股票类别

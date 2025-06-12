@@ -52,6 +52,33 @@ class ShareListNotifier extends StateNotifier<List<Share>> {
   }
 }
 
+final watchShareListProvider = StateNotifierProvider<WatchShareListNotifier, List<Share>>(
+  (ref) => WatchShareListNotifier(),
+);
+
+class WatchShareListNotifier extends StateNotifier<List<Share>> {
+  WatchShareListNotifier() : super(StoreQuote.favoriteShares);
+
+  void add(String shareCode) {
+    if (state.any((share) => share.code == shareCode)) return; // 避免重复
+
+    final share = StoreQuote.query(shareCode);
+    if (share == null) return; // 或抛出异常
+
+    StoreQuote.addFavoriteShare(shareCode);
+    state = [...state, share]; // 不可变更新
+  }
+
+  void remove(String shareCode) {
+    StoreQuote.removeFavoriteShare(shareCode);
+    state = state.where((share) => share.code != shareCode).toList();
+  }
+
+  void refresh() {
+    state = StoreQuote.favoriteShares; // 同步最新数据
+  }
+}
+
 // 创建 RiverPod 提供者
 final shareListProvider = StateNotifierProvider<ShareListNotifier, List<Share>>(
   (ref) => ShareListNotifier(),
@@ -109,24 +136,17 @@ class CurrentShareIndexNotifier extends StateNotifier<int> {
   }
 }
 
-final currentShareIndexProvider = StateNotifierProvider<CurrentShareIndexNotifier, int>(
-  (ref) => CurrentShareIndexNotifier(ref),
-);
+class ShareTabIndexNotifier extends StateNotifier<int> {
+  ShareTabIndexNotifier() : super(0) {
+    state = 0;
+  }
 
-// 创建全局 ScrollController 提供者
-final marketScrollControllerProvider = Provider<ScrollController>((ref) {
-  final controller = ScrollController();
-  ref.onDispose(() => controller.dispose()); // 自动释放资源
-  return controller;
-});
-
-final favoriteTabScrollControllerProvider = Provider<ScrollController>((ref) {
-  final controller = ScrollController();
-  ref.onDispose(() => controller.dispose()); // 自动释放资源
-  return controller;
-});
-
-final lastScrollOffsetProvider = StateProvider<double>((ref) => 0.0);
+  setTabIndex(int tabIndex) {
+    state = tabIndex;
+  }
+}
 
 // 在全局 Provider 中定义 Tab 索引状态
-final shareTabIndexProvider = StateProvider<int>((ref) => 0);
+final shareTabIndexProvider = StateNotifierProvider<ShareTabIndexNotifier, int>(
+  (ref) => ShareTabIndexNotifier(),
+);

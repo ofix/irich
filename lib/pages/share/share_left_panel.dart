@@ -61,11 +61,11 @@ class _ShareLeftPanelState extends ConsumerState<ShareLeftPanel>
   @override
   Widget build(BuildContext context) {
     // 4. 监听 Provider 变化（用于外部强制切换 Tab）
-    ref.listen<int>(shareTabIndexProvider, (_, newIndex) {
-      if (newIndex != _tabController.index) {
-        _tabController.animateTo(newIndex);
-      }
-    });
+    final tabIndex = ref.watch(shareTabIndexProvider);
+
+    if (tabIndex != _tabController.index) {
+      _tabController.animateTo(tabIndex);
+    }
 
     return Container(
       width: 300,
@@ -145,7 +145,6 @@ class _ShareLeftPanelState extends ConsumerState<ShareLeftPanel>
   }
 
   void onToggleTab(int tabIndex) {
-    // 5. 通过修改 Provider 来切换 Tab（自动触发监听器）
-    ref.read(shareTabIndexProvider.notifier).state = tabIndex;
+    ref.read(shareTabIndexProvider.notifier).setTabIndex(tabIndex);
   }
 }

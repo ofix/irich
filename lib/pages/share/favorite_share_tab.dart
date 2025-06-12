@@ -8,6 +8,7 @@
 // /////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:go_router/go_router.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/state_quote.dart';
@@ -23,7 +24,12 @@ class FavoriteShareTab extends ConsumerStatefulWidget {
 
 class _FavoriteShareTabState extends ConsumerState<FavoriteShareTab>
     with AutomaticKeepAliveClientMixin {
-  List<Share> _favoriteshares = [];
+  List<Share> watchShares = [];
+
+  late ScrollController scrollController;
+  int currentShareIndex = 0;
+  int lastShareIndex = 0;
+  Map<String, int> posMap = {};
 
   @override
   bool get wantKeepAlive => true;
@@ -31,55 +37,107 @@ class _FavoriteShareTabState extends ConsumerState<FavoriteShareTab>
   @override
   void initState() {
     super.initState();
-    debugPrint('FavoriteShareTab initState');
-    _favoriteshares = StoreQuote.favoriteShares;
+    scrollController = ScrollController();
+    watchShares = ref.read(watchShareListProvider);
+  }
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
+  void buildFavoriteShareIndex() {
+    watchShares = ref.read(watchShareListProvider);
+    for (int i = 0; i < watchShares.length; i++) {
+      posMap[watchShares[i].code] = i;
+    }
+  }
+
+  int getScrollIndex(String shareCode) {
+    return posMap[shareCode] ?? 0;
+  }
+
+  void scrollToCurrentIndex() {
+    if (lastShareIndex == currentShareIndex || !scrollController.hasClients) return;
+    lastShareIndex = currentShareIndex;
+    final targetOffset = currentShareIndex * 56.0; // 与 itemExtent 一致
+    if ((scrollController.offset - targetOffset).abs() > 1) {
+      scrollController.animateTo(
+        currentShareIndex * 56.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final favoirteTabScrollController = ref.watch(favoriteTabScrollControllerProvider);
+    watchShares = ref.watch(watchShareListProvider);
+    // 监听用户输入股票变化，自动滚动到对应位置，用户单击列表本身不触发滚动
+    ref.listen(currentShareCodeProvider, (_, newShareCode) {
+      final posIndex = getScrollIndex(newShareCode);
+      if (posIndex != 0) {
+        debugPrint("Market Share Scroll to $newShareCode");
+        scrollToCurrentIndex();
+      }
+    });
 
     Widget buildShareList(BuildContext context, List<Share> shares) {
       return ListView.builder(
-        controller: favoirteTabScrollController,
+        controller: scrollController,
         itemCount: shares.length,
         itemExtent: 56,
         itemBuilder: (context, index) {
           final share = shares[index];
-          return ListTile(
-            title: Text(share.name),
-            subtitle: Text(share.code),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  share.priceNow.toStringAsFixed(2),
-                  style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+          return SizedBox(
+            height: 56,
+            child: Material(
+              color: Colors.transparent,
+              child: ListTile(
+                tileColor:
+                    currentShareIndex == index ? Colors.blue : Color.fromARGB(255, 24, 24, 24),
+                selectedTileColor: const Color.fromARGB(255, 26, 26, 26),
+                selectedColor: Color.fromARGB(255, 240, 190, 131),
+                selected: index == currentShareIndex,
+                dense: true, // 紧凑模式
+                visualDensity: VisualDensity.compact, // 减少默认高
+                title: Text(share.name),
+                subtitle: Text(share.code),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      share.priceNow.toStringAsFixed(2),
+                      style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+                    ),
+                    Text(
+                      '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
+                      style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
+                    ),
+                  ],
                 ),
-                Text(
-                  '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
-                  style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
-                ),
-              ],
+                onTap: () => _onShareSelected(context, share.code, index),
+              ),
             ),
-            onTap: () => _onShareSelected(context, share.code),
           );
         },
       );
     }
 
-    if (_favoriteshares.isEmpty) {
+    if (watchShares.isEmpty) {
       return _buildEmptyView(context);
     }
-    return buildShareList(context, _favoriteshares);
+    return buildShareList(context, watchShares);
   }
 
-  void _onShareSelected(BuildContext context, String shareCode) {
-    // 2. 跳转前强制设置 Tab 为自选股（索引为1）
-    ref.read(shareTabIndexProvider.notifier).state = 1;
+  void _onShareSelected(BuildContext context, String shareCode, int index) {
+    debugPrint("clicked watch share  $shareCode");
+    lastShareIndex = currentShareIndex = index;
     ref.read(currentShareCodeProvider.notifier).select(shareCode);
+    setState(() {});
   }
 
   Widget _buildEmptyView(BuildContext context) {
