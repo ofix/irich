@@ -9,7 +9,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:irich/global/stock.dart';
-import 'package:irich/service/user_preference.dart';
+import 'package:irich/settings/ema_curve_setting.dart';
+import 'package:irich/settings/user_preference.dart';
 import 'package:irich/store/store_quote.dart';
 
 enum CrossLineMode {
@@ -36,16 +37,6 @@ class KlineCtrlLayout {
   static const double klineChartLeftMargin = 50;
   static const double klineChartRightMargin = 50;
 }
-
-const defaultEmaCurveSettings = [
-  EmaCurveSetting(period: 5, color: Colors.white),
-  EmaCurveSetting(period: 10, color: Color.fromARGB(255, 236, 9, 202)),
-  EmaCurveSetting(period: 20, color: Color.fromARGB(255, 72, 105, 239)),
-  EmaCurveSetting(period: 30, color: Color(0xFFFF9F1A)),
-  EmaCurveSetting(period: 60, color: Color.fromARGB(255, 11, 180, 218)),
-  EmaCurveSetting(period: 255, color: Color.fromARGB(255, 245, 16, 16)),
-  EmaCurveSetting(period: 905, color: Color.fromARGB(255, 24, 245, 146)),
-];
 
 // K线组件核心类
 class KlineCtrlState {

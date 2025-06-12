@@ -12,7 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_painter.dart';
 import 'package:irich/components/rich_checkbox_button_group.dart';
-import 'package:irich/service/user_preference.dart';
+import 'package:irich/settings/ema_curve_setting.dart';
 import 'package:irich/store/provider_kline_ctrl.dart';
 import 'package:irich/theme/stock_colors.dart';
 
