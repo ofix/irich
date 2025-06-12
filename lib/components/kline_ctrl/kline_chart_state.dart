@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/service/user_preference.dart';
 import 'package:irich/store/store_quote.dart';
 
 enum CrossLineMode {
@@ -26,20 +27,6 @@ class ColorText {
   String text; // 文本
   Color color; // 颜色
   ColorText(this.text, this.color);
-}
-
-class EmaCurveSetting {
-  final int period; // 周期
-  final Color color; // 颜色
-  final bool visible; // 是否显示
-  const EmaCurveSetting({required this.period, required this.color, this.visible = true});
-  EmaCurveSetting copyWith({int? period, Color? color, bool? visible}) {
-    return EmaCurveSetting(
-      period: period ?? this.period,
-      color: color ?? this.color,
-      visible: visible ?? this.visible,
-    );
-  }
 }
 
 // K线组件布局相关默认值

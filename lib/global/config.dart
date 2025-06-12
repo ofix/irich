@@ -41,6 +41,12 @@ class Config {
     return p.join(appRootDir, 'data', 'favorite_shares.json');
   }
 
+  // 用户偏好文件路径
+  static Future<String> get pathUserPreferences async {
+    String appRootDir = await FileTool.getAppRootDir();
+    return p.join(appRootDir, 'data', 'user_preferences.json');
+  }
+
   // 节假日数据文件路径
   static Future<String> get pathDataFileHoliday async {
     String appRootDir = await FileTool.getAppRootDir();

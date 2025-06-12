@@ -1,0 +1,25 @@
+{
+  "Type": "Row",
+  "Children": [
+    {
+      "Type": "KlineCtrl",
+      "WidthPercent": 0.5,
+      "HeightPercent": 0.3
+    },
+    {
+      "Type": "Column",
+      "Children": [
+        {
+          "Type": "KlineCtrl",
+          "WidthPercent": 0.5,
+          "HeightPercent": 0.3
+        },
+        {
+          "Type": "KlineCtrl",
+          "WidthPercent": 0.5,
+          "HeightPercent": 0.3
+        }
+      ]
+    }
+  ]
+}
