@@ -23,27 +23,27 @@ class _MarketShareTabState extends ConsumerState<MarektShareTab>
     with AutomaticKeepAliveClientMixin, RouteAware {
   @override
   bool get wantKeepAlive => true;
-  late ScrollController _scrollController;
+  late ScrollController scrollController;
 
-  int _lastShareIndex = 0; // 上一次股票的序号
-  int _currentShareIndex = 0; // 这一次股票的序号
+  int lastShareIndex = 0; // 上一次股票的序号
+  int currentShareIndex = 0; // 这一次股票的序号
   late List<Share> shareList;
-  Map<String, int> _indexMap = {};
+  Map<String, int> posHash = {};
 
   @override
   void initState() {
     super.initState();
     // 初始化滚动控制器
-    _scrollController = ScrollController();
+    scrollController = ScrollController();
     // 读取股票列表并映射股票在列表中的位置序号
     shareList = ref.read(shareListProvider);
     for (int i = 0; i < shareList.length; i++) {
-      _indexMap[shareList[i].code] = i;
+      posHash[shareList[i].code] = i;
     }
     // 读取当前设置的股票代码
     String shareCode = ref.read(currentShareCodeProvider);
     // 获取当前股票位置序号
-    _currentShareIndex = getScrollIndex(shareCode);
+    currentShareIndex = getScrollIndex(shareCode);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       scrollToCurrentIndex(); // 初始化时滚动
     });
@@ -55,16 +55,16 @@ class _MarketShareTabState extends ConsumerState<MarektShareTab>
   }
 
   int getScrollIndex(shareCode) {
-    return _indexMap[shareCode]!;
+    return posHash[shareCode]!;
   }
 
   void scrollToCurrentIndex() {
-    if (_lastShareIndex == _currentShareIndex || !_scrollController.hasClients) return;
-    _lastShareIndex = _currentShareIndex;
-    final targetOffset = _currentShareIndex * 56.0; // 与 itemExtent 一致
-    if ((_scrollController.offset - targetOffset).abs() > 1) {
-      _scrollController.animateTo(
-        _currentShareIndex * 56.0,
+    if (lastShareIndex == currentShareIndex || !scrollController.hasClients) return;
+    lastShareIndex = currentShareIndex;
+    final targetOffset = currentShareIndex * 56.0; // 与 itemExtent 一致
+    if ((scrollController.offset - targetOffset).abs() > 1) {
+      scrollController.animateTo(
+        currentShareIndex * 56.0,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -76,12 +76,11 @@ class _MarketShareTabState extends ConsumerState<MarektShareTab>
     super.build(context);
     // 监听用户输入股票变化，自动滚动到对应位置，用户单击列表本身不触发滚动
     ref.listen(currentShareCodeProvider, (_, newShareCode) {
-      _currentShareIndex = getScrollIndex(newShareCode);
-      debugPrint("Market Share Scroll to $newShareCode");
+      currentShareIndex = getScrollIndex(newShareCode);
       scrollToCurrentIndex();
     });
     return ListView.builder(
-      controller: _scrollController,
+      controller: scrollController,
       itemCount: shareList.length,
       itemExtent: 56, // 固定高度提升性能
       itemBuilder: (context, index) {
@@ -91,8 +90,7 @@ class _MarketShareTabState extends ConsumerState<MarektShareTab>
           child: Material(
             color: Colors.transparent,
             child: ListTile(
-              tileColor:
-                  _currentShareIndex == index ? Colors.blue : Color.fromARGB(255, 24, 24, 24),
+              tileColor: currentShareIndex == index ? Colors.blue : Color.fromARGB(255, 24, 24, 24),
               selectedTileColor: const Color.fromARGB(255, 26, 26, 26),
               selectedColor: Color.fromARGB(255, 240, 190, 131),
               dense: true, // 紧凑模式
@@ -113,10 +111,10 @@ class _MarketShareTabState extends ConsumerState<MarektShareTab>
                   ),
                 ],
               ),
-              selected: index == _currentShareIndex,
+              selected: index == currentShareIndex,
               onTap: () {
-                _lastShareIndex = index;
-                _currentShareIndex = index;
+                lastShareIndex = index;
+                currentShareIndex = index;
                 setState(() {});
                 ref.read(currentShareCodeProvider.notifier).select(share.code);
               },

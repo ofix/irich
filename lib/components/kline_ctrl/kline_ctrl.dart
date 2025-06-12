@@ -83,7 +83,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
   Widget build(BuildContext context) {
     // final shareCode = ref.watch(currentShareCodeProvider);
     // final parentWidth = MediaQuery.of(context).size.width; 此方法获取的是屏幕宽度
-    final shareCode = ref.watch(currentShareCodeProvider);
+    ref.watch(currentShareCodeProvider);
     ref.watch(watchShareListProvider);
     final stockColors = Theme.of(context).extension<StockColors>()!;
     ref.watch(

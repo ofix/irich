@@ -8,11 +8,9 @@
 // /////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:go_router/go_router.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/state_quote.dart';
-import 'package:irich/store/store_quote.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class FavoriteShareTab extends ConsumerStatefulWidget {
@@ -79,7 +77,6 @@ class _FavoriteShareTabState extends ConsumerState<FavoriteShareTab>
     ref.listen(currentShareCodeProvider, (_, newShareCode) {
       final posIndex = getScrollIndex(newShareCode);
       if (posIndex != 0) {
-        debugPrint("Market Share Scroll to $newShareCode");
         scrollToCurrentIndex();
       }
     });
@@ -134,7 +131,6 @@ class _FavoriteShareTabState extends ConsumerState<FavoriteShareTab>
   }
 
   void _onShareSelected(BuildContext context, String shareCode, int index) {
-    debugPrint("clicked watch share  $shareCode");
     lastShareIndex = currentShareIndex = index;
     ref.read(currentShareCodeProvider.notifier).select(shareCode);
     setState(() {});

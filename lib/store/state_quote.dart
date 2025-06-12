@@ -8,7 +8,6 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 // 行情列表数据
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/global/stock.dart';
@@ -85,8 +84,7 @@ final shareListProvider = StateNotifierProvider<ShareListNotifier, List<Share>>(
 );
 
 class CurrentShareCodeNotifier extends StateNotifier<String> {
-  final Ref _ref;
-  CurrentShareCodeNotifier(this._ref) : super("") {
+  CurrentShareCodeNotifier() : super("") {
     state = "";
   }
   void select(String shareCode) {
@@ -95,7 +93,7 @@ class CurrentShareCodeNotifier extends StateNotifier<String> {
 }
 
 final currentShareCodeProvider = StateNotifierProvider<CurrentShareCodeNotifier, String>(
-  (ref) => CurrentShareCodeNotifier(ref),
+  (ref) => CurrentShareCodeNotifier(),
 );
 
 class CurrentShareIndexNotifier extends StateNotifier<int> {

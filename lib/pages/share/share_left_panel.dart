@@ -24,14 +24,13 @@ class ShareLeftPanel extends ConsumerStatefulWidget {
 
 class _ShareLeftPanelState extends ConsumerState<ShareLeftPanel>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  late TabController tabController;
 
   @override
   void initState() {
     super.initState();
-    // 2. 初始化时从 Provider 读取保存的索引
     final initialIndex = ref.read(shareTabIndexProvider);
-    _tabController = TabController(
+    tabController = TabController(
       length: 2,
       vsync: this,
       initialIndex: initialIndex, // 绑定持久化的索引
@@ -39,32 +38,16 @@ class _ShareLeftPanelState extends ConsumerState<ShareLeftPanel>
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 3. 同步 Provider 和 TabController 的状态
-    _tabController.addListener(_syncTabState);
-  }
-
-  void _syncTabState() {
-    if (_tabController.indexIsChanging) {
-      ref.read(shareTabIndexProvider.notifier).state = _tabController.index;
-    }
-  }
-
-  @override
   void dispose() {
-    _tabController.removeListener(_syncTabState);
-    _tabController.dispose();
+    tabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 4. 监听 Provider 变化（用于外部强制切换 Tab）
     final tabIndex = ref.watch(shareTabIndexProvider);
-
-    if (tabIndex != _tabController.index) {
-      _tabController.animateTo(tabIndex);
+    if (tabIndex != tabController.index) {
+      tabController.animateTo(tabIndex);
     }
 
     return Container(
@@ -77,20 +60,20 @@ class _ShareLeftPanelState extends ConsumerState<ShareLeftPanel>
               _buildTab(
                 icon: Icons.trending_up,
                 label: '市场行情',
-                isSelected: _tabController.index == 0,
+                isSelected: tabController.index == 0,
                 onTap: () => onToggleTab(0),
               ),
               _buildTab(
                 icon: Icons.star,
                 label: '自选股',
-                isSelected: _tabController.index == 1,
+                isSelected: tabController.index == 1,
                 onTap: () => onToggleTab(1),
               ),
             ],
           ),
           Expanded(
             child: TabBarView(
-              controller: _tabController,
+              controller: tabController,
               children: const [MarektShareTab(), FavoriteShareTab()],
             ),
           ),

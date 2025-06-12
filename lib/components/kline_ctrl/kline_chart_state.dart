@@ -10,7 +10,6 @@
 import 'package:flutter/material.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/settings/ema_curve_setting.dart';
-import 'package:irich/settings/user_preference.dart';
 import 'package:irich/store/store_quote.dart';
 
 enum CrossLineMode {
