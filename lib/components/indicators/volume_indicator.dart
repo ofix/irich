@@ -197,7 +197,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
     canvas.save();
     canvas.translate(klineChartLeftMargin, 0);
     int nKline = 0;
-    for (int i = klineRng.begin; i < klineRng.end; i++) {
+    for (int i = klineRng.begin; i <= klineRng.end; i++) {
       final x = nKline * klineStep;
       final barWidth = klineWidth;
       final barHeight = (klines[i].volume.toDouble() / maxVolume) * bodyHeight;
@@ -215,7 +215,7 @@ class _VolumeIndicatorPainter extends CustomPainter {
   BigInt _calcMaxVolume() {
     if (klines.isEmpty) return BigInt.from(0);
     BigInt maxVolume = BigInt.from(0);
-    for (int i = klineRng.begin; i < klineRng.end; i++) {
+    for (int i = klineRng.begin; i <= klineRng.end; i++) {
       if (klines[i].volume > maxVolume) {
         maxVolume = klines[i].volume;
       }

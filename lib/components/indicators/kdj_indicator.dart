@@ -190,7 +190,7 @@ class _KdjIndicatorPainter extends CustomPainter {
     double max = double.negativeInfinity;
 
     // KDJ固定范围 [0,100]，无需动态计算Y轴
-    for (int i = startIndex; i < endIndex; i++) {
+    for (int i = startIndex; i <= endIndex; i++) {
       if (kLine[i] < min) min = kLine[i];
       if (dLine[i] < min) min = dLine[i];
       if (jLine[i] < min) min = jLine[i];
@@ -227,7 +227,7 @@ class _KdjIndicatorPainter extends CustomPainter {
       double x = 0;
       path.moveTo(x, bodyHeight - (data[startIndex] - min) * scaleY);
 
-      for (int i = startIndex + 1; i <= endIndex; i++) {
+      for (int i = startIndex; i <= endIndex; i++) {
         path.lineTo(x, bodyHeight - (data[i] - min) * scaleY);
         x += klineStep;
       }

@@ -197,7 +197,7 @@ class _TurnoverRatePainter extends CustomPainter {
     canvas.save();
     canvas.translate(klineChartLeftMargin, 0);
     int nKline = 0;
-    for (int i = klineRng.begin; i < klineRng.end; i++) {
+    for (int i = klineRng.begin; i <= klineRng.end; i++) {
       final x = nKline * klineStep;
       final barWidth = klineWidth;
       final barHeight = (klines[i].turnoverRate / maxTurnoverRate) * bodyHeight;
@@ -221,7 +221,7 @@ class _TurnoverRatePainter extends CustomPainter {
   double _calcMaxTurnoverRate() {
     if (klines.isEmpty) return 0;
     double max = 0;
-    for (int i = klineRng.begin; i < klineRng.end; i++) {
+    for (int i = klineRng.begin; i <= klineRng.end; i++) {
       if (klines[i].turnoverRate > max) {
         max = klines[i].turnoverRate;
       }

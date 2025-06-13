@@ -68,7 +68,7 @@ class FormulaMacd implements Formula {
     final ema = List<double>.filled(prices.length, 0);
 
     // 防止K线数量小于period，内存下标越界
-    final safePeriod = min(period, prices.length);
+    final safePeriod = min(period, prices.length - 1);
     final multiplier = 2 / (safePeriod + 1);
 
     // 第一个EMA是简单移动平均

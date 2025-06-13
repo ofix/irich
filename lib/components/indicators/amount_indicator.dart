@@ -51,7 +51,7 @@ class _AmountIndicatorState extends State<AmountIndicator> {
 
   List<bool> _getIsUpList(List<UiKline> klines, UiKlineRange klineRng) {
     List<bool> upList = [];
-    for (int i = klineRng.begin; i < klineRng.end; i++) {
+    for (int i = klineRng.begin; i <= klineRng.end; i++) {
       upList.add(klines[i].priceClose >= klines[i].priceOpen);
     }
     return upList;
@@ -171,7 +171,7 @@ class _AmountIndicatorPainter extends CustomPainter {
     }
 
     List<ColorText> words = [
-      ColorText('换手率', Colors.grey),
+      ColorText('成交额', Colors.grey),
       ColorText('昨: $yesterdayAmount', const Color.fromARGB(255, 237, 130, 8)),
       ColorText('今: $todayAmount', Colors.red),
     ];
@@ -201,7 +201,7 @@ class _AmountIndicatorPainter extends CustomPainter {
     canvas.save();
     canvas.translate(klineChartLeftMargin, 0);
     int nKline = 0;
-    for (int i = klineRng.begin; i < klineRng.end; i++) {
+    for (int i = klineRng.begin; i <= klineRng.end; i++) {
       final x = nKline * klineStep;
       final barWidth = klineWidth;
       final barHeight = (klines[i].amount / maxAmount) * bodyHeight;
@@ -219,7 +219,7 @@ class _AmountIndicatorPainter extends CustomPainter {
   double _calcMaxAmount() {
     if (klines.isEmpty) return 0;
     double maxAmount = 0;
-    for (int i = klineRng.begin; i < klineRng.end; i++) {
+    for (int i = klineRng.begin; i <= klineRng.end; i++) {
       if (klines[i].amount > maxAmount) {
         maxAmount = klines[i].amount;
       }
