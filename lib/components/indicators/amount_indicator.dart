@@ -34,7 +34,7 @@ class _AmountIndicatorState extends State<AmountIndicator> {
       child: CustomPaint(
         painter: _AmountIndicatorPainter(
           klines: state.klines,
-          klineRng: state.klineRng!,
+          klineRng: state.klineRng,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
           crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
@@ -43,7 +43,7 @@ class _AmountIndicatorState extends State<AmountIndicator> {
           klineChartRightMargin: state.klineChartRightMargin,
           indicatorChartTitleBarHeight: state.indicatorChartTitleBarHeight,
           stockColors: widget.stockColors,
-          isUpList: _getIsUpList(state.klines, state.klineRng!),
+          isUpList: _getIsUpList(state.klines, state.klineRng),
         ),
       ),
     );

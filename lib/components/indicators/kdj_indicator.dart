@@ -34,7 +34,7 @@ class _KdjIndicatorState extends State<KdjIndicator> {
       child: CustomPaint(
         painter: _KdjIndicatorPainter(
           kdj: state.kdj,
-          klineRng: state.klineRng!,
+          klineRng: state.klineRng,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
           crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,

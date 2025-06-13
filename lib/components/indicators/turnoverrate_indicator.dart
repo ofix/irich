@@ -35,7 +35,7 @@ class _TurnoverRateIndicatorState extends State<TurnoverRateIndicator> {
       child: CustomPaint(
         painter: _TurnoverRatePainter(
           klines: state.klines,
-          klineRng: state.klineRng!,
+          klineRng: state.klineRng,
           crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,

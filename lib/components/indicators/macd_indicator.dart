@@ -34,7 +34,7 @@ class _MacdIndicatorState extends State<MacdIndicator> {
       child: CustomPaint(
         painter: _MacdIndicatorPainter(
           macd: state.macd,
-          klineRng: state.klineRng!,
+          klineRng: state.klineRng,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
           crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,

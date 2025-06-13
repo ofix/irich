@@ -37,7 +37,7 @@ class _BollIndicatorState extends State<BollIndicator> {
         painter: _BollIndicatorPainter(
           boll: state.boll,
           klines: state.klines,
-          klineRng: state.klineRng!,
+          klineRng: state.klineRng,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,
           crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,

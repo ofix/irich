@@ -36,7 +36,7 @@ class _VolumeIndicatorState extends State<VolumeIndicator> {
       child: CustomPaint(
         painter: _VolumeIndicatorPainter(
           klines: state.klines,
-          klineRng: state.klineRng!,
+          klineRng: state.klineRng,
           crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
           klineStep: state.klineStep,
           klineWidth: state.klineWidth,

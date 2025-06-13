@@ -100,7 +100,7 @@ Future<void> initDatabase() async {
 }
 
 class RichApp extends ConsumerWidget {
-  RichApp({super.key});
+  const RichApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

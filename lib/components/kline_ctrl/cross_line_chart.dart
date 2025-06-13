@@ -50,7 +50,7 @@ class CrossLineChart extends ConsumerWidget {
           minuteKlines: klineCtrlState.minuteKlines,
           fiveDayMinuteKlines: klineCtrlState.fiveDayMinuteKlines,
           indicators: klineCtrlState.indicators,
-          klineRng: klineCtrlState.klineRng!,
+          klineRng: klineCtrlState.klineRng,
           klineRngMinPrice: klineCtrlState.klineRngMinPrice,
           klineRngMaxPrice: klineCtrlState.klineRngMaxPrice,
           crossLineMode: klineCtrlState.crossLineMode,
