@@ -41,6 +41,7 @@ class KlineCtrlParams {
 final klineCtrlMultiProviders =
     StateNotifierProvider.family<KlineCtrlNotifier, KlineCtrlState, KlineCtrlParams>((ref, params) {
       final notifier = KlineCtrlNotifier(
+        ref: ref,
         shareCode: params.shareCode,
         wndMode: params.wndMode,
         klineType: params.klineType,
@@ -55,6 +56,7 @@ final klineCtrlMultiProviders =
 
 final klineCtrlProvider = StateNotifierProvider<KlineCtrlNotifier, KlineCtrlState>((ref) {
   final notifier = KlineCtrlNotifier(
+    ref: ref,
     shareCode: "",
     wndMode: KlineWndMode.full,
     klineType: KlineType.day,
@@ -87,17 +89,17 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     4: 0.4, // K线主图+4个指标附图
   };
 
+  Ref ref;
   StoreKlines storeKlines = StoreKlines();
 
   KlineCtrlNotifier({
+    required this.ref,
     required String shareCode,
     KlineWndMode wndMode = KlineWndMode.full,
     KlineType klineType = KlineType.day,
   }) : super(KlineCtrlState(shareCode: shareCode, wndMode: wndMode, klineType: klineType));
-
   // 切换股票代码的时候需要重新初始化
   void changeShareCode(String shareCode) async {
-    debugPrint("############### changeShareCode ##################");
     Share? share = StoreQuote.query(shareCode);
     // 更新股票K线数据
     RichResult result = await _queryKlines(storeKlines, shareCode, state.klineType);
@@ -389,6 +391,20 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
         crossLineMode: CrossLineMode.followKline,
       );
     }
+    showKlineInfoCtrl(true);
+  }
+
+  void showKlineInfoCtrl(bool visible) {
+    int crossLineFollowKlineIndex = state.crossLineFollowKlineIndex;
+    final klines = state.klines;
+    final kline = visible ? klines[crossLineFollowKlineIndex] : klines[0];
+    double yesterdayPriceClose = 0;
+    if (crossLineFollowKlineIndex > 0) {
+      yesterdayPriceClose = klines[crossLineFollowKlineIndex - 1].priceClose;
+    } else {
+      yesterdayPriceClose = klines[0].priceOpen;
+    }
+    ref.read(klineInfoCtrlProvider.notifier).update(kline, yesterdayPriceClose, visible);
   }
 
   // 单击由键盘方向键
@@ -425,6 +441,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
         crossLineMode: CrossLineMode.followKline,
       );
     }
+    showKlineInfoCtrl(true);
   }
 
   // 更新十字线模式和位置
@@ -738,3 +755,43 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     return indicatorCount == 0 ? 0 : height * scaleIndicator;
   }
 }
+
+class KlineInfoState {
+  UiKline kline;
+  bool visible;
+  double yesterdayPriceClose;
+  KlineInfoState({required this.kline, required this.visible, required this.yesterdayPriceClose});
+
+  KlineInfoState copyWith({UiKline? kline, bool? visible, double? yesterdayPriceClose}) {
+    return KlineInfoState(
+      kline: kline ?? this.kline,
+      visible: visible ?? this.visible,
+      yesterdayPriceClose: yesterdayPriceClose ?? this.yesterdayPriceClose,
+    );
+  }
+}
+
+class KlineInfoCtrlNotifier extends StateNotifier<KlineInfoState> {
+  KlineInfoCtrlNotifier({required KlineInfoState klineInfoState})
+    : super(
+        KlineInfoState(
+          kline: klineInfoState.kline,
+          visible: klineInfoState.visible,
+          yesterdayPriceClose: klineInfoState.yesterdayPriceClose,
+        ),
+      );
+  void update(UiKline kline, double yesterdayPriceClose, bool visible) {
+    state = KlineInfoState(
+      kline: kline,
+      visible: visible,
+      yesterdayPriceClose: yesterdayPriceClose,
+    );
+  }
+}
+
+final klineInfoCtrlProvider = StateNotifierProvider<KlineInfoCtrlNotifier, KlineInfoState>((ref) {
+  final kline = UiKline(day: "", volume: BigInt.zero);
+  return KlineInfoCtrlNotifier(
+    klineInfoState: KlineInfoState(kline: kline, visible: false, yesterdayPriceClose: 0),
+  );
+});

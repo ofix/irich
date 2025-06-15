@@ -22,6 +22,7 @@ import 'package:irich/components/indicators/volume_indicator.dart';
 import 'package:irich/components/kline_ctrl/cross_line_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
+import 'package:irich/components/kline_ctrl/kline_info_panel.dart';
 import 'package:irich/components/rich_radio_button_group.dart';
 import 'package:irich/store/provider_kline_ctrl.dart';
 import 'package:irich/global/stock.dart';
@@ -154,6 +155,8 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
               top: state.klineCtrlTitleBarHeight * 2 - KlineCtrlLayout.titleBarMargin,
               child: CrossLineChart(stockColors: stockColors),
             ),
+            // 日K线详情
+            KlineInfoPanel(),
           ],
         );
       },
@@ -276,15 +279,18 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
           return KeyEventResult.handled;
         case LogicalKeyboardKey.escape:
           notifier.hideCrossLine();
+          notifier.showKlineInfoCtrl(false);
           return KeyEventResult.handled;
         case LogicalKeyboardKey.home:
           notifier.updateCrossLine(
             mode: CrossLineMode.followKline,
             klineIndex: state.klineRng.begin,
           );
+          notifier.showKlineInfoCtrl(true);
           return KeyEventResult.handled;
         case LogicalKeyboardKey.end:
           notifier.updateCrossLine(mode: CrossLineMode.followKline, klineIndex: state.klineRng.end);
+          notifier.showKlineInfoCtrl(true);
           return KeyEventResult.handled;
         default:
           return KeyEventResult.ignored;

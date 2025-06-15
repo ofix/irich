@@ -21,9 +21,9 @@ import 'package:irich/utils/rich_result.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
 
-class Ref<T> {
+class RichRef<T> {
   T value;
-  Ref(this.value);
+  RichRef(this.value);
 }
 
 typedef KlineResult = (RichResult result, List<UiKline> klines);
@@ -174,7 +174,7 @@ class StoreKlines {
     return ((dayOfDec28 - dec28.weekday + 10) / 7).floor();
   }
 
-  bool _getYearWeek(String day, Ref<int> week) {
+  bool _getYearWeek(String day, RichRef<int> week) {
     try {
       final date = DateTime.parse(day);
       int dayOfYear = int.parse(DateFormat("D").format(date));
@@ -192,7 +192,7 @@ class StoreKlines {
     }
   }
 
-  bool _getYearMonth(String day, Ref<int> month) {
+  bool _getYearMonth(String day, RichRef<int> month) {
     String m = day.substring(5, 7);
     if (m[0] == '0') {
       month.value = int.parse(m.substring(1, 2));
@@ -202,14 +202,14 @@ class StoreKlines {
     return true;
   }
 
-  bool _getYearQuarter(String day, Ref<int> quarter) {
-    Ref<int> month = Ref<int>(0);
+  bool _getYearQuarter(String day, RichRef<int> quarter) {
+    RichRef<int> month = RichRef<int>(0);
     _getYearMonth(day, month);
     quarter.value = (month.value / 4 + 1).toInt();
     return true;
   }
 
-  bool _getYear(String day, Ref<int> year) {
+  bool _getYear(String day, RichRef<int> year) {
     String y = day.substring(0, 4);
     year.value = int.parse(y); // atoi
     return true;
@@ -237,12 +237,12 @@ class StoreKlines {
 
   List<UiKline> _generatePeriodKlines(
     List<UiKline> dayKlines,
-    bool Function(String, Ref<int>) periodFunc,
+    bool Function(String, RichRef<int>) periodFunc,
   ) {
     List<UiKline> klines = [];
     UiKline kline;
-    Ref<int> prevPeriod = Ref<int>(0);
-    Ref<int> currPeriod = Ref<int>(0);
+    RichRef<int> prevPeriod = RichRef<int>(0);
+    RichRef<int> currPeriod = RichRef<int>(0);
     double prevPeriodPriceClose = 0.0;
     String periodStartDay = "";
 
