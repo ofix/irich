@@ -45,7 +45,13 @@ class SharePageState extends State<SharePage> {
   @override
   Widget build(BuildContext context) {
     return DesktopLayout(
-      child: Row(children: [ShareLeftPanel(), VerticalDivider(width: 1), ShareRightPanel()]),
+      child: Row(
+        children: [
+          ShareLeftPanel(),
+          VerticalDivider(width: 1, color: const Color.fromARGB(255, 67, 67, 67)),
+          ShareRightPanel(),
+        ],
+      ),
     );
   }
 }
