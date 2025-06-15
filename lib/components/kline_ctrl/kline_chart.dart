@@ -36,6 +36,7 @@ class _KlineChartState extends ConsumerState<KlineChart> {
       klineCtrlProvider.select(
         (state) => (
           state.klineChartWidth,
+          state.klineStep,
           state.klineRng.begin,
           state.klineRng.end,
           state.klineWidth,

@@ -138,6 +138,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
       state.klines,
       emaCurves,
     );
+
     debugPrint("++++++++++++++++++++++++++++++++++++++++++++");
     debugPrint("klineChartWidth = $klineChartWidth");
     debugPrint("klineChartHeight = $klineChartHeight");
@@ -164,6 +165,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
       dynamicIndicators: indicators,
       klineRngMinPrice: klineRngMinPrice,
       klineRngMaxPrice: klineRngMaxPrice,
+      crossLineFollowKlineIndex: -1, // 切换股票的时候 crossLineFolleKlineIndex 未同步更新，有可能超过当前K线数量,需要重置
     );
   }
 
@@ -432,7 +434,6 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
           pos.dx < (state.klineChartLeftMargin + state.klineChartWidth)) {
         if (state.crossLineMode != CrossLineMode.none) {
           final klineIndex = _calcCrossLineFollowKlineIndex(pos);
-
           state = state.copyWith(
             crossLineFollowCursorPos: pos,
             crossLineFollowKlineIndex: klineIndex,
@@ -461,8 +462,8 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     if (crossLineFollowKlineIndex == -1) {
       crossLineFollowKlineIndex = state.klines.length - 1; // 放大中心为最右边K线
     }
-    // 可见K线数量少于8，不再放大
-    if (klineRng.end <= klineRng.begin + 8) {
+    // 可见K线数量少于5，不再放大
+    if (klineRng.end <= klineRng.begin + 6) {
       return;
     }
 
@@ -476,7 +477,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
 
     // 左右边界处理
     if (klineRng.begin > klineRng.end) {
-      klineRng.begin = klineRng.end - 8;
+      klineRng.begin = klineRng.end - 6;
     }
 
     if (klineRng.begin < 0) {
@@ -486,7 +487,11 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
       klineRng.end = state.klines.length - 1;
     }
     int visibleKlineCount = klineRng.end - klineRng.begin + 1;
-    double klineStep = _calcVisibleKlineStep(visibleKlineCount, state.klineChartWidth);
+    // 注意点，如果K线数量很少，且
+    double klineStep = _calcVisibleKlineStep(
+      visibleKlineCount <= 6 ? 9 : visibleKlineCount,
+      state.klineChartWidth,
+    );
     double klineWidth = _calcVisibleKlineWidth(klineStep);
     final (klineRngMinPrice, klineRngMaxPrice) = _calcKlineRngMinMaxPrice(
       klineRng,
@@ -526,8 +531,8 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     }
     // 可见K线数量大于等于总K线数量，不再缩小
     if (state.visibleKlineCount == state.klines.length) {
-      debugPrint("无法继续缩放了！");
-      double klineStep = state.klineChartWidth / state.visibleKlineCount * 0.85;
+      // CrossLine的坐标也要同步更正
+      double klineStep = state.klineChartWidth / state.visibleKlineCount * 0.95;
       int klineWidth = (state.klineStep * 0.8).floor();
       klineWidth = _ensureKlineWidth(klineStep, klineWidth);
       klineRng.begin = 0;
@@ -537,6 +542,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
         state.klines,
         state.emaCurves,
       );
+
       state = state.copyWith(
         klineRng: klineRng,
         klineStep: klineStep,

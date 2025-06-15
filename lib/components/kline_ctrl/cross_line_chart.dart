@@ -26,6 +26,7 @@ class CrossLineChart extends ConsumerWidget {
           state.crossLineMode,
           state.crossLineFollowCursorPos,
           state.crossLineFollowKlineIndex,
+          state.klineStep,
         ),
       ),
     );

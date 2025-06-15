@@ -128,9 +128,8 @@ class CrossLinePainter extends CustomPainter {
       y = (klineRngMaxPrice - kline.priceClose) * klineChartHeight / priceRange;
     }
 
-    if (y <= 8) {
-      y = 8;
-      return;
+    if (y < 0) {
+      y = 0;
     }
     // 水平线
     drawDashedLine(
