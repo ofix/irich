@@ -8,7 +8,7 @@
 // /////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/pages/share/favorite_share_tab.dart';
+import 'package:irich/pages/share/watch_share_tab.dart';
 import 'package:irich/pages/share/market_share_tab.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/store/state_quote.dart';
