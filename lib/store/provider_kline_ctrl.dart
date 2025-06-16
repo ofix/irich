@@ -169,6 +169,19 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
       klineRngMaxPrice: klineRngMaxPrice,
       crossLineFollowKlineIndex: -1, // 切换股票的时候 crossLineFolleKlineIndex 未同步更新，有可能超过当前K线数量,需要重置
     );
+    updateEmaPrices();
+  }
+
+  void updateEmaPrices() {
+    int index = state.crossLineFollowKlineIndex;
+    if (index == -1) {
+      index = state.klines.length - 1;
+    }
+    Map<int, double> emaPrices = {};
+    for (final curve in state.emaCurves) {
+      emaPrices[curve.period] = curve.emaPrice[index];
+    }
+    ref.read(emaCurveProvider.notifier).update(emaPrices);
   }
 
   Future<RichResult> _queryKlines(StoreKlines store, String stockCode, KlineType type) async {
@@ -391,6 +404,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
         crossLineMode: CrossLineMode.followKline,
       );
     }
+    updateEmaPrices();
     showKlineInfoCtrl(true);
   }
 
@@ -441,6 +455,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
         crossLineMode: CrossLineMode.followKline,
       );
     }
+    updateEmaPrices();
     showKlineInfoCtrl(true);
   }
 
@@ -737,7 +752,6 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     if (!klineType.isMinuteType) {
       height = height - state.klineCtrlTitleBarHeight + KlineCtrlLayout.titleBarMargin;
     }
-    debugPrint("klineChart height: $height  &  ratio: $ratio");
     return (height * ratio).floorToDouble();
   }
 
@@ -794,4 +808,16 @@ final klineInfoCtrlProvider = StateNotifierProvider<KlineInfoCtrlNotifier, Kline
   return KlineInfoCtrlNotifier(
     klineInfoState: KlineInfoState(kline: kline, visible: false, yesterdayPriceClose: 0),
   );
+});
+
+class EmaCurveNotifier extends StateNotifier<Map<int, double>> {
+  EmaCurveNotifier({required Map<int, double> emaPrices}) : super(emaPrices);
+  void update(Map<int, double> emaPrices) {
+    state = emaPrices;
+  }
+}
+
+final emaCurveProvider = StateNotifierProvider<EmaCurveNotifier, Map<int, double>>((ref) {
+  Map<int, double> emaPrices = {};
+  return EmaCurveNotifier(emaPrices: emaPrices);
 });

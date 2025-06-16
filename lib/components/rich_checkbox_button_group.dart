@@ -62,9 +62,21 @@ class _RichCheckboxButtonGroupState extends State<RichCheckboxButtonGroup> {
   }
 
   @override
+  void didUpdateWidget(RichCheckboxButtonGroup oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.options != oldWidget.options) {
+      setState(() {
+        _currentOptions = Map.fromEntries(
+          widget.options.entries.map((e) => MapEntry(e.key, e.value.copyWith())),
+        );
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Row(
-      spacing: 4.0,
+      spacing: 1.0,
       children:
           _currentOptions.keys.map((String key) {
             final option = _currentOptions[key]!;
