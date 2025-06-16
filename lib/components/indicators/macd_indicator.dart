@@ -293,7 +293,7 @@ class _MacdIndicatorPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1;
 
-    double x = 0;
+    double x = klineWidth / 2;
     for (int i = startIdx; i <= endIdx; i++) {
       final value = data[i];
       if (value == 0) {
