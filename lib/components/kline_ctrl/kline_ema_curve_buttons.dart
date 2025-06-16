@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/rich_checkbox_button_group.dart';
-import 'package:irich/settings/ema_curve_setting.dart';
+import 'package:irich/global/stock.dart';
 import 'package:irich/store/provider_kline_ctrl.dart';
 
 class KlineEmaCurveButtons extends ConsumerStatefulWidget {
@@ -26,6 +26,7 @@ class _KlineEmaCurveButtonState extends ConsumerState<KlineEmaCurveButtons> {
   @override
   Widget build(BuildContext context) {
     final emaPrices = ref.watch(emaCurveProvider);
+    ref.watch(klineCtrlProvider.select((state) => (state.emaCurves)));
     final state = ref.read(klineCtrlProvider);
     if (emaPrices.isEmpty) {
       return Container(
@@ -38,24 +39,20 @@ class _KlineEmaCurveButtonState extends ConsumerState<KlineEmaCurveButtons> {
       width: 800,
       height: KlineCtrlLayout.titleBarHeight,
       color: const Color.fromARGB(255, 24, 24, 24 /*28, 29, 33*/),
-      child: _buildEmaCurveButtons(context, state.emaCurveSettings, emaPrices),
+      child: _buildEmaCurveButtons(context, state.emaCurves, emaPrices),
     );
   }
 
   // 绘制EMA曲线按钮组
   Widget _buildEmaCurveButtons(
     BuildContext context,
-    List<EmaCurveSetting> emaCurveSettings,
+    List<ShareEmaCurve> emaCurves,
     Map<int, double> emaPrices,
   ) {
     Map<String, CheckBoxOption> options = {};
-    for (final emaCurveSetting in emaCurveSettings) {
-      String key =
-          'EMA${emaCurveSetting.period}: ${emaPrices[emaCurveSetting.period]!.toStringAsFixed(2)}';
-      options[key] = CheckBoxOption(
-        selectedColor: emaCurveSetting.color,
-        selected: emaCurveSetting.visible,
-      );
+    for (final emaCurve in emaCurves) {
+      String key = 'EMA${emaCurve.period}: ${emaPrices[emaCurve.period]!.toStringAsFixed(2)}';
+      options[key] = CheckBoxOption(selectedColor: emaCurve.color, selected: emaCurve.visible);
     }
     return RichCheckboxButtonGroup(
       options: options,

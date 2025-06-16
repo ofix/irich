@@ -105,7 +105,7 @@ class KlinePainter extends CustomPainter {
         old.klines.length != klines.length ||
         old.minuteKlines.length != minuteKlines.length ||
         old.fiveDayMinuteKlines.length != fiveDayMinuteKlines.length ||
-        old.emaCurves.length != emaCurves.length) {
+        old.emaCurves != emaCurves) {
       return true;
     }
     return false;
