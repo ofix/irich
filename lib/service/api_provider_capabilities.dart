@@ -66,6 +66,7 @@ enum ProviderApiType {
   minuteKline(6), // 分时K线
   dayKline(7), // 日K线
   fiveDayKline(8), // 5日K线
+  indexList(9), // 指数列表
   unknown(255); // 未知类型
 
   final int apiType;
@@ -90,6 +91,8 @@ enum ProviderApiType {
         return ProviderApiType.dayKline;
       case 8:
         return ProviderApiType.fiveDayKline;
+      case 9:
+        return ProviderApiType.indexList;
       case 255:
         return ProviderApiType.unknown;
       default:
@@ -115,6 +118,8 @@ enum ProviderApiType {
         return '日K线';
       case ProviderApiType.fiveDayKline:
         return '五日分时图';
+      case ProviderApiType.indexList:
+        return "指数行情";
       case ProviderApiType.unknown:
         return '未知';
     }
@@ -131,6 +136,7 @@ class ApiProviderCapabilities {
     ProviderApiType.minuteKline: [EnumApiProvider.baiduFinance],
     ProviderApiType.dayKline: [EnumApiProvider.eastMoney, EnumApiProvider.baiduFinance],
     ProviderApiType.fiveDayKline: [EnumApiProvider.baiduFinance],
+    ProviderApiType.indexList: [EnumApiProvider.eastMoney],
   };
 
   ApiProviderCapabilities();

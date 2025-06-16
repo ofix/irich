@@ -53,6 +53,45 @@ String klineUrlEastMoney(String shareCode, int market, int klineType) {
       "&secid=$market.$shareCode&klt=$klineType&fqt=1";
 }
 
+String bkUrlEastMoney(String bkName, int pageIndex, [int pageSize = 100]) {
+  return "https://push2.eastmoney.com/api/qt/clist/get"
+      "?np=1"
+      "&fltt=1"
+      "&invt=2"
+      "&po=1"
+      "&dect=1"
+      "&fid=f3"
+      "&fs=b:$bkName"
+      "&fields=f12,f14"
+      "&pn=$pageIndex&pz=$pageSize";
+}
+
+String stockIndexUrlShangHaiEastMoney(int pageIndex, [int pageSize = 100]) {
+  return "https://push2.eastmoney.com/api/qt/clist/get"
+      "?np=1"
+      "&fltt=1"
+      "&invt=2"
+      "&fs=m:1+t:1"
+      "&fields=f12,f13,f14,f1,f2,f4,f3,f152,f5,f6,f7,f15,f18,f16,f17,f10"
+      "&fid=f3"
+      "&pn=$pageIndex"
+      "&pz=$pageSize"
+      "&po=1&dect=1&wbp2u=|0|0|0|web";
+}
+
+String stockIndexUrlShenZhenEastMoney(int pageIndex, [int pageSize = 100]) {
+  return "https://push2.eastmoney.com/api/qt/clist/get"
+      "?np=1"
+      "&fltt=1"
+      "&invt=2"
+      "&fs=m:0+t:5"
+      "&fields=f12,f13,f14,f1,f2,f4,f3,f152,f5,f6,f7,f15,f18,f16,f17,f10"
+      "&fid=f3"
+      "&pn=$pageIndex"
+      "&pz=$pageSize"
+      "&po=1&dect=1&wbp2u=|0|0|0|web";
+}
+
 // 2. 实现具体数据源（示例：东方财富）
 class ApiProviderEastMoney extends ApiProvider {
   @override
@@ -77,6 +116,8 @@ class ApiProviderEastMoney extends ApiProvider {
         return fetchFiveDayKline(params);
       case ProviderApiType.minuteKline:
         return fetchMinuteKline(params);
+      case ProviderApiType.indexList:
+        return fetchIndexList(params, apiType, onPagerProgress); // 加载指数列表
       default:
         throw UnimplementedError('Unsupported API type: $ProviderApiType');
     }
@@ -98,6 +139,8 @@ class ApiProviderEastMoney extends ApiProvider {
         return parseFiveDayKline(response); // 5日K线分时数据
       case ProviderApiType.minuteKline:
         return parseMinuteKline(response); // 分时K线数据
+      case ProviderApiType.indexList:
+        return parseIndexList(response);
       default:
         throw UnimplementedError('Unsupported API type: $ProviderApiType');
     }
@@ -140,53 +183,9 @@ class ApiProviderEastMoney extends ApiProvider {
     ProviderApiType apiType, [
     void Function(RequestLog requestLog)? onPagerProgress,
   ]) async {
-    final name = params['code']; // 板块代号,东方财富限制了
-    final responses = <ApiResult>[];
-    int pageTotal = 0;
-    int pageDone = 0;
-    double pageProgress = 0.0;
-
-    for (int i = 1; i <= 30; i++) {
-      // 每页100条记录，假设最多20个分页，也即2000个成分股
-      final url =
-          "https://push2.eastmoney.com/api/qt/clist/get?np=1&fltt=1&invt=2&po=1&dect=1&fid=f3&fs=b:$name&fields=f12,f14&pn=$i&pz=100";
-      try {
-        DateTime requestTime = DateTime.now();
-        final result = await getRawJson(url);
-        DateTime responseTime = DateTime.now();
-        if (i == 1) {
-          final json = jsonDecode(result.response);
-          pageTotal = json['data']['total'];
-        }
-        pageDone += 100;
-        pageProgress = pageDone / pageTotal;
-        if (pageDone >= pageTotal) {
-          pageProgress = 1;
-        }
-        if (_isPageEnd(result.response)) break;
-        responses.add(result);
-        // 随机延时
-        final random = Random();
-        int delaySeconds = 3 + random.nextInt(3); // 随机 1~2 秒
-        final requestLog = RequestLog(
-          taskId: params['TaskId'],
-          providerId: provider,
-          apiType: apiType,
-          responseBytes: result.responseBytes,
-          requestTime: requestTime,
-          responseTime: responseTime,
-          url: url,
-          statusCode: result.statusCode,
-          duration: responseTime.difference(requestTime).inMilliseconds,
-          pageProgress: pageProgress,
-        );
-        onPagerProgress?.call(requestLog);
-        await Future.delayed(Duration(seconds: delaySeconds));
-      } catch (e) {
-        rethrow;
-      }
-    }
-    return responses;
+    String generateUrl(int pageIndex, int pageSize, Map<String, dynamic> _) =>
+        bkUrlEastMoney(params['code'], pageIndex, pageSize);
+    return _multiPageRequest(params, apiType, onPagerProgress, [generateUrl]);
   }
 
   bool _isPageEnd(String data) {
@@ -351,5 +350,125 @@ class ApiProviderEastMoney extends ApiProvider {
       uiKlines.add(uiKline);
     }
     return uiKlines;
+  }
+
+  // 东方财富多个分页请求通用回调处理函数
+  Future<List<ApiResult>> _multiPageRequest(
+    Map<String, dynamic> params,
+    ProviderApiType apiType,
+    void Function(RequestLog requestLog)? onPagerProgress,
+    List<String Function(int pageIndex, int pageSize, Map<String, dynamic> params)> urlGenerators,
+  ) async {
+    List<ApiResult> responses = [];
+    const int pageSize = 100;
+    int totalRecords = 0;
+    List<int> subTotalRecords = [];
+    int recvRecords = 0;
+    final random = Random(); // 随机延时
+    // 先累加所有分页请求的记录总数
+    for (final generateUrl in urlGenerators) {
+      final url = generateUrl(1, pageSize, params);
+      final result = await getJson(url);
+      final json = jsonDecode(result.response);
+      int total = json['data']['total'] as int;
+      totalRecords += total;
+      subTotalRecords.add(total);
+      recvRecords += pageSize;
+      responses.add(result);
+      await Future.delayed(Duration(seconds: 3 + random.nextInt(2)));
+    }
+    // 准确返回进度
+    for (int i = 1; i <= urlGenerators.length; i++) {
+      _notifyProgress(
+        params: params,
+        apiType: apiType,
+        result: responses[i],
+        pageProgress: min(1.0, i * pageSize / totalRecords),
+        onPagerProgress: onPagerProgress,
+      );
+    }
+
+    for (int i = 0; i < urlGenerators.length; i++) {
+      final generateUrl = urlGenerators[i];
+      int maxPage = (subTotalRecords[i] / pageSize).ceil();
+      for (int pageIndex = 2; pageIndex <= maxPage; pageIndex++) {
+        final url = generateUrl(pageIndex, pageSize, params);
+        final result = await getJson(url);
+        recvRecords += pageSize;
+        final progress = min(1.0, recvRecords / totalRecords);
+        responses.add(result);
+        _notifyProgress(
+          params: params,
+          apiType: apiType,
+          result: result,
+          pageProgress: progress,
+          onPagerProgress: onPagerProgress,
+        );
+        if (_isPageEnd(result.response)) break;
+        await Future.delayed(Duration(seconds: 3 + random.nextInt(2)));
+      }
+    }
+    return responses;
+  }
+
+  // 通知进度
+  void _notifyProgress({
+    required Map<String, dynamic> params,
+    required ProviderApiType apiType,
+    required ApiResult result,
+    required double pageProgress,
+    void Function(RequestLog requestLog)? onPagerProgress,
+  }) {
+    onPagerProgress?.call(
+      RequestLog(
+        taskId: params['TaskId'],
+        providerId: provider,
+        apiType: apiType,
+        responseBytes: result.responseBytes,
+        requestTime: result.requestTime!,
+        responseTime: result.responseTime!,
+        url: result.url,
+        statusCode: result.statusCode,
+        duration: result.responseTime!.difference(result.requestTime!).inMilliseconds,
+        pageProgress: pageProgress,
+      ),
+    );
+  }
+
+  // 抓取东方财富的指数列表
+  Future<List<ApiResult>> fetchIndexList(
+    Map<String, dynamic> params,
+    ProviderApiType apiType,
+    void Function(RequestLog requestLog)? onPagerProgress,
+  ) async {
+    String shanghaiUrl(int pageIndex, int _, __) => stockIndexUrlShangHaiEastMoney(pageIndex);
+    String shenzhenUrl(int pageIndex, int _, __) => stockIndexUrlShenZhenEastMoney(pageIndex);
+    return _multiPageRequest(params, apiType, onPagerProgress, [shanghaiUrl, shenzhenUrl]);
+  }
+
+  List<StockIndex> parseIndexList(List<ApiResult> responses) {
+    final List<StockIndex> stockIndexes = [];
+    for (final item in responses) {
+      final result = jsonDecode(item.response);
+      final data = result["data"]['diff'];
+      for (final row in data) {
+        final stockIndex = StockIndex(
+          code: row['f1'],
+          name: row['f2'],
+          changeRate: row['f3'],
+          volume: row['f4'],
+          amount: row['f5'],
+          priceYesterdayClose: row['f6'],
+          priceNow: row['f7'],
+          priceMax: row['f8'],
+          priceMin: row['f9'],
+          priceOpen: row['f10'],
+          priceAmplitude: row['f11'],
+          isFavorite: false,
+        );
+        stockIndexes.add(stockIndex);
+      }
+    }
+    return stockIndexes;
   }
 }

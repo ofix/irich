@@ -64,12 +64,12 @@ class WatchShareListNotifier extends StateNotifier<List<Share>> {
     final share = StoreQuote.query(shareCode);
     if (share == null) return; // 或抛出异常
 
-    StoreQuote.addFavoriteShare(shareCode);
+    StoreQuote.addWatchShare(shareCode);
     state = [...state, share]; // 不可变更新
   }
 
   void remove(String shareCode) {
-    StoreQuote.removeFavoriteShare(shareCode);
+    StoreQuote.removeWatchShare(shareCode);
     state = state.where((share) => share.code != shareCode).toList();
   }
 

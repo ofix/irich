@@ -13,15 +13,14 @@ import 'package:irich/global/stock.dart';
 import 'package:irich/store/state_quote.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class FavoriteShareTab extends ConsumerStatefulWidget {
-  const FavoriteShareTab({super.key});
+class WatchShareTab extends ConsumerStatefulWidget {
+  const WatchShareTab({super.key});
 
   @override
-  ConsumerState<FavoriteShareTab> createState() => _FavoriteShareTabState();
+  ConsumerState<WatchShareTab> createState() => _WatchShareTabState();
 }
 
-class _FavoriteShareTabState extends ConsumerState<FavoriteShareTab>
-    with AutomaticKeepAliveClientMixin {
+class _WatchShareTabState extends ConsumerState<WatchShareTab> with AutomaticKeepAliveClientMixin {
   List<Share> watchShares = [];
 
   late ScrollController scrollController;
@@ -45,7 +44,7 @@ class _FavoriteShareTabState extends ConsumerState<FavoriteShareTab>
     super.dispose();
   }
 
-  void buildFavoriteShareIndex() {
+  void buildWatchShareIndex() {
     watchShares = ref.read(watchShareListProvider);
     for (int i = 0; i < watchShares.length; i++) {
       posMap[watchShares[i].code] = i;

@@ -74,7 +74,7 @@ class _ShareLeftPanelState extends ConsumerState<ShareLeftPanel>
           Expanded(
             child: TabBarView(
               controller: tabController,
-              children: const [MarektShareTab(), FavoriteShareTab()],
+              children: const [MarektShareTab(), WatchShareTab()],
             ),
           ),
         ],

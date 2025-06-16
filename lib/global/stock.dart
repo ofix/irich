@@ -244,7 +244,7 @@ class ShareBriefInfo {
   }
 }
 
-class Share {
+class Stock {
   int? id; // 序号
   String code; // 股票代号
   String name; // 股票名称
@@ -259,12 +259,89 @@ class Share {
   double priceOpen; // 开盘价
   double? priceClose; // 收盘价
   double priceAmplitude; // 股价振幅
+  bool isFavorite; // 是否自选
+  Stock({
+    this.id,
+    required this.code,
+    required this.name,
+    this.changeAmount,
+    required this.changeRate,
+    required this.volume,
+    required this.amount,
+    required this.priceYesterdayClose,
+    required this.priceNow,
+    required this.priceMax,
+    required this.priceMin,
+    required this.priceOpen,
+    this.priceClose,
+    required this.priceAmplitude,
+    this.isFavorite = false,
+  });
+}
+
+class StockIndex extends Stock {
+  List<Share> componentShares = const []; // 指数成分股
+  StockIndex({
+    super.id,
+    required super.code,
+    required super.name,
+    super.changeAmount,
+    required super.changeRate,
+    required super.volume,
+    required super.amount,
+    required super.priceYesterdayClose,
+    required super.priceNow,
+    required super.priceMax,
+    required super.priceMin,
+    required super.priceOpen,
+    super.priceClose,
+    required super.priceAmplitude,
+    required super.isFavorite,
+  });
+  StockIndex copyWith({
+    int? id,
+    String? code,
+    String? name,
+    double? changeAmount,
+    double? changeRate,
+    int? volume,
+    double? amount,
+    double? priceYesterdayClose,
+    double? priceNow,
+    double? priceMax,
+    double? priceMin,
+    double? priceOpen,
+    double? priceClose,
+    double? priceAmplitude,
+    bool? isFavorite,
+  }) {
+    return StockIndex(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      name: name ?? this.name,
+      changeAmount: changeAmount ?? this.changeAmount,
+      changeRate: changeRate ?? this.changeRate,
+      volume: volume ?? this.volume,
+      amount: amount ?? this.amount,
+      priceYesterdayClose: priceYesterdayClose ?? this.priceYesterdayClose,
+      priceNow: priceNow ?? this.priceNow,
+      priceMax: priceMax ?? this.priceMax,
+      priceMin: priceMin ?? this.priceMin,
+      priceOpen: priceOpen ?? this.priceOpen,
+      priceClose: priceClose ?? this.priceClose,
+      priceAmplitude: priceAmplitude ?? this.priceAmplitude,
+      isFavorite: isFavorite ?? this.isFavorite,
+    );
+  }
+}
+
+class Share extends Stock {
   double qrr; // 量比
   double? pe; // 市盈率
   double? pb; // 市净率
   double? roe; // 净资产收益率
   double turnoverRate; // 换手率
-  bool isFavorite; // 是否已添加自选
+  // bool isFavorite; // 是否已添加自选
   double? revenue; // 当前营收
   double? bonus; // 当前分红
   double? historyBonus; // 历史分红总额
@@ -282,22 +359,23 @@ class Share {
   ShareBriefInfo? briefInfo; // 公司简要信息
   ShareBasicInfo? basicInfo; // 股票基本信息
   Share({
-    this.id,
-    required this.code,
-    required this.name,
-    this.changeAmount,
-    required this.changeRate,
-    required this.volume,
-    required this.amount,
-    required this.priceYesterdayClose,
-    required this.priceNow,
-    required this.priceMax,
-    required this.priceMin,
-    required this.priceOpen,
-    this.priceClose,
-    required this.priceAmplitude,
+    super.id,
+    required super.code,
+    required super.name,
+    super.changeAmount,
+    required super.changeRate,
+    required super.volume,
+    required super.amount,
+    required super.priceYesterdayClose,
+    required super.priceNow,
+    required super.priceMax,
+    required super.priceMin,
+    required super.priceOpen,
+    super.priceClose,
+    required super.priceAmplitude,
     required this.turnoverRate,
     required this.qrr,
+    super.isFavorite = false,
     this.pe,
     this.pb,
     this.roe,
@@ -317,7 +395,6 @@ class Share {
     this.concepts,
     this.briefInfo,
     this.basicInfo,
-    this.isFavorite = false,
   });
 
   Share copyWith({
@@ -424,7 +501,7 @@ class ShareEmaCurve {
 }
 
 // 自选股
-class FavoriteShare {
+class WatchShare {
   Share share; // share对象（Dart无需指针）
   String favoriateDate; // 添加日期
   double addPrice; // 添加自选时的股价
@@ -433,7 +510,7 @@ class FavoriteShare {
   double recentMonthChangeRate; // 最近1个月涨跌幅
   double recentYearChangeRate; // 今年以来涨跌幅
 
-  FavoriteShare({
+  WatchShare({
     required this.share,
     required this.favoriateDate,
     required this.addPrice,
@@ -442,7 +519,7 @@ class FavoriteShare {
     required this.recentMonthChangeRate,
     required this.recentYearChangeRate,
   });
-  FavoriteShare copyWith({
+  WatchShare copyWith({
     Share? share,
     String? favoriateDate,
     double? addPrice,
@@ -451,7 +528,7 @@ class FavoriteShare {
     double? recentMonthChangeRate,
     double? recentYearChangeRate,
   }) {
-    return FavoriteShare(
+    return WatchShare(
       share: share?.copyWith() ?? this.share,
       favoriateDate: favoriateDate ?? this.favoriateDate,
       addPrice: addPrice ?? this.addPrice,
@@ -464,11 +541,11 @@ class FavoriteShare {
 }
 
 // 自选股分组
-class FavoriteShareGroup {
+class WatchShareGroup {
   String name; // 自选股分组名称
-  List<FavoriteShare> shares;
+  List<WatchShare> shares;
 
-  FavoriteShareGroup({required this.name, required this.shares});
+  WatchShareGroup({required this.name, required this.shares});
 }
 
 // 监控股

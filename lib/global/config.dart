@@ -36,7 +36,7 @@ class Config {
   }
 
   // 用户自选股列表文件路径
-  static Future<String> get pathFavoriteShares async {
+  static Future<String> get pathWatchShares async {
     String appRootDir = await FileTool.getAppRootDir();
     return p.join(appRootDir, 'data', 'favorite_shares.json');
   }

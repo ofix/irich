@@ -252,9 +252,19 @@ class ApiProviderIfind extends ApiProvider {
       if (response.statusCode == 200) {
         final gbkBytes = response.bodyBytes;
         final data = gbk.decode(gbkBytes); // 使用 charset 库解码
-        return ApiResult(url, response.statusCode, data, size);
+        return ApiResult(
+          url: url,
+          statusCode: response.statusCode,
+          response: data,
+          responseBytes: size,
+        );
       }
-      return ApiResult(url, response.statusCode, response.body, size);
+      return ApiResult(
+        url: url,
+        statusCode: response.statusCode,
+        response: response.body,
+        responseBytes: size,
+      );
     } catch (e) {
       debugPrint(e.toString());
       rethrow;
