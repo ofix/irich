@@ -26,7 +26,7 @@ class DesktopMenu extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
-          _buildMenuItem(context, icon: Icons.star, label: '自选股', route: '/favorite'),
+          _buildMenuItem(context, icon: Icons.star, label: '我的', route: '/my'),
           _buildMenuItem(context, icon: Icons.trending_up, label: '行情', route: '/market'),
           _buildMenuItem(context, icon: Icons.search, label: '选股', route: '/discovery'),
           _buildMenuItem(context, icon: Icons.explore, label: '决策', route: '/portfolio'),

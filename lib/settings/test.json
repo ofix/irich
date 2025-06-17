@@ -1,23 +1,25 @@
 {
   "Type": "Row",
+  "Percent": 1,
   "Children": [
     {
       "Type": "KlineCtrl",
-      "WidthPercent": 0.5,
-      "HeightPercent": 0.3
+      "Percent": 0.3,
+      "GroupId": 1
     },
     {
       "Type": "Column",
+      "Percent": 0.7,
       "Children": [
         {
-          "Type": "KlineCtrl",
-          "WidthPercent": 0.5,
-          "HeightPercent": 0.3
+          "Type": "MinuteKlineCtrl",
+          "Percent": 0.5,
+          "GroupId": 2
         },
         {
-          "Type": "KlineCtrl",
-          "WidthPercent": 0.5,
-          "HeightPercent": 0.3
+          "Type": "MarketShares",
+          "Percent": 0.5,
+          "GroupId": 1
         }
       ]
     }

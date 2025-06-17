@@ -12,7 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:irich/pages/discovery/discovery_page.dart';
 import 'package:irich/pages/market/market_page.dart';
 import 'package:irich/pages/portfolio/portfolio_page.dart';
-import 'package:irich/pages/favorite/favorite_page.dart';
+import 'package:irich/pages/my/my_page.dart';
 import 'package:irich/pages/settings/settings_page.dart';
 import 'package:irich/pages/share/share_page.dart';
 
@@ -36,10 +36,10 @@ final appRouter = GoRouter(
               NoTransitionPage(key: state.pageKey, child: const MarketPage(title: '行情')),
     ),
     GoRoute(
-      path: '/favorite',
+      path: '/my',
       pageBuilder:
           (context, state) =>
-              NoTransitionPage(key: state.pageKey, child: const FavoritePage(title: '自选')),
+              NoTransitionPage(key: state.pageKey, child: const MyPage(title: '我的')),
     ),
     GoRoute(
       path: '/share', // 动态参数

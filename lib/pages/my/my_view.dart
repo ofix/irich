@@ -11,8 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/store/state_favorite.dart';
 
-class FavoriteView extends ConsumerWidget {
-  const FavoriteView({super.key, required this.title});
+class MyView extends ConsumerWidget {
+  const MyView({super.key, required this.title});
   final String title;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
