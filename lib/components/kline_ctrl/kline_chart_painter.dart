@@ -135,7 +135,7 @@ class KlinePainter extends CustomPainter {
     // 收盘十字形画笔
     final greyPen =
         Paint()
-          ..color = Colors.grey
+          ..color = Colors.white
           ..strokeWidth = 1
           ..style = PaintingStyle.stroke;
 
@@ -153,6 +153,12 @@ class KlinePainter extends CustomPainter {
     canvas.save();
     canvas.translate(klineChartLeftMargin, 0);
     int nKline = 0; // 第几根K线
+    double yesterdayClosePrice = 0;
+    if (klineRng.begin > 0) {
+      yesterdayClosePrice = klines[klineRng.begin - 1].priceClose;
+    } else {
+      yesterdayClosePrice = klines[0].priceOpen;
+    }
     for (var i = klineRng.begin; i <= klineRng.end; i++) {
       final kline = klines[i];
       final x = nKline * klineStep;
@@ -165,9 +171,16 @@ class KlinePainter extends CustomPainter {
       final closeY = (klineRngMaxPrice - kline.priceClose) * priceRatio;
 
       final isUp = kline.priceClose > kline.priceOpen;
+      final isDown = kline.priceClose < kline.priceOpen;
 
       // 绘制日K线中心线
-      canvas.drawLine(Offset(centerX, highY), Offset(centerX, lowY), isUp ? redPen : greenPen);
+      canvas.drawLine(
+        Offset(centerX, highY),
+        Offset(centerX, lowY),
+        isUp
+            ? redPen
+            : (isDown ? greenPen : (kline.priceClose > yesterdayClosePrice ? redPen : greyPen)),
+      );
 
       // 非一字板情况
       if (kline.priceClose != kline.priceOpen) {
@@ -177,12 +190,15 @@ class KlinePainter extends CustomPainter {
         );
       } else {
         // 一字板情况
+        final right = x + klineWidth;
         if (isUpLimitPrice(kline, share)) {
-          canvas.drawLine(Offset(x, closeY), Offset(centerX, closeY), redPen);
+          canvas.drawLine(Offset(x, closeY), Offset(right, closeY), redPen);
         } else if (isDownLimitPrice(kline, share)) {
-          canvas.drawLine(Offset(x, closeY), Offset(centerX, closeY), greenPen);
+          canvas.drawLine(Offset(x, closeY), Offset(right, closeY), greenPen);
+        } else if (kline.priceClose > yesterdayClosePrice) {
+          canvas.drawLine(Offset(x, closeY), Offset(right, closeY), redPen);
         } else {
-          canvas.drawLine(Offset(x, closeY), Offset(centerX, closeY), greyPen);
+          canvas.drawLine(Offset(x, closeY), Offset(right, closeY), greyPen);
         }
       }
       nKline++;
