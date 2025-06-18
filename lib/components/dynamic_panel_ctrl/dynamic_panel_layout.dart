@@ -9,7 +9,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel.dart';
-import 'package:irich/components/dynamic_panel_ctrl/dynamic_split_line.dart';
 
 // 布局管理器
 class DynamicPanelLayout with ChangeNotifier {
