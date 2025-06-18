@@ -57,6 +57,9 @@ class DynamicPanelPainter extends CustomPainter {
     }
 
     // 绘制选中的矩形
+    if (selectedPanel != null) {
+      canvas.drawRect(selectedPanel!.rect, activePen);
+    }
   }
 
   @override

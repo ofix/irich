@@ -135,6 +135,11 @@ class DynamicPanelLayout with ChangeNotifier {
     return (minPos, maxPos);
   }
 
+  void forceLayout(Size newSize) {
+    _layoutDirty = true;
+    doLayout(newSize);
+  }
+
   /// 用户调整窗口尺寸的时候，需要同步递归更新整棵动态面板树的矩形大小
   /// [newSize] 新的窗口尺寸
   void doLayout(Size newSize) {
@@ -175,6 +180,13 @@ class DynamicPanelLayout with ChangeNotifier {
       if (child.type != DynamicPanelType.leaf) {
         _doLayoutChildren(child, scaleX, scaleY);
       }
+    }
+  }
+
+  void onPanelSelected(Offset mousePos) {
+    DynamicPanel? target = findNearestPanelAtMousePos(root, mousePos);
+    if (target != null) {
+      _selectedPanel = target;
     }
   }
 

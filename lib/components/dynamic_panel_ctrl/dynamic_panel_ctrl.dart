@@ -30,6 +30,7 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
   Offset mousePos = Offset.zero;
   bool isLeftBtnDown = false;
   bool isCtrlPressed = false;
+  Size oldSize = Size(0, 0); // 老的窗口大小
   Map<String, SplitMode> splitHash = {
     "vertical": SplitMode.vertical,
     "horizontal": SplitMode.horizontal,
@@ -75,8 +76,9 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
               },
               onPointerDown: (PointerDownEvent event) {
                 if (event.buttons == kPrimaryButton) {
-                  setState(() => isLeftBtnDown = true);
-                  debugPrint('Panel左键点击: ${event.localPosition}');
+                  isLeftBtnDown = true;
+                  layout.onPanelSelected(event.localPosition);
+                  setState(() {});
                 }
               },
               onPointerUp: (PointerUpEvent event) {
@@ -143,7 +145,11 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         Size size = Size(constraints.maxWidth, constraints.maxHeight);
-        layout.doLayout(size);
+        if (size != oldSize) {
+          // 窗口调整的时候重新布局
+          layout.forceLayout(size);
+          oldSize = size;
+        }
         return DynamicPanelChart(width: size.width, height: size.height, layout: layout);
       },
     );
