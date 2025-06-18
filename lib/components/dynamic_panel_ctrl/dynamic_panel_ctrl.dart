@@ -64,27 +64,30 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
         children: [
           _buildToolBar(), // 工具栏（无事件监听）
           Expanded(
-            child: Listener(
-              onPointerMove: (PointerMoveEvent event) {
-                final panelBox = context.findRenderObject() as RenderBox;
-                final localPos = panelBox.globalToLocal(event.position);
-
-                setState(() => mousePos = localPos);
+            child: MouseRegion(
+              onHover: (PointerHoverEvent event) {
+                mousePos = event.localPosition;
+                // 进行分割线检测
+                layout.onSplitLinesHitTest(mousePos);
                 if (isLeftBtnDown) {
-                  debugPrint('Panel区域鼠标拖动: $localPos');
+                  debugPrint('Panel区域鼠标拖动: $mousePos');
                 }
+                setState(() => {});
               },
-              onPointerDown: (PointerDownEvent event) {
-                if (event.buttons == kPrimaryButton) {
-                  isLeftBtnDown = true;
-                  layout.onPanelSelected(event.localPosition);
-                  setState(() {});
-                }
-              },
-              onPointerUp: (PointerUpEvent event) {
-                setState(() => isLeftBtnDown = false);
-              },
-              child: _buildPanel(layout),
+              child: Listener(
+                // onPointerSignal: _onMouseScroll,
+                onPointerDown: (PointerDownEvent event) {
+                  if (event.buttons == kPrimaryButton) {
+                    isLeftBtnDown = true;
+                    layout.onPanelSelected(event.localPosition);
+                    setState(() {});
+                  }
+                },
+                onPointerUp: (PointerUpEvent event) {
+                  setState(() => isLeftBtnDown = false);
+                },
+                child: _buildPanel(layout),
+              ),
             ),
           ),
         ],

@@ -16,7 +16,6 @@ class DynamicPanelLayout with ChangeNotifier {
   late DynamicPanel _root; // 面板树根节点
   DynamicPanel? _selectedPanel; // 当前选中的面板
   DynamicSplitLine? _selectedSplitLine; // 当前选中的分割线
-  SplitMode _splitMode = SplitMode.none; // 当前分割
   final OperationHistory _history = OperationHistory(); // 操作历史
   final List<DynamicSplitLine> _horizontalLines = []; // 横向分割线列表
   final List<DynamicSplitLine> _verticalLines = []; // 竖向分割线列表
@@ -76,6 +75,22 @@ class DynamicPanelLayout with ChangeNotifier {
     lines.sort((a, b) => a.position.compareTo(b.position));
   }
 
+  void onSplitLinesHitTest(Offset mousePos) {
+    final line = hitTestSplitLines(mousePos.dx, mousePos.dy);
+    if (line != null) {
+      if (_selectedSplitLine != null) {
+        _selectedSplitLine!.isSelected = false; // 取消上次的选中分割线
+      }
+      _selectedSplitLine = line;
+      _selectedSplitLine!.isSelected = true;
+    } else {
+      if (_selectedSplitLine != null) {
+        _selectedSplitLine!.isSelected = false; // 取消上次的选中分割线
+        _selectedSplitLine = null;
+      }
+    }
+  }
+
   // 查询点击是否选中某条线（threshold: 点击容差，左右/上下3个像素）
   DynamicSplitLine? hitTestSplitLines(double mouseX, double mouseY, {double threshold = 3.0}) {
     // 优先检查横向线
@@ -97,6 +112,46 @@ class DynamicPanelLayout with ChangeNotifier {
       mouseOrthogonalPos: mouseY,
       threshold: threshold,
     );
+  }
+
+  // 二分查找最近的分割线
+  DynamicSplitLine? _findNearestLine({
+    required List<DynamicSplitLine> lines,
+    required double mousePos,
+    required bool isHorizontal,
+    required double mouseOrthogonalPos,
+    required double threshold,
+  }) {
+    if (lines.isEmpty) return null;
+
+    // 二分查找第一个 position >= mousePos 的线
+    int left = 0, right = lines.length - 1;
+    int index = lines.length; // 默认超出范围
+    while (left <= right) {
+      final mid = left + (right - left) ~/ 2;
+      if (lines[mid].position >= mousePos) {
+        index = mid;
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
+    }
+
+    // 检查候选线及其前一条线
+    final candidates = <DynamicSplitLine>[];
+    if (index < lines.length) candidates.add(lines[index]);
+    if (index > 0) candidates.add(lines[index - 1]);
+
+    // 检查是否在容差范围内且正交坐标在线段范围内
+    for (final line in candidates) {
+      if ((line.position - mousePos).abs() <= threshold) {
+        if (mouseOrthogonalPos >= line.start && mouseOrthogonalPos <= line.end) {
+          return line;
+        }
+      }
+    }
+
+    return null;
   }
 
   // --- 私有方法 ---
@@ -224,55 +279,9 @@ class DynamicPanelLayout with ChangeNotifier {
     }
   }
 
-  // 二分查找最近的分割线
-  DynamicSplitLine? _findNearestLine({
-    required List<DynamicSplitLine> lines,
-    required double mousePos,
-    required bool isHorizontal,
-    required double mouseOrthogonalPos,
-    required double threshold,
-  }) {
-    if (lines.isEmpty) return null;
-
-    // 二分查找第一个 position >= mousePos 的线
-    int left = 0, right = lines.length - 1;
-    int index = lines.length; // 默认超出范围
-    while (left <= right) {
-      final mid = left + (right - left) ~/ 2;
-      if (lines[mid].position >= mousePos) {
-        index = mid;
-        right = mid - 1;
-      } else {
-        left = mid + 1;
-      }
-    }
-
-    // 检查候选线及其前一条线
-    final candidates = <DynamicSplitLine>[];
-    if (index < lines.length) candidates.add(lines[index]);
-    if (index > 0) candidates.add(lines[index - 1]);
-
-    // 检查是否在容差范围内且正交坐标在线段范围内
-    for (final line in candidates) {
-      if ((line.position - mousePos).abs() <= threshold) {
-        if (mouseOrthogonalPos >= line.start && mouseOrthogonalPos <= line.end) {
-          return line;
-        }
-      }
-    }
-
-    return null;
-  }
-
   // 选中面板
   void selectPanel(DynamicPanel? panel) {
     _selectedPanel = panel;
-    notifyListeners();
-  }
-
-  // 设置划分模式
-  void setSplitMode(SplitMode mode) {
-    _splitMode = mode;
     notifyListeners();
   }
 

@@ -57,8 +57,24 @@ class DynamicPanelPainter extends CustomPainter {
     }
 
     // 绘制选中的矩形
-    if (selectedPanel != null) {
+    if (selectedSplitLine == null && selectedPanel != null) {
       canvas.drawRect(selectedPanel!.rect, activePen);
+    }
+    // 绘制选中的分割线
+    if (selectedSplitLine != null) {
+      if (selectedSplitLine!.isHorizontal) {
+        canvas.drawLine(
+          Offset(selectedSplitLine!.start, selectedSplitLine!.position),
+          Offset(selectedSplitLine!.end, selectedSplitLine!.position),
+          activePen,
+        );
+      } else {
+        canvas.drawLine(
+          Offset(selectedSplitLine!.position, selectedSplitLine!.start),
+          Offset(selectedSplitLine!.position, selectedSplitLine!.end),
+          activePen,
+        );
+      }
     }
   }
 
