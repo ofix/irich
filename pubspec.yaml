@@ -84,6 +84,12 @@ flutter:
     - images/同花顺.svg
     - images/irich.svg
     - images/skymoney.png
+    - images/vertical.svg
+    - images/horizontal.svg
+    - images/cols_3.svg
+    - images/rows_3.svg
+    - images/grid_2x2.svg
+    - images/grid_4x4.svg
     - lib/runtime/
     - lib/runtime/data/
     - lib/runtime/data/chinese_pinyin.dic

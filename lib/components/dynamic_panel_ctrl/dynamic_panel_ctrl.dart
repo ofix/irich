@@ -7,163 +7,173 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'dart:convert';
-
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel_chart.dart';
 import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel_layout.dart';
-import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel.dart';
+import 'package:irich/components/dynamic_panel_ctrl/dynamic_split_line.dart';
 
-class RichWidgetLayoutCtrl extends ConsumerStatefulWidget {
-  const RichWidgetLayoutCtrl({super.key});
+enum Direction { up, down, left, right }
+
+class DynamicPanelCtrl extends ConsumerStatefulWidget {
+  const DynamicPanelCtrl({super.key});
 
   @override
-  ConsumerState<RichWidgetLayoutCtrl> createState() => _RichWidgetLayoutState();
+  ConsumerState<DynamicPanelCtrl> createState() => _DynamicPanelCtrlState();
 }
 
-class _RichWidgetLayoutState extends ConsumerState<RichWidgetLayoutCtrl> {
-  final DynamicPanelLayout controller = DynamicPanelLayout();
+class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
+  final DynamicPanelLayout layout = DynamicPanelLayout();
+  Offset mousePos = Offset.zero;
+  bool isLeftBtnDown = false;
+  bool isCtrlPressed = false;
+  Map<String, SplitMode> splitHash = {
+    "vertical": SplitMode.vertical,
+    "horizontal": SplitMode.horizontal,
+    "rows_3": SplitMode.rows_3,
+    "cols_3": SplitMode.cols_3,
+    "grid_2x2": SplitMode.grid_2_2,
+    "grid_4x4": SplitMode.grid_4_4,
+  };
+  final FocusNode focusNode = FocusNode(); // 替代RawKeyboardListener
+
+  @override
+  void initState() {
+    super.initState();
+    // 监听全局键盘事件
+    HardwareKeyboard.instance.addHandler(handleKeyEvent); // 新API
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(handleKeyEvent);
+    focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return _buildPanel(controller.root, constraints.biggest);
-      },
+    return Focus(
+      autofocus: true,
+      focusNode: focusNode,
+      child: Column(
+        children: [
+          _buildToolBar(), // 工具栏（无事件监听）
+          Expanded(
+            child: Listener(
+              onPointerMove: (PointerMoveEvent event) {
+                final panelBox = context.findRenderObject() as RenderBox;
+                final localPos = panelBox.globalToLocal(event.position);
+
+                setState(() => mousePos = localPos);
+                if (isLeftBtnDown) {
+                  debugPrint('Panel区域鼠标拖动: $localPos');
+                }
+              },
+              onPointerDown: (PointerDownEvent event) {
+                if (event.buttons == kPrimaryButton) {
+                  setState(() => isLeftBtnDown = true);
+                  debugPrint('Panel左键点击: ${event.localPosition}');
+                }
+              },
+              onPointerUp: (PointerUpEvent event) {
+                setState(() => isLeftBtnDown = false);
+              },
+              child: _buildPanel(layout),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildPanel(DynamicPanel panel, Size availableSize) {
-    final screenRect = _denormalizeRect(panel.rect, availableSize);
-    return Positioned(
-      left: screenRect.left,
-      top: screenRect.top,
-      width: screenRect.width,
-      height: screenRect.height,
-      child: GestureDetector(
-        onTap: () => controller.selectPanel(panel),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: controller.selectedPanel?.id == panel.id ? Colors.blue : Colors.grey,
-              width: 2,
-            ),
+  Widget _buildToolBar() {
+    List<String> svgs = ['vertical', 'horizontal', 'rows_3', 'cols_3', 'grid_2x2', 'grid_4x4'];
+    List<String> names = ['水平', "垂直", "横向3等分", "竖向3等分", "2X2网格", "4X4网格"];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 138, 137, 137),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(
+          padding: EdgeInsets.all(4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: List.generate(svgs.length, (index) {
+              return Tooltip(
+                message: names[index], // 提示文字
+                waitDuration: Duration(milliseconds: 500), // 悬停1秒后显示
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        style: IconButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        ),
+                        hoverColor: const Color.fromARGB(255, 228, 226, 226),
+                        onPressed: () => onClickLayoutButton(svgs[index]),
+                        icon: SvgPicture.asset('images/${svgs[index]}.svg', width: 32, height: 32),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
           ),
-          child: _buildPanelWidgets(panel, availableSize),
         ),
       ),
     );
   }
 
-  Widget _buildPanelWidgets(DynamicPanel panel, Size availableSize) {
-    if (panel.type == DynamicPanelType.leaf) {
-      return panel.widget ?? DefaultPanel(content: '空面板');
-    }
+  void onClickLayoutButton(String svg) {
+    final splitMode = splitHash[svg];
+    layout.splitPanel(splitMode!);
+    setState(() {});
+  }
 
-    return Stack(
-      children: [
-        // 子面板
-        ...panel.children.map((child) => _buildPanel(child, availableSize)),
-        // 分割线交互区域
-        ..._buildDividerHandles(panel, availableSize),
-      ],
+  Widget _buildPanel(DynamicPanelLayout layout) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        Size size = Size(constraints.maxWidth, constraints.maxHeight);
+        layout.doLayout(size);
+        return DynamicPanelChart(width: size.width, height: size.height, layout: layout);
+      },
     );
   }
 
-  List<Widget> _buildDividerHandles(DynamicPanel panel, Size availableSize) {
-    if (panel.type == DynamicPanelType.leaf) return [];
+  bool handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent || event is KeyUpEvent) {
+      setState(() {
+        isCtrlPressed = HardwareKeyboard.instance.isControlPressed;
+      });
 
-    final handles = <Widget>[];
-    final isRow = panel.type == DynamicPanelType.row;
-
-    for (int i = 0; i < panel.children.length - 1; i++) {
-      final child = panel.children[i];
-      final screenRect = _denormalizeRect(child.rect, availableSize);
-
-      handles.add(
-        Positioned(
-          left: isRow ? screenRect.right - 2 : 0,
-          top: isRow ? 0 : screenRect.bottom - 2,
-          width: isRow ? 4 : screenRect.width,
-          height: isRow ? screenRect.height : 4,
-          child: MouseRegion(
-            cursor: isRow ? SystemMouseCursors.resizeLeftRight : SystemMouseCursors.resizeUpDown,
-            child: GestureDetector(
-              onPanUpdate: (details) {
-                _handleDividerDrag(panel, i, details.delta, availableSize);
-              },
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return handles;
-  }
-
-  void _handleDividerDrag(DynamicPanel panel, int dividerIndex, Offset delta, Size availableSize) {
-    final isRow = panel.type == 'row';
-    final deltaValue = isRow ? delta.dx : delta.dy;
-    if (deltaValue == 0) return;
-
-    final newState = DynamicPanel.deepCopy(controller.root);
-    final targetPanel = _findPanel(newState, panel.id);
-    if (targetPanel == null) return;
-
-    final firstChild = targetPanel.children[dividerIndex];
-    final secondChild = targetPanel.children[dividerIndex + 1];
-
-    if (isRow) {
-      final newWidth = firstChild.rect.width + deltaValue / availableSize.width;
-      if (newWidth > 0.1 && secondChild.rect.width - deltaValue > 0.1) {
-        firstChild.rect = firstChild.rect.copyWith(right: firstChild.rect.left + newWidth);
-        secondChild.rect = secondChild.rect.copyWith(
-          left: secondChild.rect.left + deltaValue / availableSize.width,
-        );
-      }
-    } else {
-      final newHeight = firstChild.rect.height + deltaValue / availableSize.height;
-      if (newHeight > 0.1 && secondChild.rect.height - deltaValue > 0.1) {
-        firstChild.rect = firstChild.rect.copyWith(bottom: firstChild.rect.top + newHeight);
-        secondChild.rect = secondChild.rect.copyWith(
-          top: secondChild.rect.top + deltaValue / availableSize.height,
-        );
+      // 处理Ctrl+方向键
+      if (isCtrlPressed && event is KeyDownEvent) {
+        handleArrowKey(event.logicalKey);
       }
     }
-
-    controller.history.push(newState);
+    return false; // 不阻止事件继续传播
   }
 
-  DynamicPanel? _findPanel(DynamicPanel current, int id) {
-    if (current.id == id) return current;
-    for (final child in current.children) {
-      final found = _findPanel(child, id);
-      if (found != null) return found;
+  void handleArrowKey(LogicalKeyboardKey key) {
+    final String direction = switch (key) {
+      LogicalKeyboardKey.arrowUp => '上',
+      LogicalKeyboardKey.arrowDown => '下',
+      LogicalKeyboardKey.arrowLeft => '左',
+      LogicalKeyboardKey.arrowRight => '右',
+      _ => '其他',
+    };
+    if (direction != '其他') {
+      debugPrint('Ctrl+$direction 被按下');
+      // 在此添加业务逻辑
     }
-    return null;
-  }
-
-  Rect _denormalizeRect(Rect normalizedRect, Size availableSize) {
-    return Rect.fromLTWH(
-      normalizedRect.left * availableSize.width,
-      normalizedRect.top * availableSize.height,
-      normalizedRect.width * availableSize.width,
-      normalizedRect.height * availableSize.height,
-    );
-  }
-}
-
-class DefaultPanel extends StatelessWidget {
-  final String content;
-
-  const DefaultPanel({super.key, required this.content});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.orange.withOpacity(0.3),
-      child: Center(child: Text(content, style: TextStyle(fontSize: 24))),
-    );
   }
 }

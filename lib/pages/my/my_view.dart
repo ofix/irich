@@ -9,30 +9,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/store/state_favorite.dart';
+import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel_ctrl.dart';
 
 class MyView extends ConsumerWidget {
   const MyView({super.key, required this.title});
   final String title;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final count = ref.watch(counterProvider);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          const Text('自选页面: You have pushed the button this many times:'),
-          Text('$count', style: Theme.of(context).textTheme.headlineMedium),
-          MaterialButton(
-            onPressed: () => ref.read(counterProvider.notifier).state++,
-            color: Theme.of(context).colorScheme.primary,
-            textColor: Theme.of(context).colorScheme.onPrimary,
-            padding: const EdgeInsets.all(16.0),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-            child: const Text('增加'),
-          ),
-        ],
-      ),
-    );
+    return DynamicPanelCtrl();
   }
 }

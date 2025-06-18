@@ -20,11 +20,14 @@ class DynamicPanelLayout with ChangeNotifier {
   final OperationHistory _history = OperationHistory(); // 操作历史
   final List<DynamicSplitLine> _horizontalLines = []; // 横向分割线列表
   final List<DynamicSplitLine> _verticalLines = []; // 竖向分割线列表
+  bool _layoutDirty = false; // 是否需要重新布局
   Rect _boundary = Rect.fromLTWH(0, 0, 1, 1); // 父容器边界
+  static int panelId = 0;
 
+  // 公共属性
   List<DynamicSplitLine> get horizontalLines => _horizontalLines;
   List<DynamicSplitLine> get verticalLines => _verticalLines;
-  DynamicPanel get root => _history.current;
+  DynamicPanel get root => _root;
   DynamicPanel? get selectedPanel => _selectedPanel;
   DynamicSplitLine? get activeSplitLine => _selectedSplitLine;
   OperationHistory get history => _history;
@@ -34,9 +37,10 @@ class DynamicPanelLayout with ChangeNotifier {
   void redo() => _updateState(_history.redo);
 
   DynamicPanelLayout() {
-    _root = DynamicPanel(rect: Rect.fromLTWH(0, 0, 1, 1));
+    _root = DynamicPanel(rect: Rect.fromLTWH(0, 0, 1, 1), id: panelId++);
+    _selectedPanel = _root;
     _boundary = Rect.fromLTWH(0, 0, 1, 1);
-    _history.push(root);
+    _layoutDirty = true;
   }
 
   // 添加分割线（自动排序）
@@ -129,6 +133,83 @@ class DynamicPanelLayout with ChangeNotifier {
     }
 
     return (minPos, maxPos);
+  }
+
+  /// 用户调整窗口尺寸的时候，需要同步递归更新整棵动态面板树的矩形大小
+  /// [newSize] 新的窗口尺寸
+  void doLayout(Size newSize) {
+    if (!_layoutDirty) return;
+    // 1. 更新根节点
+    final scaleX = newSize.width / _root.rect.width;
+    final scaleY = newSize.height / _root.rect.height;
+    _root.rect = Rect.fromLTWH(0, 0, newSize.width, newSize.height);
+
+    // 2. 递归更新子节点
+    _doLayoutChildren(_root, scaleX, scaleY);
+    // 3. 更新横向分割线
+    for (final line in _horizontalLines) {
+      line.start *= scaleX;
+      line.end *= scaleX;
+      line.position *= scaleY;
+    }
+    // 4. 更新竖向分割线
+    for (final line in _verticalLines) {
+      line.start *= scaleY;
+      line.end *= scaleY;
+      line.position *= scaleX;
+    }
+    _layoutDirty = false;
+  }
+
+  void _doLayoutChildren(DynamicPanel node, double scaleX, double scaleY) {
+    for (final child in node.children) {
+      // 计算新的物理坐标
+      child.rect = Rect.fromLTRB(
+        child.rect.left * scaleX,
+        child.rect.top * scaleY,
+        child.rect.right * scaleX,
+        child.rect.bottom * scaleY,
+      );
+
+      // 递归处理子节点
+      if (child.type != DynamicPanelType.leaf) {
+        _doLayoutChildren(child, scaleX, scaleY);
+      }
+    }
+  }
+
+  /// 查找包含某点的最内层叶子节点
+  /// [node] 面板树根节点
+  /// [mousePos] 光标位置
+  DynamicPanel? findNearestPanelAtMousePos(DynamicPanel node, Offset mousePos) {
+    if (!node.rect.contains(mousePos)) return null;
+
+    if (node.type == DynamicPanelType.leaf) {
+      return node;
+    }
+
+    // 按z-order反向遍历（后添加的面板优先）
+    for (final child in node.children.reversed) {
+      final result = findNearestPanelAtMousePos(child, mousePos);
+      if (result != null) return result;
+    }
+    return null;
+  }
+
+  /// 查找与矩形相交的所有叶子节点
+  /// [node] 面板树根节点
+  /// [rect] 用户框选的矩形区域
+  /// [panels] 相交的矩形区域
+  void finalAllPanelsAtMousePos(DynamicPanel node, Rect rect, List<DynamicPanel> panels) {
+    if (!node.rect.overlaps(rect)) return;
+
+    if (node.type == DynamicPanelType.leaf) {
+      panels.add(node);
+    } else {
+      for (final child in node.children) {
+        finalAllPanelsAtMousePos(child, rect, panels);
+      }
+    }
   }
 
   // 二分查找最近的分割线
@@ -330,7 +411,7 @@ class DynamicPanelLayout with ChangeNotifier {
     switch (mode) {
       case SplitMode.horizontal:
         // 水平中心划分 - 添加一条水平分割线
-        horizontalLines.add(
+        _horizontalLines.add(
           DynamicSplitLine(
             isHorizontal: true,
             position: rect.top + rect.height / 2,
@@ -342,7 +423,7 @@ class DynamicPanelLayout with ChangeNotifier {
 
       case SplitMode.vertical:
         // 垂直中心划分 - 添加一条垂直分割线
-        verticalLines.add(
+        _verticalLines.add(
           DynamicSplitLine(
             isHorizontal: false,
             position: rect.left + rect.width / 2,
@@ -372,7 +453,7 @@ class DynamicPanelLayout with ChangeNotifier {
 
       case SplitMode.rows_3:
         // 垂直三等分 - 添加两条水平分割线
-        horizontalLines.addAll([
+        _horizontalLines.addAll([
           DynamicSplitLine(
             isHorizontal: true,
             position: rect.top + rect.height / 3,
@@ -390,7 +471,7 @@ class DynamicPanelLayout with ChangeNotifier {
 
       case SplitMode.grid_2_2:
         // 修改为：一条水平线 + 两条居中垂直线
-        horizontalLines.add(
+        _horizontalLines.add(
           DynamicSplitLine(
             isHorizontal: true,
             position: rect.top + rect.height / 2,
@@ -398,7 +479,7 @@ class DynamicPanelLayout with ChangeNotifier {
             end: rect.right,
           ),
         );
-        verticalLines.addAll([
+        _verticalLines.addAll([
           DynamicSplitLine(
             isHorizontal: false,
             position: rect.left + rect.width / 2,
@@ -418,7 +499,7 @@ class DynamicPanelLayout with ChangeNotifier {
         // 修改为：三条水平线 + 上下三等分垂直线（共9条）
         // 水平分割线（3条）
         for (int i = 1; i <= 3; i++) {
-          horizontalLines.add(
+          _horizontalLines.add(
             DynamicSplitLine(
               isHorizontal: true,
               position: rect.top + rect.height * i / 3,
@@ -430,7 +511,7 @@ class DynamicPanelLayout with ChangeNotifier {
         // 垂直分割线 (9条)
         for (int i = 1; i <= 3; i++) {
           for (int j = 0; j < 3; j++) {
-            verticalLines.add(
+            _verticalLines.add(
               DynamicSplitLine(
                 isHorizontal: false,
                 position: rect.left + rect.width * i / 3,
@@ -449,20 +530,24 @@ class DynamicPanelLayout with ChangeNotifier {
   }
 
   // 划分节点核心逻辑
-  void splitPanel(DynamicPanel panel, SplitMode mode) {
-    if (panel.type != DynamicPanelType.leaf) return;
+  void splitPanel(SplitMode mode) {
+    DynamicPanel? panel = _selectedPanel;
+    if (panel == null || panel.type != DynamicPanelType.leaf) {
+      return;
+    }
     // 只能对叶子节点进行分割
     List<Rect> splitRects = getSplitRects(panel.rect, mode);
     DynamicPanelType? parentPanelType = getParentPanelType(mode);
     if (parentPanelType == null) return;
+    debugPrint("开始分割面板");
     panel.type = parentPanelType;
     panel.children = [];
     // 添加所有子面板
     addSplitSubPanels(panel, mode, splitRects);
     // 添加分割线
     addSplitLines(panel.rect, mode);
-    _sortSplitLines(horizontalLines);
-    _sortSplitLines(verticalLines);
+    _sortSplitLines(_horizontalLines);
+    _sortSplitLines(_verticalLines);
   }
 
   void addSplitSubPanels(DynamicPanel parent, SplitMode mode, List<Rect> rects) {

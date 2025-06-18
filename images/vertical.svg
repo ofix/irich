@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <marker id="Triangle" overflow="visible" markerHeight="0.4" markerWidth="0.4" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 1 1">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="Triangle-0" overflow="visible" markerHeight="0.40000001" markerWidth="0.40000001" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 1 1">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+ </defs>
+ <g fill="none">
+  <rect x="8.4472" y="15.629" width="47.74" height="32.962" stroke="#0c0000" stroke-width="1.047"/>
+  <g>
+   <path d="m32.455 4.4194v55.243" stroke="#0c0000" stroke-dasharray="1" stroke-width=".5"/>
+   <path d="m30.258 30.343c-2.65-0.05638-2.65-0.05638-2.65-0.05638" marker-end="url(#Triangle)" marker-start="url(#Triangle)" stroke="#f50000" stroke-miterlimit="2.9" stroke-width=".78614"/>
+   <path d="m37.876 30.521c-2.65-0.05638-2.65-0.05638-2.65-0.05638" marker-end="url(#Triangle-0)" marker-start="url(#Triangle-0)" stroke="#f50000" stroke-miterlimit="2.9" stroke-width=".78614"/>
+  </g>
+ </g>
+</svg>

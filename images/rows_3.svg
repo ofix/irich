@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <marker id="Triangle-0" overflow="visible" markerHeight="0.4" markerWidth="0.4" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 1 1">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="Triangle-0-1" overflow="visible" markerHeight="0.4" markerWidth="0.4" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 1 1">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="Triangle-0-7" overflow="visible" markerHeight="0.40000001" markerWidth="0.40000001" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 1 1">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="Triangle-0-1-4" overflow="visible" markerHeight="0.40000001" markerWidth="0.40000001" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 1 1">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="Triangle-0-4" overflow="visible" markerHeight="0.40000001" markerWidth="0.40000001" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 1 1">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="Triangle-0-1-8" overflow="visible" markerHeight="0.40000001" markerWidth="0.40000001" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 1 1">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="Triangle-0-7-8" overflow="visible" markerHeight="0.40000001" markerWidth="0.40000001" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 1 1">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="Triangle-0-1-4-9" overflow="visible" markerHeight="0.40000001" markerWidth="0.40000001" orient="auto-start-reverse" preserveAspectRatio="xMidYMid" viewBox="0 0 1 1">
+   <path transform="scale(.5)" d="m5.77 0-8.65 5v-10z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+ </defs>
+ <g fill="none">
+  <g stroke="#0c0000">
+   <rect x="8.4823" y="10.968" width="47.669" height="37.588" stroke-width="1.1172"/>
+   <path d="m59.386 21.278-55.243-0.01848" stroke-dasharray="1" stroke-width=".5"/>
+   <path d="m59.133 35.292-55.243-0.01848" stroke-dasharray="1" stroke-width=".5"/>
+  </g>
+  <g stroke="#f80000" stroke-miterlimit="2.9">
+   <path d="m38.394 38.209v2.3022" marker-end="url(#Triangle-0-1)" marker-start="url(#Triangle-0)" stroke-width=".83528"/>
+   <g stroke-width=".83528">
+    <path d="m38.338 30.486v2.3022" marker-end="url(#Triangle-0-1-4)" marker-start="url(#Triangle-0-7)"/>
+    <path d="m28.02 24.128v2.3022" marker-end="url(#Triangle-0-1-8)" marker-start="url(#Triangle-0-4)"/>
+    <path d="m27.964 16.404v2.3022" marker-end="url(#Triangle-0-1-4-9)" marker-start="url(#Triangle-0-7-8)"/>
+   </g>
+  </g>
+ </g>
+</svg>

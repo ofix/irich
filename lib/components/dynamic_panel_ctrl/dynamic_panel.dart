@@ -35,7 +35,7 @@ class DynamicPanel {
   int id;
   double percent;
   int? groupId;
-  Rect rect;
+  Rect rect; // 归一化矩形
   List<DynamicPanel> children;
   Widget? widget;
 
