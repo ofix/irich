@@ -35,7 +35,7 @@ class DynamicPanelPainter extends CustomPainter {
           ..style = PaintingStyle.stroke;
     final activePen =
         Paint()
-          ..color = Colors.blueAccent
+          ..color = const Color.fromARGB(255, 246, 177, 3)
           ..strokeWidth = 1
           ..style = PaintingStyle.stroke;
 

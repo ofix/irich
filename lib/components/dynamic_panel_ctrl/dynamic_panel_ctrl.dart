@@ -31,6 +31,7 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
   bool isLeftBtnDown = false;
   bool isCtrlPressed = false;
   Size oldSize = Size(0, 0); // 老的窗口大小
+  MouseCursor cursor = SystemMouseCursors.basic;
   Map<String, SplitMode> splitHash = {
     "vertical": SplitMode.vertical,
     "horizontal": SplitMode.horizontal,
@@ -65,24 +66,11 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
           _buildToolBar(), // 工具栏（无事件监听）
           Expanded(
             child: MouseRegion(
-              onHover: (PointerHoverEvent event) {
-                mousePos = event.localPosition;
-                // 进行分割线检测
-                layout.onSplitLinesHitTest(mousePos);
-                if (isLeftBtnDown) {
-                  debugPrint('Panel区域鼠标拖动: $mousePos');
-                }
-                setState(() => {});
-              },
+              cursor: cursor,
+              onHover: onMouseHover,
               child: Listener(
                 // onPointerSignal: _onMouseScroll,
-                onPointerDown: (PointerDownEvent event) {
-                  if (event.buttons == kPrimaryButton) {
-                    isLeftBtnDown = true;
-                    layout.onPanelSelected(event.localPosition);
-                    setState(() {});
-                  }
-                },
+                onPointerDown: onMouseLeftDown,
                 onPointerUp: (PointerUpEvent event) {
                   setState(() => isLeftBtnDown = false);
                 },
@@ -93,6 +81,38 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
         ],
       ),
     );
+  }
+
+  // 光标移动事件回调
+  void onMouseHover(PointerHoverEvent event) {
+    mousePos = event.localPosition;
+    // 进行分割线检测
+    layout.onSplitLinesHitTest(mousePos);
+    // 2. 动态更新光标
+    final line = layout.activeSplitLine;
+    if (line != null) {
+      cursor =
+          line.isHorizontal
+              ? SystemMouseCursors
+                  .resizeRow // 横向分割线
+              : SystemMouseCursors.resizeColumn; // 竖向分割线
+    } else {
+      cursor = SystemMouseCursors.basic;
+    }
+
+    if (isLeftBtnDown) {
+      debugPrint('Panel区域鼠标拖动: $mousePos');
+    }
+    setState(() => {});
+  }
+
+  // 鼠标左键按下事件回调
+  void onMouseLeftDown(PointerDownEvent event) {
+    if (event.buttons == kPrimaryButton) {
+      isLeftBtnDown = true;
+      layout.onPanelSelected(event.localPosition);
+      setState(() {});
+    }
   }
 
   Widget _buildToolBar() {
