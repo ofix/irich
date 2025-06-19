@@ -56,7 +56,7 @@ class DynamicPanelPainter extends CustomPainter {
     }
 
     // 绘制选中的矩形
-    if (selectedSplitLine == null && selectedPanel != null) {
+    if (selectedPanel != null) {
       canvas.drawRect(selectedPanel!.rect, activePen);
     }
     // 绘制选中的分割线
