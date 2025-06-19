@@ -7,8 +7,6 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'dart:nativewrappers/_internal/vm/lib/ffi_dynamic_library_patch.dart';
-
 import 'package:flutter/material.dart';
 import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel.dart';
 
