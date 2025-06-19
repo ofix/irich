@@ -27,9 +27,13 @@ class DynamicPanelCtrl extends ConsumerStatefulWidget {
 
 class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
   final DynamicPanelLayout layout = DynamicPanelLayout();
-  Offset mousePos = Offset.zero;
+  bool bDraggingVerticalLine = false; // 是否是在拖拽垂直竖线
+  Offset mousePos = Offset.zero; // 拖拽过程进行偏移位置的计算
   bool isLeftBtnDown = false;
   bool isCtrlPressed = false;
+  DragMode dragMode = DragMode.relative;
+  bool inDragging = false;
+
   Size oldSize = Size(0, 0); // 老的窗口大小
   MouseCursor cursor = SystemMouseCursors.basic;
   Map<String, SplitMode> splitHash = {
@@ -70,10 +74,9 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
               onHover: onMouseHover,
               child: Listener(
                 // onPointerSignal: _onMouseScroll,
+                onPointerMove: onMouseMove,
                 onPointerDown: onMouseLeftDown,
-                onPointerUp: (PointerUpEvent event) {
-                  setState(() => isLeftBtnDown = false);
-                },
+                onPointerUp: onMouseUp,
                 child: _buildPanel(layout),
               ),
             ),
@@ -83,7 +86,6 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
     );
   }
 
-  // 光标移动事件回调
   void onMouseHover(PointerHoverEvent event) {
     mousePos = event.localPosition;
     // 进行分割线检测
@@ -99,17 +101,80 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
     } else {
       cursor = SystemMouseCursors.basic;
     }
+    setState(() {});
+  }
 
-    if (isLeftBtnDown) {
-      debugPrint('Panel区域鼠标拖动: $mousePos');
+  // 光标移动事件回调
+  void onMouseMove(PointerMoveEvent event) {
+    if (inDragging) {
+      final line = layout.activeSplitLine;
+      final delta = event.localDelta;
+      if (bDraggingVerticalLine && line != null) {
+        // 获取拖拽竖线的左右节点
+        final rectLeft = line.firstPanel.rect;
+        final rectRight = line.secondPanel.rect;
+        double newX = rectLeft.width + delta.dx;
+        if (newX <= rectLeft.left) {
+          newX = rectLeft.left;
+        }
+        if (newX >= rectRight.right) {
+          newX = rectRight.right;
+        }
+
+        final newRectLeft = Rect.fromLTRB(rectLeft.left, rectLeft.top, newX, rectLeft.bottom);
+        final newRectRight = Rect.fromLTRB(newX, rectRight.top, rectRight.right, rectRight.bottom);
+        layout.forceLayout(line.firstPanel, newRectLeft);
+        layout.forceLayout(line.secondPanel, newRectRight);
+        layout.updateActiveSplitLine(
+          Offset(newRectRight.left, newRectRight.top),
+          Offset(newRectRight.left, newRectRight.bottom),
+        );
+      } else {
+        // 获取拖拽横线的上下节点
+        if (line != null) {
+          final rectTop = line.firstPanel.rect;
+          final rectBottom = line.secondPanel.rect;
+          double newY = rectTop.top + rectTop.height + delta.dy;
+          if (newY <= rectTop.top) {
+            newY = rectTop.top;
+          }
+          if (newY >= rectBottom.bottom) {
+            newY = rectBottom.bottom;
+          }
+          final newRectTop = Rect.fromLTRB(rectTop.left, rectTop.top, rectTop.right, newY);
+          final newRectBottom = Rect.fromLTRB(
+            rectBottom.left,
+            newY,
+            rectBottom.right,
+            rectBottom.bottom,
+          );
+          layout.forceLayout(line.firstPanel, newRectTop);
+          layout.forceLayout(line.secondPanel, newRectBottom);
+          layout.updateActiveSplitLine(
+            Offset(newRectBottom.left, newRectBottom.top),
+            Offset(newRectBottom.right, newRectBottom.top),
+          );
+        }
+      }
     }
-    setState(() => {});
+    setState(() {});
+  }
+
+  void onMouseUp(PointerUpEvent event) {
+    inDragging = false;
+    isLeftBtnDown = false;
+    setState(() {});
   }
 
   // 鼠标左键按下事件回调
   void onMouseLeftDown(PointerDownEvent event) {
     if (event.buttons == kPrimaryButton) {
       isLeftBtnDown = true;
+      final activeSplitLine = layout.activeSplitLine;
+      if (activeSplitLine != null) {
+        bDraggingVerticalLine = !activeSplitLine.isHorizontal;
+        inDragging = true; // 开始拖拽了
+      }
       layout.onPanelSelected(event.localPosition);
       setState(() {});
     }
@@ -170,7 +235,7 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
         Size size = Size(constraints.maxWidth, constraints.maxHeight);
         if (size != oldSize) {
           // 窗口调整的时候重新布局
-          layout.forceLayout(size);
+          layout.forceLayout(layout.root, Rect.fromLTWH(0, 0, size.width, size.height));
           oldSize = size;
         }
         return DynamicPanelChart(width: size.width, height: size.height, layout: layout);

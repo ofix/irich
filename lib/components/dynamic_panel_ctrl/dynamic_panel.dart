@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 
 enum DynamicPanelType { leaf, row, column, none }
 
+enum DragMode { absolute, relative }
+
 extension RectExtensions on Rect {
   Rect copyWith({
     double? left,
@@ -121,12 +123,16 @@ class DynamicSplitLine {
   double start; // 起点 (横向: x_min; 竖向: y_min)
   double end; // 终点 (横向: x_max; 竖向: y_max)
   bool isSelected; // 是否用户当前选中
+  DynamicPanel firstPanel; // 分割线的左面板或者上面板
+  DynamicPanel secondPanel; // 分割线的右面板或者下面板
 
   DynamicSplitLine({
     required this.isHorizontal,
     required this.position,
     required this.start,
     required this.end,
+    required this.firstPanel,
+    required this.secondPanel,
     this.isSelected = false,
   });
 }

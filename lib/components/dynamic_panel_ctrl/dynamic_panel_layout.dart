@@ -189,50 +189,107 @@ class DynamicPanelLayout with ChangeNotifier {
     return (minPos, maxPos);
   }
 
-  void forceLayout(Size newSize) {
+  void forceLayout(DynamicPanel node, Rect newRect) {
     _layoutDirty = true;
-    doLayout(newSize);
+    doLayout(node, newRect);
+  }
+
+  bool isPtInRect(Rect rect, Offset point) {
+    return (point.dx >= rect.left &&
+        point.dy <= rect.right &&
+        point.dy >= rect.top &&
+        point.dy <= rect.bottom);
   }
 
   /// 用户调整窗口尺寸的时候，需要同步递归更新整棵动态面板树的矩形大小
   /// [newSize] 新的窗口尺寸
-  void doLayout(Size newSize) {
+  void doLayout(DynamicPanel node, Rect newRect) {
     if (!_layoutDirty) return;
     // 1. 更新根节点
-    final scaleX = newSize.width / _root.rect.width;
-    final scaleY = newSize.height / _root.rect.height;
-    _root.rect = Rect.fromLTWH(0, 0, newSize.width, newSize.height);
-
+    double scaleX = newRect.width / node.rect.width;
+    double scaleY = newRect.height / node.rect.height;
+    Rect oldRect = node.rect;
+    node.rect = newRect;
     // 2. 递归更新子节点
-    _doLayoutChildren(_root, scaleX, scaleY);
+    _doLayoutChildren(node, newRect);
     // 3. 更新横向分割线
     for (final line in _horizontalLines) {
-      line.start *= scaleX;
-      line.end *= scaleX;
-      line.position *= scaleY;
+      if (line != _selectedSplitLine) {
+        Offset ptStart = Offset(line.start, line.position);
+        Offset ptEnd = Offset(line.end, line.position);
+        if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
+          line.start *= scaleX;
+          line.end *= scaleX;
+          line.position *= scaleY;
+        }
+      }
     }
     // 4. 更新竖向分割线
     for (final line in _verticalLines) {
-      line.start *= scaleY;
-      line.end *= scaleY;
-      line.position *= scaleX;
+      if (line != _selectedSplitLine) {
+        Offset ptStart = Offset(line.position, line.start);
+        Offset ptEnd = Offset(line.position, line.end);
+        if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
+          line.start *= scaleY;
+          line.end *= scaleY;
+          line.position *= scaleX;
+        }
+      }
     }
+
     _layoutDirty = false;
   }
 
-  void _doLayoutChildren(DynamicPanel node, double scaleX, double scaleY) {
-    for (final child in node.children) {
-      // 计算新的物理坐标
-      child.rect = Rect.fromLTRB(
-        child.rect.left * scaleX,
-        child.rect.top * scaleY,
-        child.rect.right * scaleX,
-        child.rect.bottom * scaleY,
-      );
+  void updateActiveSplitLine(Offset ptStart, Offset ptEnd) {
+    if (_selectedSplitLine != null) {
+      if (_selectedSplitLine!.isHorizontal) {
+        _selectedSplitLine!.start = ptStart.dx;
+        _selectedSplitLine!.end = ptEnd.dx;
+        _selectedSplitLine!.position = ptEnd.dy;
+      } else {
+        _selectedSplitLine!.start = ptStart.dy;
+        _selectedSplitLine!.end = ptEnd.dy;
+        _selectedSplitLine!.position = ptEnd.dx;
+      }
+    }
+  }
 
-      // 递归处理子节点
-      if (child.type != DynamicPanelType.leaf) {
-        _doLayoutChildren(child, scaleX, scaleY);
+  void _doLayoutChildren(DynamicPanel node, Rect newRect) {
+    if (node.type == DynamicPanelType.row) {
+      double percent = 0;
+      for (final child in node.children) {
+        // 计算新的物理坐标
+        Rect childNewRect = Rect.fromLTRB(
+          newRect.left + percent * newRect.width,
+          newRect.top,
+          newRect.width * child.percent,
+          newRect.height,
+        );
+        child.rect = childNewRect;
+        percent += child.percent;
+
+        // 递归处理子节点
+        if (child.type != DynamicPanelType.leaf) {
+          _doLayoutChildren(child, childNewRect);
+        }
+      }
+    } else if (node.type == DynamicPanelType.column) {
+      double percent = 0;
+      for (final child in node.children) {
+        // 计算新的物理坐标
+        Rect childNewRect = Rect.fromLTRB(
+          newRect.left,
+          newRect.top + percent * newRect.height,
+          newRect.width,
+          newRect.height * child.percent,
+        );
+        child.rect = childNewRect;
+        percent += child.percent;
+
+        // 递归处理子节点
+        if (child.type != DynamicPanelType.leaf) {
+          _doLayoutChildren(child, childNewRect);
+        }
       }
     }
   }
@@ -426,8 +483,12 @@ class DynamicPanelLayout with ChangeNotifier {
     return null;
   }
 
-  // 添加分割线（修改后的版本）
-  void addSplitLines(Rect rect, SplitMode mode) {
+  /// 添加分割线
+  /// [parentPanel] 添加分割线的父容器
+  /// [mode] 分割模式
+  /// 注意: 此函数必须在父容器完成分割后调用！！！
+  void addSplitLines(DynamicPanel parentPanel, SplitMode mode) {
+    Rect rect = parentPanel.rect;
     switch (mode) {
       case SplitMode.horizontal:
         // 水平中心划分 - 添加一条水平分割线
@@ -437,6 +498,8 @@ class DynamicPanelLayout with ChangeNotifier {
             position: rect.top + rect.height / 2,
             start: rect.left,
             end: rect.right,
+            firstPanel: parentPanel.children[0],
+            secondPanel: parentPanel.children[1],
           ),
         );
         break;
@@ -449,6 +512,8 @@ class DynamicPanelLayout with ChangeNotifier {
             position: rect.left + rect.width / 2,
             start: rect.top,
             end: rect.bottom,
+            firstPanel: parentPanel.children[0],
+            secondPanel: parentPanel.children[1],
           ),
         );
         break;
@@ -461,12 +526,16 @@ class DynamicPanelLayout with ChangeNotifier {
             position: rect.left + rect.width / 3,
             start: rect.top,
             end: rect.bottom,
+            firstPanel: parentPanel.children[0],
+            secondPanel: parentPanel.children[1],
           ),
           DynamicSplitLine(
             isHorizontal: false,
             position: rect.left + rect.width * 2 / 3,
             start: rect.top,
             end: rect.bottom,
+            firstPanel: parentPanel.children[1],
+            secondPanel: parentPanel.children[2],
           ),
         ]);
         break;
@@ -479,12 +548,16 @@ class DynamicPanelLayout with ChangeNotifier {
             position: rect.top + rect.height / 3,
             start: rect.left,
             end: rect.right,
+            firstPanel: parentPanel.children[0],
+            secondPanel: parentPanel.children[1],
           ),
           DynamicSplitLine(
             isHorizontal: true,
             position: rect.top + rect.height * 2 / 3,
             start: rect.left,
             end: rect.right,
+            firstPanel: parentPanel.children[1],
+            secondPanel: parentPanel.children[2],
           ),
         ]);
         break;
@@ -497,6 +570,8 @@ class DynamicPanelLayout with ChangeNotifier {
             position: rect.top + rect.height / 2,
             start: rect.left,
             end: rect.right,
+            firstPanel: parentPanel.children[0],
+            secondPanel: parentPanel.children[1],
           ),
         );
         _verticalLines.addAll([
@@ -505,12 +580,16 @@ class DynamicPanelLayout with ChangeNotifier {
             position: rect.left + rect.width / 2,
             start: rect.top,
             end: rect.top + rect.height / 2,
+            firstPanel: parentPanel.children[0].children[0],
+            secondPanel: parentPanel.children[0].children[1],
           ),
           DynamicSplitLine(
             isHorizontal: false,
-            position: rect.left + rect.width * 2 / 2,
+            position: rect.left + rect.width / 2,
             start: rect.top + rect.height / 2,
             end: rect.bottom,
+            firstPanel: parentPanel.children[1].children[0],
+            secondPanel: parentPanel.children[1].children[1],
           ),
         ]);
         break;
@@ -518,25 +597,30 @@ class DynamicPanelLayout with ChangeNotifier {
       case SplitMode.grid_4_4:
         // 修改为：三条水平线 + 上下三等分垂直线（共9条）
         // 水平分割线（3条）
-        for (int i = 1; i <= 3; i++) {
+        for (int i = 0; i < 3; i++) {
           _horizontalLines.add(
             DynamicSplitLine(
               isHorizontal: true,
-              position: rect.top + rect.height * i / 3,
+              position: rect.top + rect.height * (i + 1) / 4,
               start: rect.left,
               end: rect.right,
+              firstPanel: parentPanel.children[i],
+              secondPanel: parentPanel.children[i + 1],
             ),
           );
         }
-        // 垂直分割线 (9条)
-        for (int i = 1; i <= 3; i++) {
+        // 垂直分割线 (12条)
+        double subHeight = rect.height / 4;
+        for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 3; j++) {
             _verticalLines.add(
               DynamicSplitLine(
                 isHorizontal: false,
-                position: rect.left + rect.width * i / 3,
-                start: rect.top + j * rect.height / 3,
-                end: rect.top + (j + 1) * rect.height / 3,
+                position: rect.left + rect.width * (j + 1) / 4,
+                start: rect.top + i * subHeight,
+                end: rect.top + (i + 1) * subHeight,
+                firstPanel: parentPanel.children[i].children[j],
+                secondPanel: parentPanel.children[i].children[j + 1],
               ),
             );
           }
@@ -565,7 +649,7 @@ class DynamicPanelLayout with ChangeNotifier {
     // 添加所有子面板
     addSplitSubPanels(panel, mode, splitRects);
     // 添加分割线
-    addSplitLines(panel.rect, mode);
+    addSplitLines(panel, mode);
     _sortSplitLines(_horizontalLines);
     _sortSplitLines(_verticalLines);
   }
@@ -683,7 +767,7 @@ class DynamicPanelLayout with ChangeNotifier {
       ),
       _createRowPanel(
         parent: parent,
-        top: parent.rect.top + rowHeight,
+        top: parent.rect.top + rowHeight * 2,
         height: rowHeight,
         percent: rowPercent,
         childrenRects: [rects[8], rects[9], rects[10], rects[11]],
@@ -691,7 +775,7 @@ class DynamicPanelLayout with ChangeNotifier {
       ),
       _createRowPanel(
         parent: parent,
-        top: parent.rect.top + rowHeight,
+        top: parent.rect.top + rowHeight * 3,
         height: rowHeight,
         percent: rowPercent,
         childrenRects: [rects[12], rects[13], rects[14], rects[15]],
