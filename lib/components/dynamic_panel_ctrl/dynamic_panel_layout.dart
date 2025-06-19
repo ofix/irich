@@ -276,16 +276,17 @@ class DynamicPanelLayout with ChangeNotifier {
   void _recursiveUpdatePanel(DynamicPanel panel) {
     if (panel.type == DynamicPanelType.leaf) return;
     // 根据面板类型决定布局方向
-    final isRow = panel.type == DynamicPanelType.row;
+    final isColumn = panel.type == DynamicPanelType.column;
     // 计算子面板的新边界
-    double cursor = isRow ? panel.rect.top : panel.rect.left;
+    double cursor = isColumn ? panel.rect.top : panel.rect.left;
     final totalFlex = panel.children.fold(0.0, (sum, child) => sum + child.percent);
 
     for (final child in panel.children) {
-      final extent = (isRow ? panel.rect.height : panel.rect.width) * (child.percent / totalFlex);
+      final extent =
+          (isColumn ? panel.rect.height : panel.rect.width) * (child.percent / totalFlex);
       // 更新子面板rect
       child.rect =
-          isRow
+          isColumn
               ? Rect.fromLTWH(panel.rect.left, cursor, panel.rect.width, extent)
               : Rect.fromLTWH(cursor, panel.rect.top, extent, panel.rect.height);
       // 递归更新子面板的子面板
