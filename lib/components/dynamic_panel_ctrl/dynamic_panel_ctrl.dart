@@ -27,7 +27,6 @@ class DynamicPanelCtrl extends ConsumerStatefulWidget {
 
 class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
   final DynamicPanelLayout layout = DynamicPanelLayout();
-  bool bDraggingVerticalLine = false; // 是否是在拖拽垂直竖线
   Offset mousePos = Offset.zero; // 拖拽过程进行偏移位置的计算
   bool isLeftBtnDown = false;
   bool isCtrlPressed = false;
@@ -107,55 +106,7 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
   // 光标移动事件回调
   void onMouseMove(PointerMoveEvent event) {
     if (inDragging) {
-      final line = layout.activeSplitLine;
-      final delta = event.localDelta;
-      if (bDraggingVerticalLine && line != null) {
-        // 获取拖拽竖线的左右节点
-        final rectLeft = line.firstPanel.rect;
-        final rectRight = line.secondPanel.rect;
-        double newX = rectLeft.left + rectLeft.width + delta.dx;
-        if (newX <= rectLeft.left) {
-          newX = rectLeft.left;
-        }
-        if (newX >= rectRight.right) {
-          newX = rectRight.right;
-        }
-
-        final newRectLeft = Rect.fromLTRB(rectLeft.left, rectLeft.top, newX, rectLeft.bottom);
-        final newRectRight = Rect.fromLTRB(newX, rectRight.top, rectRight.right, rectRight.bottom);
-        layout.forceLayout(line.firstPanel, newRectLeft);
-        layout.forceLayout(line.secondPanel, newRectRight);
-        layout.updateActiveSplitLine(
-          Offset(newRectRight.left, newRectRight.top),
-          Offset(newRectRight.left, newRectRight.bottom),
-        );
-      } else {
-        // 获取拖拽横线的上下节点
-        if (line != null) {
-          final rectTop = line.firstPanel.rect;
-          final rectBottom = line.secondPanel.rect;
-          double newY = rectTop.top + rectTop.height + delta.dy;
-          if (newY <= rectTop.top) {
-            newY = rectTop.top;
-          }
-          if (newY >= rectBottom.bottom) {
-            newY = rectBottom.bottom;
-          }
-          final newRectTop = Rect.fromLTRB(rectTop.left, rectTop.top, rectTop.right, newY);
-          final newRectBottom = Rect.fromLTRB(
-            rectBottom.left,
-            newY,
-            rectBottom.right,
-            rectBottom.bottom,
-          );
-          layout.forceLayout(line.firstPanel, newRectTop);
-          layout.forceLayout(line.secondPanel, newRectBottom);
-          layout.updateActiveSplitLine(
-            Offset(newRectBottom.left, newRectBottom.top),
-            Offset(newRectBottom.right, newRectBottom.top),
-          );
-        }
-      }
+      layout.dragSplitLine(layout.activeSplitLine!, event.localDelta);
     }
     setState(() {});
   }
@@ -170,9 +121,7 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
   void onMouseLeftDown(PointerDownEvent event) {
     if (event.buttons == kPrimaryButton) {
       isLeftBtnDown = true;
-      final activeSplitLine = layout.activeSplitLine;
-      if (activeSplitLine != null) {
-        bDraggingVerticalLine = !activeSplitLine.isHorizontal;
+      if (layout.activeSplitLine != null) {
         inDragging = true; // 开始拖拽了
       }
       layout.onPanelSelected(event.localPosition);

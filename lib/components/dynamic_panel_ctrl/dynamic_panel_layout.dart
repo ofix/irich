@@ -7,6 +7,8 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
+import 'dart:nativewrappers/_internal/vm/lib/ffi_dynamic_library_patch.dart';
+
 import 'package:flutter/material.dart';
 import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel.dart';
 
@@ -198,6 +200,100 @@ class DynamicPanelLayout with ChangeNotifier {
     doLayout(node, newRect);
   }
 
+  /// [line] 分割线
+  /// [delta] 左右/上下分割线拖动的偏移量
+  void dragSplitLine(DynamicSplitLine line, Offset delta) {
+    // 获取关联的两个面板
+    final firstPanel = line.firstPanel;
+    final secondPanel = line.secondPanel;
+
+    if (line.isHorizontal) {
+      // 水平分割线（调整上下面板）
+      _adjustVerticalLayout(
+        line: line,
+        delta: delta.dy,
+        topPanel: firstPanel,
+        bottomPanel: secondPanel,
+      );
+    } else {
+      // 垂直分割线（调整左右面板）
+      _adjustHorizontalLayout(
+        line: line,
+        delta: delta.dx,
+        leftPanel: firstPanel,
+        rightPanel: secondPanel,
+      );
+    }
+  }
+
+  void _adjustVerticalLayout({
+    required DynamicSplitLine line,
+    required double delta,
+    required DynamicPanel topPanel,
+    required DynamicPanel bottomPanel,
+  }) {
+    final minPanelHeight = 0;
+    // 1. 更新分割线位置（限制在有效范围内）
+    final newY = (line.position + delta).clamp(
+      topPanel.rect.top + minPanelHeight,
+      bottomPanel.rect.bottom - minPanelHeight,
+    );
+    line.position = newY;
+
+    // 2. 调整左右面板宽度
+    topPanel.rect = topPanel.rect.copyWith(bottom: newY);
+    bottomPanel.rect = bottomPanel.rect.copyWith(top: newY);
+
+    // 4. 递归更新子面板（针对容器类型面板）
+    // 3. 递归更新子面板
+    _recursiveUpdatePanel(topPanel);
+    _recursiveUpdatePanel(bottomPanel);
+  }
+
+  void _adjustHorizontalLayout({
+    required DynamicSplitLine line,
+    required double delta,
+    required DynamicPanel leftPanel,
+    required DynamicPanel rightPanel,
+  }) {
+    final minPanelWidth = 0;
+    // 1. 更新分割线位置（限制在有效范围内）
+    final newX = (line.position + delta).clamp(
+      leftPanel.rect.left + minPanelWidth,
+      rightPanel.rect.right - minPanelWidth,
+    );
+    line.position = newX;
+
+    // 2. 调整左右面板宽度
+    leftPanel.rect = leftPanel.rect.copyWith(right: newX);
+    rightPanel.rect = rightPanel.rect.copyWith(left: newX);
+
+    // 3. 递归更新子面板
+    _recursiveUpdatePanel(leftPanel);
+    _recursiveUpdatePanel(rightPanel);
+  }
+
+  void _recursiveUpdatePanel(DynamicPanel panel) {
+    if (panel.type == DynamicPanelType.leaf) return;
+    // 根据面板类型决定布局方向
+    final isRow = panel.type == DynamicPanelType.row;
+    // 计算子面板的新边界
+    double cursor = isRow ? panel.rect.top : panel.rect.left;
+    final totalFlex = panel.children.fold(0.0, (sum, child) => sum + child.percent);
+
+    for (final child in panel.children) {
+      final extent = (isRow ? panel.rect.height : panel.rect.width) * (child.percent / totalFlex);
+      // 更新子面板rect
+      child.rect =
+          isRow
+              ? Rect.fromLTWH(panel.rect.left, cursor, panel.rect.width, extent)
+              : Rect.fromLTWH(cursor, panel.rect.top, extent, panel.rect.height);
+      // 递归更新子面板的子面板
+      _recursiveUpdatePanel(child);
+      cursor += extent;
+    }
+  }
+
   bool isPtInRect(Rect rect, Offset point) {
     return (point.dx >= rect.left &&
         point.dy <= rect.right &&
@@ -206,7 +302,7 @@ class DynamicPanelLayout with ChangeNotifier {
   }
 
   /// 用户调整窗口尺寸的时候，需要同步递归更新整棵动态面板树的矩形大小
-  /// [newSize] 新的窗口尺寸
+  /// [newRect] 新的窗口尺寸
   void doLayout(DynamicPanel node, Rect newRect) {
     if (!_layoutDirty) return;
     // 1. 更新根节点
@@ -247,22 +343,6 @@ class DynamicPanelLayout with ChangeNotifier {
     _layoutDirty = false;
   }
 
-  void updateActiveSplitLine(Offset ptStart, Offset ptEnd) {
-    if (_selectedSplitLine != null) {
-      if (_selectedSplitLine!.isHorizontal) {
-        _selectedSplitLine!.start = ptStart.dx;
-        _selectedSplitLine!.end = ptEnd.dx;
-        _selectedSplitLine!.position = ptEnd.dy;
-      } else {
-        _selectedSplitLine!.start = ptStart.dy;
-        _selectedSplitLine!.end = ptEnd.dy;
-        _selectedSplitLine!.position = ptEnd.dx;
-      }
-    }
-    _sortSplitLines(_horizontalLines);
-    _sortSplitLines(_verticalLines);
-  }
-
   void _doLayoutChildren(DynamicPanel node, Rect newRect) {
     if (node.type == DynamicPanelType.row) {
       double percent = 0;
@@ -301,6 +381,22 @@ class DynamicPanelLayout with ChangeNotifier {
         }
       }
     }
+  }
+
+  void updateActiveSplitLine(Offset ptStart, Offset ptEnd) {
+    if (_selectedSplitLine != null) {
+      if (_selectedSplitLine!.isHorizontal) {
+        _selectedSplitLine!.start = ptStart.dx;
+        _selectedSplitLine!.end = ptEnd.dx;
+        _selectedSplitLine!.position = ptEnd.dy;
+      } else {
+        _selectedSplitLine!.start = ptStart.dy;
+        _selectedSplitLine!.end = ptEnd.dy;
+        _selectedSplitLine!.position = ptEnd.dx;
+      }
+    }
+    _sortSplitLines(_horizontalLines);
+    _sortSplitLines(_verticalLines);
   }
 
   void onPanelSelected(Offset mousePos) {
