@@ -19,7 +19,6 @@ class DynamicPanelLayout with ChangeNotifier {
   final List<DynamicSplitLine> _horizontalLines = []; // 横向分割线列表
   final List<DynamicSplitLine> _verticalLines = []; // 竖向分割线列表
   bool _layoutDirty = false; // 是否需要重新布局
-  Rect _boundary = Rect.fromLTWH(0, 0, 1, 1); // 父容器边界
   static int panelId = 0;
 
   // 公共属性
@@ -37,7 +36,6 @@ class DynamicPanelLayout with ChangeNotifier {
   DynamicPanelLayout() {
     _root = DynamicPanel(rect: Rect.fromLTWH(0, 0, 1, 1), id: panelId++);
     _selectedPanel = _root;
-    _boundary = Rect.fromLTWH(0, 0, 1, 1);
     _layoutDirty = true;
   }
 
