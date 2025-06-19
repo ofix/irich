@@ -222,6 +222,8 @@ class DynamicPanelLayout with ChangeNotifier {
         rightPanel: secondPanel,
       );
     }
+    _sortSplitLines(_horizontalLines);
+    _sortSplitLines(_verticalLines);
   }
 
   void _adjustVerticalLayout({
