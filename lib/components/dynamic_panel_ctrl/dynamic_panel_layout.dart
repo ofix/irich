@@ -55,20 +55,6 @@ class DynamicPanelLayout with ChangeNotifier {
     lines.remove(line);
   }
 
-  // 移动分割线，并限制范围
-  void moveLine(DynamicSplitLine line, double newPosition) {
-    final lines = line.isHorizontal ? _horizontalLines : _verticalLines;
-    final index = _findLineIndex(lines, line.position);
-    if (index == -1) return;
-
-    // 计算允许移动的最小/最大位置
-    final (minPos, maxPos) = _calculateMovementRange(lines, index, line.isHorizontal);
-    line.position = newPosition.clamp(minPos, maxPos);
-    // 重新排序以保持有序
-    _sortSplitLines(lines);
-    // 动态调整占比
-  }
-
   // 对分割线列表按照坐标大小进行排序
   void _sortSplitLines(List<DynamicSplitLine> lines) {
     lines.sort((a, b) => a.position.compareTo(b.position));
@@ -113,7 +99,6 @@ class DynamicPanelLayout with ChangeNotifier {
     );
   }
 
-  // 二分查找最近的分割线
   DynamicSplitLine? _findNearestLine({
     required List<DynamicSplitLine> lines,
     required double mousePos,
@@ -123,70 +108,91 @@ class DynamicPanelLayout with ChangeNotifier {
   }) {
     if (lines.isEmpty) return null;
 
-    // 二分查找第一个 position >= mousePos 的线
-    int left = 0, right = lines.length - 1;
-    int index = lines.length; // 默认超出范围
-    while (left <= right) {
-      final mid = left + (right - left) ~/ 2;
-      if (lines[mid].position >= mousePos) {
-        index = mid;
-        right = mid - 1;
+    // 先找出所有在阈值范围内的候选线
+    final candidates = _findAllLinesInThreshold(
+      lines: lines,
+      mousePos: mousePos,
+      threshold: threshold,
+    );
+
+    // 从候选线中找出正交坐标匹配的线
+    return _findBestMatchingLine(
+      candidates: candidates,
+      isHorizontal: isHorizontal,
+      mousePos: mousePos,
+      mouseOrthogonalPos: mouseOrthogonalPos,
+    );
+  }
+
+  List<DynamicSplitLine> _findAllLinesInThreshold({
+    required List<DynamicSplitLine> lines,
+    required double mousePos,
+    required double threshold,
+  }) {
+    // 使用二分查找找到可能范围内的所有线
+    int low = 0;
+    int high = lines.length - 1;
+    final candidates = <DynamicSplitLine>[];
+
+    // 查找左边界
+    int left = lines.length;
+    while (low <= high) {
+      final mid = low + (high - low) ~/ 2;
+      if (lines[mid].position >= mousePos - threshold) {
+        left = mid;
+        high = mid - 1;
       } else {
-        left = mid + 1;
+        low = mid + 1;
       }
     }
 
-    // 检查候选线及其前一条线
-    final candidates = <DynamicSplitLine>[];
-    if (index < lines.length) candidates.add(lines[index]);
-    if (index > 0) candidates.add(lines[index - 1]);
+    // 查找右边界
+    low = 0;
+    high = lines.length - 1;
+    int right = -1;
+    while (low <= high) {
+      final mid = low + (high - low) ~/ 2;
+      if (lines[mid].position <= mousePos + threshold) {
+        right = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
 
-    // 检查是否在容差范围内且正交坐标在线段范围内
+    // 收集候选线
+    if (left <= right) {
+      for (int i = left; i <= right; i++) {
+        candidates.add(lines[i]);
+      }
+    }
+
+    return candidates;
+  }
+
+  DynamicSplitLine? _findBestMatchingLine({
+    required List<DynamicSplitLine> candidates,
+    required bool isHorizontal,
+    required double mousePos,
+    required double mouseOrthogonalPos,
+  }) {
+    // 找出正交坐标最匹配的线
+    DynamicSplitLine? bestMatch;
+    double minDistance = double.infinity;
+
     for (final line in candidates) {
-      if ((line.position - mousePos).abs() <= threshold) {
-        if (mouseOrthogonalPos >= line.start && mouseOrthogonalPos <= line.end) {
-          return line;
+      // 检查正交坐标是否在线段范围内
+      if (mouseOrthogonalPos >= line.start && mouseOrthogonalPos <= line.end) {
+        // 计算与鼠标位置的距离
+        final distance = (line.position - mousePos).abs();
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestMatch = line;
         }
       }
     }
 
-    return null;
-  }
-
-  // --- 私有方法 ---
-  // 二分查找线位置对应的索引
-  int _findLineIndex(List<DynamicSplitLine> lines, double position) {
-    int left = 0, right = lines.length - 1;
-    while (left <= right) {
-      final mid = left + (right - left) ~/ 2;
-      if (lines[mid].position == position) {
-        return mid;
-      } else if (lines[mid].position < position) {
-        left = mid + 1;
-      } else {
-        right = mid - 1;
-      }
-    }
-    return -1;
-  }
-
-  // 计算可移动范围
-  (double, double) _calculateMovementRange(
-    List<DynamicSplitLine> lines,
-    int index,
-    bool isHorizontal,
-  ) {
-    double minPos, maxPos;
-
-    if (isHorizontal) {
-      minPos = index > 0 ? lines[index - 1].position : _boundary.top;
-      maxPos = index < lines.length - 1 ? lines[index + 1].position : _boundary.bottom;
-    } else {
-      minPos = index > 0 ? lines[index - 1].position : _boundary.left;
-      maxPos = index < lines.length - 1 ? lines[index + 1].position : _boundary.right;
-    }
-
-    return (minPos, maxPos);
+    return bestMatch;
   }
 
   void forceLayout(DynamicPanel node, Rect newRect) {
@@ -212,31 +218,34 @@ class DynamicPanelLayout with ChangeNotifier {
     node.rect = newRect;
     // 2. 递归更新子节点
     _doLayoutChildren(node, newRect);
-    // 3. 更新横向分割线
-    for (final line in _horizontalLines) {
-      if (line != _selectedSplitLine) {
-        Offset ptStart = Offset(line.start, line.position);
-        Offset ptEnd = Offset(line.end, line.position);
-        if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
-          line.start *= scaleX;
-          line.end *= scaleX;
-          line.position *= scaleY;
+    if (node.type != DynamicPanelType.leaf) {
+      // 3. 更新横向分割线
+      for (final line in _horizontalLines) {
+        if (line != _selectedSplitLine) {
+          Offset ptStart = Offset(line.start, line.position);
+          Offset ptEnd = Offset(line.end, line.position);
+          if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
+            line.start *= scaleX;
+            line.end *= scaleX;
+            line.position *= scaleY;
+          }
+        }
+      }
+      // 4. 更新竖向分割线
+      for (final line in _verticalLines) {
+        if (line != _selectedSplitLine) {
+          Offset ptStart = Offset(line.position, line.start);
+          Offset ptEnd = Offset(line.position, line.end);
+          if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
+            line.start *= scaleY;
+            line.end *= scaleY;
+            line.position *= scaleX;
+          }
         }
       }
     }
-    // 4. 更新竖向分割线
-    for (final line in _verticalLines) {
-      if (line != _selectedSplitLine) {
-        Offset ptStart = Offset(line.position, line.start);
-        Offset ptEnd = Offset(line.position, line.end);
-        if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
-          line.start *= scaleY;
-          line.end *= scaleY;
-          line.position *= scaleX;
-        }
-      }
-    }
-
+    _sortSplitLines(_horizontalLines);
+    _sortSplitLines(_verticalLines);
     _layoutDirty = false;
   }
 
@@ -252,6 +261,8 @@ class DynamicPanelLayout with ChangeNotifier {
         _selectedSplitLine!.position = ptEnd.dx;
       }
     }
+    _sortSplitLines(_horizontalLines);
+    _sortSplitLines(_verticalLines);
   }
 
   void _doLayoutChildren(DynamicPanel node, Rect newRect) {

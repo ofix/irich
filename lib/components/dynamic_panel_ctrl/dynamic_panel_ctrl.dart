@@ -113,7 +113,7 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
         // 获取拖拽竖线的左右节点
         final rectLeft = line.firstPanel.rect;
         final rectRight = line.secondPanel.rect;
-        double newX = rectLeft.width + delta.dx;
+        double newX = rectLeft.left + rectLeft.width + delta.dx;
         if (newX <= rectLeft.left) {
           newX = rectLeft.left;
         }
