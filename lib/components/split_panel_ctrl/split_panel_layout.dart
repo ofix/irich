@@ -12,21 +12,21 @@ import 'package:irich/components/split_panel_ctrl/split_panel.dart';
 
 // 布局管理器
 class SplitPanelLayout with ChangeNotifier {
-  late SplitPanel _root; // 面板树根节点
+  late SplitContainer _root; // 面板树根节点
   SplitPanel? _selectedPanel; // 当前选中的面板
-  DynamicSplitLine? _selectedSplitLine; // 当前选中的分割线
+  SplitLine? _selectedSplitLine; // 当前选中的分割线
   final OperationHistory _history = OperationHistory(); // 操作历史
-  final List<DynamicSplitLine> _horizontalLines = []; // 横向分割线列表
-  final List<DynamicSplitLine> _verticalLines = []; // 竖向分割线列表
+  final List<SplitLine> _horizontalLines = []; // 横向分割线列表
+  final List<SplitLine> _verticalLines = []; // 竖向分割线列表
   bool _layoutDirty = false; // 是否需要重新布局
   static int panelId = 0;
 
   // 公共属性
-  List<DynamicSplitLine> get horizontalLines => _horizontalLines;
-  List<DynamicSplitLine> get verticalLines => _verticalLines;
-  SplitPanel get root => _root;
+  List<SplitLine> get horizontalLines => _horizontalLines;
+  List<SplitLine> get verticalLines => _verticalLines;
+  SplitContainer get root => _root;
   SplitPanel? get selectedPanel => _selectedPanel;
-  DynamicSplitLine? get activeSplitLine => _selectedSplitLine;
+  SplitLine? get activeSplitLine => _selectedSplitLine;
   OperationHistory get history => _history;
 
   // 撤销/恢复
@@ -34,13 +34,13 @@ class SplitPanelLayout with ChangeNotifier {
   void redo() => _updateState(_history.redo);
 
   SplitPanelLayout() {
-    _root = SplitPanel(rect: Rect.fromLTWH(0, 0, 1, 1), id: panelId++);
-    _selectedPanel = _root;
+    _root = SplitPanel(rect: Rect.fromLTWH(0, 0, 1, 1), percent: 1);
+    _selectedPanel = _root as SplitPanel;
     _layoutDirty = true;
   }
 
   // 添加分割线（自动排序）
-  void addSplitLine(DynamicSplitLine line) {
+  void addSplitLine(SplitLine line) {
     final lines = line.isHorizontal ? _horizontalLines : _verticalLines;
     lines.add(line);
     _sortSplitLines(lines);
@@ -48,13 +48,13 @@ class SplitPanelLayout with ChangeNotifier {
   }
 
   // 删除分割线
-  void removeSplitLine(DynamicSplitLine line) {
+  void removeSplitLine(SplitLine line) {
     final lines = line.isHorizontal ? _horizontalLines : _verticalLines;
     lines.remove(line);
   }
 
   // 对分割线列表按照坐标大小进行排序
-  void _sortSplitLines(List<DynamicSplitLine> lines) {
+  void _sortSplitLines(List<SplitLine> lines) {
     lines.sort((a, b) => a.position.compareTo(b.position));
   }
 
@@ -75,7 +75,7 @@ class SplitPanelLayout with ChangeNotifier {
   }
 
   // 查询点击是否选中某条线（threshold: 点击容差，左右/上下3个像素）
-  DynamicSplitLine? hitTestSplitLines(double mouseX, double mouseY, {double threshold = 3.0}) {
+  SplitLine? hitTestSplitLines(double mouseX, double mouseY, {double threshold = 3.0}) {
     // 优先检查横向线
     final horizontalLine = _findNearestLine(
       lines: _horizontalLines,
@@ -97,8 +97,8 @@ class SplitPanelLayout with ChangeNotifier {
     );
   }
 
-  DynamicSplitLine? _findNearestLine({
-    required List<DynamicSplitLine> lines,
+  SplitLine? _findNearestLine({
+    required List<SplitLine> lines,
     required double mousePos,
     required bool isHorizontal,
     required double mouseOrthogonalPos,
@@ -122,15 +122,15 @@ class SplitPanelLayout with ChangeNotifier {
     );
   }
 
-  List<DynamicSplitLine> _findAllLinesInThreshold({
-    required List<DynamicSplitLine> lines,
+  List<SplitLine> _findAllLinesInThreshold({
+    required List<SplitLine> lines,
     required double mousePos,
     required double threshold,
   }) {
     // 使用二分查找找到可能范围内的所有线
     int low = 0;
     int high = lines.length - 1;
-    final candidates = <DynamicSplitLine>[];
+    final candidates = <SplitLine>[];
 
     // 查找左边界
     int left = lines.length;
@@ -168,14 +168,14 @@ class SplitPanelLayout with ChangeNotifier {
     return candidates;
   }
 
-  DynamicSplitLine? _findBestMatchingLine({
-    required List<DynamicSplitLine> candidates,
+  SplitLine? _findBestMatchingLine({
+    required List<SplitLine> candidates,
     required bool isHorizontal,
     required double mousePos,
     required double mouseOrthogonalPos,
   }) {
     // 找出正交坐标最匹配的线
-    DynamicSplitLine? bestMatch;
+    SplitLine? bestMatch;
     double minDistance = double.infinity;
 
     for (final line in candidates) {
@@ -193,14 +193,14 @@ class SplitPanelLayout with ChangeNotifier {
     return bestMatch;
   }
 
-  void forceLayout(SplitPanel node, Rect newRect) {
+  void forceLayout(SplitContainer node, Rect newRect) {
     _layoutDirty = true;
     doLayout(node, newRect);
   }
 
   /// [line] 分割线
   /// [delta] 左右/上下分割线拖动的偏移量
-  void dragSplitLine(DynamicSplitLine line, Offset delta) {
+  void dragSplitLine(SplitLine line, Offset delta) {
     // 获取关联的两个面板
     final firstPanel = line.firstPanel;
     final secondPanel = line.secondPanel;
@@ -227,10 +227,10 @@ class SplitPanelLayout with ChangeNotifier {
   }
 
   void _adjustVerticalLayout({
-    required DynamicSplitLine line,
+    required SplitLine line,
     required double delta,
-    required SplitPanel topPanel,
-    required SplitPanel bottomPanel,
+    required SplitContainer topPanel,
+    required SplitContainer bottomPanel,
   }) {
     final minPanelHeight = 0;
     // 1. 更新分割线位置（限制在有效范围内）
@@ -251,10 +251,10 @@ class SplitPanelLayout with ChangeNotifier {
   }
 
   void _adjustHorizontalLayout({
-    required DynamicSplitLine line,
+    required SplitLine line,
     required double delta,
-    required SplitPanel leftPanel,
-    required SplitPanel rightPanel,
+    required SplitContainer leftPanel,
+    required SplitContainer rightPanel,
   }) {
     final minPanelWidth = 0;
     // 1. 更新分割线位置（限制在有效范围内）
@@ -273,10 +273,10 @@ class SplitPanelLayout with ChangeNotifier {
     _recursiveUpdatePanel(rightPanel);
   }
 
-  void _recursiveUpdatePanel(SplitPanel panel) {
-    if (panel.type == SplitPanelType.leaf) return;
-    // 根据面板类型决定布局方向
-    final isColumn = panel.type == SplitPanelType.column;
+  void _recursiveUpdatePanel(SplitContainer panel) {
+    if (panel is SplitPanel) return;
+    // 根据面板 类型决定布局方向
+    final isColumn = panel is SplitColumn;
     // 计算子面板的新边界
     double cursor = isColumn ? panel.rect.top : panel.rect.left;
     final totalFlex = panel.children.fold(0.0, (sum, child) => sum + child.percent);
@@ -304,48 +304,50 @@ class SplitPanelLayout with ChangeNotifier {
 
   /// 用户调整窗口尺寸的时候，需要同步递归更新整棵动态面板树的矩形大小
   /// [newRect] 新的窗口尺寸
-  void doLayout(SplitPanel node, Rect newRect) {
+  void doLayout(SplitContainer node, Rect newRect) {
     if (!_layoutDirty) return;
     // 1. 更新根节点
+    if (node is! SplitPanel) return;
+
     double scaleX = newRect.width / node.rect.width;
     double scaleY = newRect.height / node.rect.height;
     Rect oldRect = node.rect;
     node.rect = newRect;
     // 2. 递归更新子节点
     _doLayoutChildren(node, newRect);
-    if (node.type != SplitPanelType.leaf) {
-      // 3. 更新横向分割线
-      for (final line in _horizontalLines) {
-        if (line != _selectedSplitLine) {
-          Offset ptStart = Offset(line.start, line.position);
-          Offset ptEnd = Offset(line.end, line.position);
-          if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
-            line.start *= scaleX;
-            line.end *= scaleX;
-            line.position *= scaleY;
-          }
-        }
-      }
-      // 4. 更新竖向分割线
-      for (final line in _verticalLines) {
-        if (line != _selectedSplitLine) {
-          Offset ptStart = Offset(line.position, line.start);
-          Offset ptEnd = Offset(line.position, line.end);
-          if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
-            line.start *= scaleY;
-            line.end *= scaleY;
-            line.position *= scaleX;
-          }
+
+    // 3. 更新横向分割线
+    for (final line in _horizontalLines) {
+      if (line != _selectedSplitLine) {
+        Offset ptStart = Offset(line.start, line.position);
+        Offset ptEnd = Offset(line.end, line.position);
+        if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
+          line.start *= scaleX;
+          line.end *= scaleX;
+          line.position *= scaleY;
         }
       }
     }
+    // 4. 更新竖向分割线
+    for (final line in _verticalLines) {
+      if (line != _selectedSplitLine) {
+        Offset ptStart = Offset(line.position, line.start);
+        Offset ptEnd = Offset(line.position, line.end);
+        if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
+          line.start *= scaleY;
+          line.end *= scaleY;
+          line.position *= scaleX;
+        }
+      }
+    }
+
     _sortSplitLines(_horizontalLines);
     _sortSplitLines(_verticalLines);
     _layoutDirty = false;
   }
 
-  void _doLayoutChildren(SplitPanel node, Rect newRect) {
-    if (node.type == SplitPanelType.row) {
+  void _doLayoutChildren(SplitContainer node, Rect newRect) {
+    if (node is SplitRow) {
       double percent = 0;
       for (final child in node.children) {
         // 计算新的物理坐标
@@ -359,11 +361,11 @@ class SplitPanelLayout with ChangeNotifier {
         percent += child.percent;
 
         // 递归处理子节点
-        if (child.type != SplitPanelType.leaf) {
+        if (child is! SplitPanel) {
           _doLayoutChildren(child, childNewRect);
         }
       }
-    } else if (node.type == SplitPanelType.column) {
+    } else if (node is SplitColumn) {
       double percent = 0;
       for (final child in node.children) {
         // 计算新的物理坐标
@@ -377,7 +379,7 @@ class SplitPanelLayout with ChangeNotifier {
         percent += child.percent;
 
         // 递归处理子节点
-        if (child.type != SplitPanelType.leaf) {
+        if (child is! SplitPanel) {
           _doLayoutChildren(child, childNewRect);
         }
       }
@@ -410,10 +412,10 @@ class SplitPanelLayout with ChangeNotifier {
   /// 查找包含某点的最内层叶子节点
   /// [node] 面板树根节点
   /// [mousePos] 光标位置
-  SplitPanel? findNearestPanelAtMousePos(SplitPanel node, Offset mousePos) {
+  SplitPanel? findNearestPanelAtMousePos(SplitContainer node, Offset mousePos) {
     if (!node.rect.contains(mousePos)) return null;
 
-    if (node.type == SplitPanelType.leaf) {
+    if (node is SplitPanel) {
       return node;
     }
 
@@ -429,10 +431,10 @@ class SplitPanelLayout with ChangeNotifier {
   /// [node] 面板树根节点
   /// [rect] 用户框选的矩形区域
   /// [panels] 相交的矩形区域
-  void finalAllPanelsAtMousePos(SplitPanel node, Rect rect, List<SplitPanel> panels) {
+  void finalAllPanelsAtMousePos(SplitContainer node, Rect rect, List<SplitPanel> panels) {
     if (!node.rect.overlaps(rect)) return;
 
-    if (node.type == SplitPanelType.leaf) {
+    if (node is SplitPanel) {
       panels.add(node);
     } else {
       for (final child in node.children) {
@@ -448,7 +450,7 @@ class SplitPanelLayout with ChangeNotifier {
   }
 
   // 查找面板是否击中（深度优先）
-  SplitPanel? hitTestPanel(SplitPanel current, SplitPanel target) {
+  SplitContainer? hitTestPanel(SplitContainer current, SplitContainer target) {
     if (current == target) return current;
     for (final child in current.children) {
       final found = hitTestPanel(child, target);
@@ -593,85 +595,86 @@ class SplitPanelLayout with ChangeNotifier {
   /// [parentPanel] 添加分割线的父容器
   /// [mode] 分割模式
   /// 注意: 此函数必须在父容器完成分割后调用！！！
-  void addSplitLines(SplitPanel parentPanel, SplitMode mode) {
+  void addSplitLines(SplitContainer parentPanel, SplitMode mode) {
     Rect rect = parentPanel.rect;
     switch (mode) {
       case SplitMode.horizontal:
         // 水平中心划分 - 添加一条水平分割线
-        _horizontalLines.add(
-          DynamicSplitLine(
-            isHorizontal: true,
-            position: rect.top + rect.height / 2,
-            start: rect.left,
-            end: rect.right,
-            firstPanel: parentPanel.children[0],
-            secondPanel: parentPanel.children[1],
-          ),
+        final splitLine = SplitLine(
+          isHorizontal: true,
+          position: rect.top + rect.height / 2,
+          start: rect.left,
+          end: rect.right,
+          firstPanel: parentPanel.children[0],
+          secondPanel: parentPanel.children[1],
         );
+        _horizontalLines.add(splitLine);
+        if (parentPanel is SplitRow || parentPanel is SplitColumn) {
+          parentPanel.lines.add(splitLine);
+        }
         break;
 
       case SplitMode.vertical:
         // 垂直中心划分 - 添加一条垂直分割线
-        _verticalLines.add(
-          DynamicSplitLine(
-            isHorizontal: false,
-            position: rect.left + rect.width / 2,
-            start: rect.top,
-            end: rect.bottom,
-            firstPanel: parentPanel.children[0],
-            secondPanel: parentPanel.children[1],
-          ),
+        final splitLine = SplitLine(
+          isHorizontal: false,
+          position: rect.left + rect.width / 2,
+          start: rect.top,
+          end: rect.bottom,
+          firstPanel: parentPanel.children[0],
+          secondPanel: parentPanel.children[1],
         );
+        _verticalLines.add(splitLine);
+        parentPanel.lines.add(splitLine);
         break;
 
       case SplitMode.cols_3:
         // 水平三等分 - 添加两条垂直分割线
-        verticalLines.addAll([
-          DynamicSplitLine(
-            isHorizontal: false,
-            position: rect.left + rect.width / 3,
-            start: rect.top,
-            end: rect.bottom,
-            firstPanel: parentPanel.children[0],
-            secondPanel: parentPanel.children[1],
-          ),
-          DynamicSplitLine(
-            isHorizontal: false,
-            position: rect.left + rect.width * 2 / 3,
-            start: rect.top,
-            end: rect.bottom,
-            firstPanel: parentPanel.children[1],
-            secondPanel: parentPanel.children[2],
-          ),
-        ]);
+        final splitLine1 = SplitLine(
+          isHorizontal: false,
+          position: rect.left + rect.width / 3,
+          start: rect.top,
+          end: rect.bottom,
+          firstPanel: parentPanel.children[0],
+          secondPanel: parentPanel.children[1],
+        );
+        final splitLine2 = SplitLine(
+          isHorizontal: false,
+          position: rect.left + rect.width * 2 / 3,
+          start: rect.top,
+          end: rect.bottom,
+          firstPanel: parentPanel.children[1],
+          secondPanel: parentPanel.children[2],
+        );
+        verticalLines.addAll([splitLine1, splitLine2]);
+        parentPanel.lines.addAll([splitLine1, splitLine2]);
         break;
 
       case SplitMode.rows_3:
         // 垂直三等分 - 添加两条水平分割线
-        _horizontalLines.addAll([
-          DynamicSplitLine(
-            isHorizontal: true,
-            position: rect.top + rect.height / 3,
-            start: rect.left,
-            end: rect.right,
-            firstPanel: parentPanel.children[0],
-            secondPanel: parentPanel.children[1],
-          ),
-          DynamicSplitLine(
-            isHorizontal: true,
-            position: rect.top + rect.height * 2 / 3,
-            start: rect.left,
-            end: rect.right,
-            firstPanel: parentPanel.children[1],
-            secondPanel: parentPanel.children[2],
-          ),
-        ]);
+        final splitLine1 = SplitLine(
+          isHorizontal: true,
+          position: rect.top + rect.height / 3,
+          start: rect.left,
+          end: rect.right,
+          firstPanel: parentPanel.children[0],
+          secondPanel: parentPanel.children[1],
+        );
+        final splitLine2 = SplitLine(
+          isHorizontal: true,
+          position: rect.top + rect.height * 2 / 3,
+          start: rect.left,
+          end: rect.right,
+          firstPanel: parentPanel.children[1],
+          secondPanel: parentPanel.children[2],
+        );
+        _horizontalLines.addAll([splitLine1, splitLine2]);
         break;
 
       case SplitMode.grid_2_2:
         // 修改为：一条水平线 + 两条居中垂直线
         _horizontalLines.add(
-          DynamicSplitLine(
+          SplitLine(
             isHorizontal: true,
             position: rect.top + rect.height / 2,
             start: rect.left,
@@ -681,7 +684,7 @@ class SplitPanelLayout with ChangeNotifier {
           ),
         );
         _verticalLines.addAll([
-          DynamicSplitLine(
+          SplitLine(
             isHorizontal: false,
             position: rect.left + rect.width / 2,
             start: rect.top,
@@ -689,7 +692,7 @@ class SplitPanelLayout with ChangeNotifier {
             firstPanel: parentPanel.children[0].children[0],
             secondPanel: parentPanel.children[0].children[1],
           ),
-          DynamicSplitLine(
+          SplitLine(
             isHorizontal: false,
             position: rect.left + rect.width / 2,
             start: rect.top + rect.height / 2,
@@ -705,7 +708,7 @@ class SplitPanelLayout with ChangeNotifier {
         // 水平分割线（3条）
         for (int i = 0; i < 3; i++) {
           _horizontalLines.add(
-            DynamicSplitLine(
+            SplitLine(
               isHorizontal: true,
               position: rect.top + rect.height * (i + 1) / 4,
               start: rect.left,
@@ -720,7 +723,7 @@ class SplitPanelLayout with ChangeNotifier {
         for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 3; j++) {
             _verticalLines.add(
-              DynamicSplitLine(
+              SplitLine(
                 isHorizontal: false,
                 position: rect.left + rect.width * (j + 1) / 4,
                 start: rect.top + i * subHeight,
@@ -742,15 +745,12 @@ class SplitPanelLayout with ChangeNotifier {
   // 划分节点核心逻辑
   void splitPanel(SplitMode mode) {
     SplitPanel? panel = _selectedPanel;
-    if (panel == null || panel.type != SplitPanelType.leaf) {
+    if (panel == null) {
       return;
     }
     // 只能对叶子节点进行分割
     List<Rect> splitRects = getSplitRects(panel.rect, mode);
-    SplitPanelType? parentPanelType = getParentPanelType(mode);
-    if (parentPanelType == null) return;
     debugPrint("开始分割面板");
-    panel.type = parentPanelType;
     panel.children = [];
     // 添加所有子面板
     addSplitSubPanels(panel, mode, splitRects);
@@ -785,7 +785,6 @@ class SplitPanelLayout with ChangeNotifier {
       List.generate(
         splitCount,
         (index) => SplitPanel(
-          type: SplitPanelType.leaf,
           rect: rects[index],
           percent: childPercent,
           widget: index == 0 ? parent.widget : null,
@@ -799,8 +798,8 @@ class SplitPanelLayout with ChangeNotifier {
     // 创建两行
     final rowPercent = parent.percent / 2;
     final rowHeight = parent.rect.height / 2;
-
-    parent.children.addAll([
+    final splitRow = SplitRow(rect: parent.rect);
+    splitRow.children.addAll([
       _createRowPanel(
         parent: parent,
         top: parent.rect.top,
@@ -818,9 +817,10 @@ class SplitPanelLayout with ChangeNotifier {
         hasWidget: false,
       ),
     ]);
+    parent.parent?.children[parent.pos] = splitRow;
   }
 
-  SplitPanel _createRowPanel({
+  SplitRow _createRowPanel({
     required SplitPanel parent,
     required double top,
     required double height,
@@ -828,17 +828,13 @@ class SplitPanelLayout with ChangeNotifier {
     required List<Rect> childrenRects,
     required bool hasWidget,
   }) {
-    return SplitPanel(
-      type: SplitPanelType.row,
+    return SplitRow(
       rect: Rect.fromLTWH(parent.rect.left, top, parent.rect.width, height),
       percent: percent,
-      widget: null,
-      groupId: parent.groupId,
       children:
           childrenRects
               .map(
                 (rect) => SplitPanel(
-                  type: SplitPanelType.leaf,
                   rect: rect,
                   percent: percent / childrenRects.length,
                   widget: hasWidget && rect == childrenRects.first ? parent.widget : null,
@@ -853,8 +849,8 @@ class SplitPanelLayout with ChangeNotifier {
     // 创建三行
     final rowPercent = parent.percent / 4;
     final rowHeight = parent.rect.height / 4;
-
-    parent.children.addAll([
+    final splitRow = SplitRow(rect: parent.rect);
+    splitRow.children.addAll([
       _createRowPanel(
         parent: parent,
         top: parent.rect.top,
@@ -888,6 +884,7 @@ class SplitPanelLayout with ChangeNotifier {
         hasWidget: false,
       ),
     ]);
+    parent.parent?.children[parent.pos] = splitRow;
   }
 
   int _getSplitCount(SplitMode mode) {

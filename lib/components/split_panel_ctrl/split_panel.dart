@@ -31,45 +31,88 @@ extension RectExtensions on Rect {
   }
 }
 
-// 动态面板节点
-class SplitPanel {
-  SplitPanelType type; // "Leaf" | "Row" | "Column"
-  int id;
-  double percent;
-  int? groupId;
-  Rect rect; // 归一化矩形
-  List<SplitPanel> children;
-  Widget? widget;
+// 分割节点抽象类
+abstract class SplitNode {
+  SplitNode();
+}
 
-  SplitPanel({
-    this.type = SplitPanelType.leaf,
+// 分割线（横向分割线｜垂直分割线）
+class SplitLine extends SplitNode {
+  final bool isHorizontal; // true: 横向, false: 竖向
+  double position; // 横向线: y坐标; 竖向线: x坐标
+  double start; // 起点 (横向: x_min; 竖向: y_min)
+  double end; // 终点 (横向: x_max; 竖向: y_max)
+  bool isSelected; // 是否用户当前选中
+  SplitContainer firstPanel; // 分割线的左面板或者上面板
+  SplitContainer secondPanel; // 分割线的右面板或者下面板
+
+  SplitLine({
+    required this.isHorizontal,
+    required this.position,
+    required this.start,
+    required this.end,
+    required this.firstPanel,
+    required this.secondPanel,
+    this.isSelected = false,
+  }) : super();
+
+  SplitLine.deepCopy(SplitLine other)
+    : isHorizontal = other.isHorizontal,
+      position = other.position,
+      start = other.start,
+      end = other.end,
+      firstPanel = other.firstPanel,
+      secondPanel = other.secondPanel,
+      isSelected = other.isSelected,
+      super();
+}
+
+abstract class SplitContainer {
+  Rect rect;
+  double percent;
+  List<SplitContainer> children;
+  List<SplitLine> lines;
+  SplitContainer? parent;
+  int pos;
+  SplitContainer({
     required this.rect,
     this.percent = 1,
-    this.id = 0,
-    this.groupId,
     this.children = const [],
-    this.widget,
+    this.lines = const [],
+    this.pos = 0,
   });
+}
+
+// 横向分割容器
+class SplitRow extends SplitContainer {
+  SplitRow({required super.rect, super.percent, super.children, super.lines});
+}
+
+class SplitColumn extends SplitContainer {
+  SplitColumn({required super.rect, super.percent, super.children, super.lines});
+}
+
+// 分割面板节点
+class SplitPanel extends SplitContainer {
+  int groupId;
+  Widget? widget;
+
+  SplitPanel({required super.rect, super.percent, super.children, this.groupId = 0, this.widget});
 
   bool get bindWidget => widget != null;
 
   // 深拷贝
   SplitPanel.deepCopy(SplitPanel other)
-    : type = other.type,
-      rect = other.rect,
-      id = other.id,
-      percent = other.percent,
-      groupId = other.groupId,
-      children = other.children.map((c) => SplitPanel.deepCopy(c)).toList(),
-      widget = other.widget;
+    : groupId = other.groupId,
+      widget = other.widget,
+      super(
+        rect: Rect.fromLTWH(other.rect.left, other.rect.top, other.rect.width, other.rect.height),
+        percent: other.percent,
+        children: other.children,
+      );
 
   // 转换为JSON
-  Map<String, dynamic> toJson() => {
-    'Type': type == SplitPanelType.leaf ? widget.runtimeType.toString() : type,
-    'Percent': percent,
-    if (groupId != null) 'GroupId': groupId,
-    if (children.isNotEmpty) 'Children': children.map((c) => c.toJson()).toList(),
-  };
+  Map<String, dynamic> toJson() => {'GroupId': groupId};
 }
 
 // 操作历史记录
@@ -115,24 +158,4 @@ enum SplitMode {
         return 'grid_4x4';
     }
   }
-}
-
-class DynamicSplitLine {
-  final bool isHorizontal; // true: 横向, false: 竖向
-  double position; // 横向线: y坐标; 竖向线: x坐标
-  double start; // 起点 (横向: x_min; 竖向: y_min)
-  double end; // 终点 (横向: x_max; 竖向: y_max)
-  bool isSelected; // 是否用户当前选中
-  SplitPanel firstPanel; // 分割线的左面板或者上面板
-  SplitPanel secondPanel; // 分割线的右面板或者下面板
-
-  DynamicSplitLine({
-    required this.isHorizontal,
-    required this.position,
-    required this.start,
-    required this.end,
-    required this.firstPanel,
-    required this.secondPanel,
-    this.isSelected = false,
-  });
 }
