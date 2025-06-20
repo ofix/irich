@@ -1,6 +1,6 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/components/dynamic_panel_ctrl/dynamic_panel_painter.dart
-// Purpose:     dynamic panel painter
+// Name:        irich/lib/components/split_panel_ctrl/split_panel_painter.dart
+// Purpose:     split panel painter
 // Author:      songhuabiao
 // Created:     2025-06-06 20:30
 // Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
@@ -8,16 +8,16 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel.dart';
+import 'package:irich/components/split_panel_ctrl/split_panel.dart';
 
-class DynamicPanelPainter extends CustomPainter {
-  DynamicPanel root; // 面板树
-  DynamicPanel? selectedPanel; // 当前选中的面板
+class SplitPanelPainter extends CustomPainter {
+  SplitPanel root; // 面板树
+  SplitPanel? selectedPanel; // 当前选中的面板
   DynamicSplitLine? selectedSplitLine; // 当前选中的分割线
   List<DynamicSplitLine> horizontalLines; // 横向分割线列表
   List<DynamicSplitLine> verticalLines; // 竖向分割线列表
 
-  DynamicPanelPainter({
+  SplitPanelPainter({
     required this.root,
     required this.selectedPanel,
     required this.selectedSplitLine,
@@ -79,7 +79,7 @@ class DynamicPanelPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter old) {
-    if (old is! DynamicPanelPainter) return true;
+    if (old is! SplitPanelPainter) return true;
 
     if (horizontalLines != old.horizontalLines || verticalLines != old.verticalLines) {
       return true;

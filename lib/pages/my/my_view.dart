@@ -9,13 +9,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel_ctrl.dart';
+import 'package:irich/components/split_panel_ctrl/split_panel_ctrl.dart';
 
 class MyView extends ConsumerWidget {
   const MyView({super.key, required this.title});
   final String title;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return DynamicPanelCtrl();
+    return SplitPanelCtrl();
   }
 }

@@ -1,6 +1,6 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/components/dynamic_panel_ctrl/dynamic_panel_ctrl.dart
-// Purpose:     dynamic panel ctrl
+// Name:        irich/lib/components/split_panel_ctrl/split_panel_ctrl.dart
+// Purpose:     split panel ctrl
 // Author:      songhuabiao
 // Created:     2025-06-17 20:30
 // Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
@@ -12,21 +12,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel.dart';
-import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel_chart.dart';
-import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel_layout.dart';
+import 'package:irich/components/split_panel_ctrl/split_panel.dart';
+import 'package:irich/components/split_panel_ctrl/split_panel_chart.dart';
+import 'package:irich/components/split_panel_ctrl/split_panel_layout.dart';
 
 enum Direction { up, down, left, right }
 
-class DynamicPanelCtrl extends ConsumerStatefulWidget {
-  const DynamicPanelCtrl({super.key});
+class SplitPanelCtrl extends ConsumerStatefulWidget {
+  const SplitPanelCtrl({super.key});
 
   @override
-  ConsumerState<DynamicPanelCtrl> createState() => _DynamicPanelCtrlState();
+  ConsumerState<SplitPanelCtrl> createState() => _SplitPanelCtrlState();
 }
 
-class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
-  final DynamicPanelLayout layout = DynamicPanelLayout();
+class _SplitPanelCtrlState extends ConsumerState<SplitPanelCtrl> {
+  final SplitPanelLayout layout = SplitPanelLayout();
   Offset mousePos = Offset.zero; // 拖拽过程进行偏移位置的计算
   bool isLeftBtnDown = false;
   bool isCtrlPressed = false;
@@ -178,7 +178,7 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
     setState(() {});
   }
 
-  Widget _buildPanel(DynamicPanelLayout layout) {
+  Widget _buildPanel(SplitPanelLayout layout) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         Size size = Size(constraints.maxWidth, constraints.maxHeight);
@@ -187,7 +187,7 @@ class _DynamicPanelCtrlState extends ConsumerState<DynamicPanelCtrl> {
           layout.forceLayout(layout.root, Rect.fromLTWH(0, 0, size.width, size.height));
           oldSize = size;
         }
-        return DynamicPanelChart(width: size.width, height: size.height, layout: layout);
+        return SplitPanelChart(width: size.width, height: size.height, layout: layout);
       },
     );
   }

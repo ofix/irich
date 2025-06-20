@@ -1,6 +1,6 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/components/dynamic_panel_ctrl/dynamic_panel_chart.dart
-// Purpose:     dynamic panel chart
+// Name:        irich/lib/components/split_panel_ctrl/split_panel_chart.dart
+// Purpose:     split panel chart
 // Author:      songhuabiao
 // Created:     2025-06-18 20:30
 // Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
@@ -9,14 +9,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel_layout.dart';
-import 'package:irich/components/dynamic_panel_ctrl/dynamic_panel_painter.dart';
+import 'package:irich/components/split_panel_ctrl/split_panel_layout.dart';
+import 'package:irich/components/split_panel_ctrl/split_panel_painter.dart';
 
-class DynamicPanelChart extends ConsumerStatefulWidget {
+class SplitPanelChart extends ConsumerStatefulWidget {
   final double width;
   final double height;
-  final DynamicPanelLayout layout;
-  const DynamicPanelChart({
+  final SplitPanelLayout layout;
+  const SplitPanelChart({
     super.key,
     required this.width,
     required this.height,
@@ -24,10 +24,10 @@ class DynamicPanelChart extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<DynamicPanelChart> createState() => _DynamicPanelChartState();
+  ConsumerState<SplitPanelChart> createState() => _SplitPanelChartState();
 }
 
-class _DynamicPanelChartState extends ConsumerState<DynamicPanelChart> {
+class _SplitPanelChartState extends ConsumerState<SplitPanelChart> {
   @override
   Widget build(BuildContext context) {
     final state = widget.layout;
@@ -37,7 +37,7 @@ class _DynamicPanelChartState extends ConsumerState<DynamicPanelChart> {
       color: const Color.fromARGB(255, 24, 24, 24 /*28, 29, 33*/),
       child: CustomPaint(
         size: Size(widget.width, widget.height),
-        painter: DynamicPanelPainter(
+        painter: SplitPanelPainter(
           root: state.root,
           selectedPanel: state.selectedPanel,
           selectedSplitLine: state.activeSplitLine,
