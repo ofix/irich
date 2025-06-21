@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:irich/components/split_panel_ctrl/split_panel.dart';
 
 class SplitPanelPainter extends CustomPainter {
-  SplitContainer root; // 面板树
+  SplitPanel root; // 面板树
   SplitPanel? selectedPanel; // 当前选中的面板
   SplitLine? selectedSplitLine; // 当前选中的分割线
   List<SplitLine> horizontalLines; // 横向分割线列表
