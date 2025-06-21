@@ -33,6 +33,7 @@ extension RectExtensions on Rect {
 
 // 分割节点抽象类
 abstract class SplitNode {
+  String get name => "SplitNode";
   SplitNode();
 }
 
@@ -45,7 +46,8 @@ class SplitLine extends SplitNode {
   bool isSelected; // 是否用户当前选中
   SplitContainer firstPanel; // 分割线的左面板或者上面板
   SplitContainer secondPanel; // 分割线的右面板或者下面板
-
+  @override
+  String get name => "SplitLine";
   SplitLine({
     required this.isHorizontal,
     required this.position,
@@ -67,28 +69,35 @@ class SplitLine extends SplitNode {
       super();
 }
 
-abstract class SplitContainer {
+abstract class SplitContainer extends SplitNode {
   Rect rect;
   double percent;
   List<SplitContainer> children;
   List<SplitLine> lines;
   SplitContainer? parent;
   int pos;
+  @override
+  String get name => "SplitContainer";
   SplitContainer({
     required this.rect,
     this.percent = 1,
-    this.children = const [],
-    this.lines = const [],
+    List<SplitContainer>? children,
+    List<SplitLine>? lines,
     this.pos = 0,
-  });
+  }) : children = children ?? [],
+       lines = lines ?? [];
 }
 
 // 横向分割容器
 class SplitRow extends SplitContainer {
+  @override
+  String get name => "SplitRow";
   SplitRow({required super.rect, super.percent, super.children, super.lines});
 }
 
 class SplitColumn extends SplitContainer {
+  @override
+  String get name => "SplitColumn";
   SplitColumn({required super.rect, super.percent, super.children, super.lines});
 }
 
@@ -96,7 +105,8 @@ class SplitColumn extends SplitContainer {
 class SplitPanel extends SplitContainer {
   int groupId;
   Widget? widget;
-
+  @override
+  String get name => "SplitPanel";
   SplitPanel({required super.rect, super.percent, super.children, this.groupId = 0, this.widget});
 
   bool get bindWidget => widget != null;

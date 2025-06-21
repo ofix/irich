@@ -7,6 +7,8 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 import 'package:irich/components/split_panel_ctrl/split_panel.dart';
 
@@ -35,6 +37,7 @@ class SplitPanelLayout with ChangeNotifier {
 
   SplitPanelLayout() {
     _root = SplitPanel(rect: Rect.fromLTWH(0, 0, 1, 1), percent: 1);
+    _root.parent = null;
     _selectedPanel = _root as SplitPanel;
     _layoutDirty = true;
   }
@@ -306,8 +309,6 @@ class SplitPanelLayout with ChangeNotifier {
   /// [newRect] 新的窗口尺寸
   void doLayout(SplitContainer node, Rect newRect) {
     if (!_layoutDirty) return;
-    // 1. 更新根节点
-    if (node is! SplitPanel) return;
 
     double scaleX = newRect.width / node.rect.width;
     double scaleY = newRect.height / node.rect.height;
@@ -316,30 +317,30 @@ class SplitPanelLayout with ChangeNotifier {
     // 2. 递归更新子节点
     _doLayoutChildren(node, newRect);
 
-    // 3. 更新横向分割线
-    for (final line in _horizontalLines) {
-      if (line != _selectedSplitLine) {
-        Offset ptStart = Offset(line.start, line.position);
-        Offset ptEnd = Offset(line.end, line.position);
-        if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
-          line.start *= scaleX;
-          line.end *= scaleX;
-          line.position *= scaleY;
-        }
-      }
-    }
-    // 4. 更新竖向分割线
-    for (final line in _verticalLines) {
-      if (line != _selectedSplitLine) {
-        Offset ptStart = Offset(line.position, line.start);
-        Offset ptEnd = Offset(line.position, line.end);
-        if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
-          line.start *= scaleY;
-          line.end *= scaleY;
-          line.position *= scaleX;
-        }
-      }
-    }
+    // // 3. 更新横向分割线
+    // for (final line in _horizontalLines) {
+    //   if (line != _selectedSplitLine) {
+    //     Offset ptStart = Offset(line.start, line.position);
+    //     Offset ptEnd = Offset(line.end, line.position);
+    //     if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
+    //       line.start *= scaleX;
+    //       line.end *= scaleX;
+    //       line.position *= scaleY;
+    //     }
+    //   }
+    // }
+    // // 4. 更新竖向分割线
+    // for (final line in _verticalLines) {
+    //   if (line != _selectedSplitLine) {
+    //     Offset ptStart = Offset(line.position, line.start);
+    //     Offset ptEnd = Offset(line.position, line.end);
+    //     if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
+    //       line.start *= scaleY;
+    //       line.end *= scaleY;
+    //       line.position *= scaleX;
+    //     }
+    //   }
+    // }
 
     _sortSplitLines(_horizontalLines);
     _sortSplitLines(_verticalLines);
@@ -441,22 +442,6 @@ class SplitPanelLayout with ChangeNotifier {
         finalAllPanelsAtMousePos(child, rect, panels);
       }
     }
-  }
-
-  // 选中面板
-  void selectPanel(SplitPanel? panel) {
-    _selectedPanel = panel;
-    notifyListeners();
-  }
-
-  // 查找面板是否击中（深度优先）
-  SplitContainer? hitTestPanel(SplitContainer current, SplitContainer target) {
-    if (current == target) return current;
-    for (final child in current.children) {
-      final found = hitTestPanel(child, target);
-      if (found != null) return found;
-    }
-    return null;
   }
 
   void _updateState(SplitPanel? state) {
@@ -750,141 +735,13 @@ class SplitPanelLayout with ChangeNotifier {
     }
     // 只能对叶子节点进行分割
     List<Rect> splitRects = getSplitRects(panel.rect, mode);
-    debugPrint("开始分割面板");
-    panel.children = [];
     // 添加所有子面板
-    addSplitSubPanels(panel, mode, splitRects);
+    SplitContainer newPanel = addSplitSubPanels(panel, mode, splitRects);
     // 添加分割线
-    addSplitLines(panel, mode);
+    addSplitLines(newPanel, mode);
     _sortSplitLines(_horizontalLines);
     _sortSplitLines(_verticalLines);
-  }
-
-  void addSplitSubPanels(SplitPanel parent, SplitMode mode, List<Rect> rects) {
-    switch (mode) {
-      case SplitMode.horizontal:
-      case SplitMode.vertical:
-      case SplitMode.rows_3:
-      case SplitMode.cols_3:
-        _addSimpleSplitPanels(parent, _getSplitCount(mode), rects);
-        break;
-      case SplitMode.grid_2_2:
-        _addGrid2x2Panels(parent, rects);
-        break;
-      case SplitMode.grid_4_4:
-        _addGrid4x4Panels(parent, rects);
-        break;
-      default:
-        throw ArgumentError('Unsupported split mode: $mode');
-    }
-  }
-
-  void _addSimpleSplitPanels(SplitPanel parent, int splitCount, List<Rect> rects) {
-    final childPercent = parent.percent / splitCount;
-    parent.children.addAll(
-      List.generate(
-        splitCount,
-        (index) => SplitPanel(
-          rect: rects[index],
-          percent: childPercent,
-          widget: index == 0 ? parent.widget : null,
-          groupId: parent.groupId,
-        ),
-      ),
-    );
-  }
-
-  void _addGrid2x2Panels(SplitPanel parent, List<Rect> rects) {
-    // 创建两行
-    final rowPercent = parent.percent / 2;
-    final rowHeight = parent.rect.height / 2;
-    final splitRow = SplitRow(rect: parent.rect);
-    splitRow.children.addAll([
-      _createRowPanel(
-        parent: parent,
-        top: parent.rect.top,
-        height: rowHeight,
-        percent: rowPercent,
-        childrenRects: [rects[0], rects[1]],
-        hasWidget: true,
-      ),
-      _createRowPanel(
-        parent: parent,
-        top: parent.rect.top + rowHeight,
-        height: rowHeight,
-        percent: rowPercent,
-        childrenRects: [rects[2], rects[3]],
-        hasWidget: false,
-      ),
-    ]);
-    parent.parent?.children[parent.pos] = splitRow;
-  }
-
-  SplitRow _createRowPanel({
-    required SplitPanel parent,
-    required double top,
-    required double height,
-    required double percent,
-    required List<Rect> childrenRects,
-    required bool hasWidget,
-  }) {
-    return SplitRow(
-      rect: Rect.fromLTWH(parent.rect.left, top, parent.rect.width, height),
-      percent: percent,
-      children:
-          childrenRects
-              .map(
-                (rect) => SplitPanel(
-                  rect: rect,
-                  percent: percent / childrenRects.length,
-                  widget: hasWidget && rect == childrenRects.first ? parent.widget : null,
-                  groupId: parent.groupId,
-                ),
-              )
-              .toList(),
-    );
-  }
-
-  void _addGrid4x4Panels(SplitPanel parent, List<Rect> rects) {
-    // 创建三行
-    final rowPercent = parent.percent / 4;
-    final rowHeight = parent.rect.height / 4;
-    final splitRow = SplitRow(rect: parent.rect);
-    splitRow.children.addAll([
-      _createRowPanel(
-        parent: parent,
-        top: parent.rect.top,
-        height: rowHeight,
-        percent: rowPercent,
-        childrenRects: [rects[0], rects[1], rects[2], rects[3]],
-        hasWidget: true,
-      ),
-      _createRowPanel(
-        parent: parent,
-        top: parent.rect.top + rowHeight,
-        height: rowHeight,
-        percent: rowPercent,
-        childrenRects: [rects[4], rects[5], rects[6], rects[7]],
-        hasWidget: false,
-      ),
-      _createRowPanel(
-        parent: parent,
-        top: parent.rect.top + rowHeight * 2,
-        height: rowHeight,
-        percent: rowPercent,
-        childrenRects: [rects[8], rects[9], rects[10], rects[11]],
-        hasWidget: false,
-      ),
-      _createRowPanel(
-        parent: parent,
-        top: parent.rect.top + rowHeight * 3,
-        height: rowHeight,
-        percent: rowPercent,
-        childrenRects: [rects[12], rects[13], rects[14], rects[15]],
-        hasWidget: false,
-      ),
-    ]);
-    parent.parent?.children[parent.pos] = splitRow;
+    printSplitTree();
   }
 
   int _getSplitCount(SplitMode mode) {
@@ -895,5 +752,160 @@ class SplitPanelLayout with ChangeNotifier {
       SplitMode.grid_4_4 => 16,
       _ => throw ArgumentError('Unsupported split mode: $mode'),
     };
+  }
+
+  double _getChildPercent(SplitMode mode) {
+    return switch (mode) {
+      SplitMode.horizontal || SplitMode.vertical => 0.5,
+      SplitMode.rows_3 || SplitMode.cols_3 => 1 / 3,
+      SplitMode.grid_2_2 => 0.5,
+      SplitMode.grid_4_4 => 0.25,
+      _ => throw ArgumentError('Unsupported split mode: $mode'),
+    };
+  }
+
+  void printSplitTree() {
+    final stack = Queue<(SplitContainer, int)>(); // (节点, 层级)
+    stack.add((_root, 0));
+
+    while (stack.isNotEmpty) {
+      final (node, level) = stack.removeLast();
+      debugPrint('${'  ' * level}${node.name} -- ${node.pos}'); // 按层级缩进
+
+      // 子节点逆序入栈（保证从左到右遍历）
+      for (var child in node.children.reversed) {
+        stack.add((child, level + 1));
+      }
+    }
+  }
+
+  SplitContainer addSplitSubPanels(SplitPanel parent, SplitMode mode, List<Rect> rects) {
+    final splitCount = _getSplitCount(mode);
+    final childPercent = _getChildPercent(mode);
+
+    SplitContainer splitContainer = _createSplitContainer(mode, parent.rect);
+    final children = _createChildPanels(parent, splitCount, childPercent, rects, mode);
+
+    splitContainer.children.addAll(children);
+    _assignPositions(children, splitContainer);
+
+    final grandParent = parent.parent;
+    replaceSplitPanel(splitContainer, grandParent, parent.pos);
+    return splitContainer;
+  }
+
+  SplitContainer _createSplitContainer(SplitMode mode, Rect rect) {
+    return switch (mode) {
+      SplitMode.horizontal || SplitMode.rows_3 => SplitColumn(rect: rect),
+      SplitMode.vertical || SplitMode.cols_3 => SplitRow(rect: rect),
+      SplitMode.grid_2_2 || SplitMode.grid_4_4 => SplitRow(rect: rect),
+      _ => throw ArgumentError('Unsupported split mode: $mode'),
+    };
+  }
+
+  List<SplitContainer> _createChildPanels(
+    SplitPanel parent,
+    int splitCount,
+    double childPercent,
+    List<Rect> rects,
+    SplitMode mode,
+  ) {
+    if (mode == SplitMode.grid_2_2 || mode == SplitMode.grid_4_4) {
+      return _createGridPanels(parent, splitCount, rects, mode);
+    }
+
+    return List.generate(splitCount, (index) {
+      return SplitPanel(
+        rect: rects[index],
+        percent: childPercent,
+        widget: index == 0 ? parent.widget : null,
+        groupId: parent.groupId,
+      );
+    });
+  }
+
+  List<SplitContainer> _createGridPanels(
+    SplitPanel parent,
+    int splitCount,
+    List<Rect> rects,
+    SplitMode mode,
+  ) {
+    final rows = _getGridRows(mode);
+    final rowCount = rows;
+    final colCount = rows;
+    final rowHeight = parent.rect.height / rowCount;
+    final rowPercent = parent.percent / rowCount;
+
+    final List<SplitContainer> rowPanels = [];
+
+    for (int row = 0; row < rowCount; row++) {
+      final top = parent.rect.top + row * rowHeight;
+      final startIndex = row * colCount;
+      final rowRects = rects.sublist(startIndex, startIndex + colCount);
+
+      final rowPanel = _createRowPanel(
+        parent: parent,
+        top: top,
+        height: rowHeight,
+        percent: rowPercent,
+        childrenRects: rowRects,
+        hasWidget: row == 0,
+      );
+      rowPanels.add(rowPanel);
+    }
+
+    return rowPanels;
+  }
+
+  int _getGridRows(SplitMode mode) {
+    return switch (mode) {
+      SplitMode.grid_2_2 => 2,
+      SplitMode.grid_4_4 => 4,
+      _ => throw ArgumentError('Not a grid mode: $mode'),
+    };
+  }
+
+  void _assignPositions(List<SplitContainer> panels, SplitContainer newParent) {
+    for (int i = 0; i < panels.length; i++) {
+      panels[i].pos = i;
+      panels[i].parent = newParent;
+    }
+  }
+
+  void replaceSplitPanel(SplitContainer newContainer, SplitContainer? grandParent, int pos) {
+    if (grandParent == null) {
+      _root = newContainer;
+    } else {
+      grandParent.children[pos] = newContainer;
+    }
+  }
+
+  SplitContainer _createRowPanel({
+    required SplitPanel parent,
+    required double top,
+    required double height,
+    required double percent,
+    required List<Rect> childrenRects,
+    required bool hasWidget,
+  }) {
+    List<SplitContainer> subPanels = [];
+    final childPercent = percent / childrenRects.length;
+
+    for (int i = 0; i < childrenRects.length; i++) {
+      final panel = SplitPanel(
+        rect: childrenRects[i],
+        percent: childPercent,
+        widget: hasWidget && i == 0 ? parent.widget : null,
+        groupId: parent.groupId,
+      );
+      subPanels.add(panel);
+    }
+    final splitRow = SplitRow(
+      rect: Rect.fromLTWH(parent.rect.left, top, parent.rect.width, height),
+      percent: percent,
+      children: subPanels,
+    );
+    _assignPositions(subPanels, splitRow);
+    return splitRow;
   }
 }
