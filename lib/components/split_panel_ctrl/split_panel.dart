@@ -31,6 +31,8 @@ enum SplitType {
 
 enum DragMode { absolute, relative }
 
+enum DragDirection { left, top, right, bottom }
+
 extension RectExtensions on Rect {
   Rect copyWith({
     double? left,
@@ -253,7 +255,6 @@ class SplitPanel {
     final rowCount = rows;
     final colCount = rows;
     final rowHeight = rect.height / rowCount;
-    final rowPercent = percent / rowCount;
 
     final List<SplitPanel> rowPanels = [];
 
@@ -265,7 +266,7 @@ class SplitPanel {
       final rowPanel = _createRowPanel(
         top: top,
         height: rowHeight,
-        percent: rowPercent,
+        percent: 1,
         childrenRects: rowRects,
         hasWidget: row == 0,
       );

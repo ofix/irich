@@ -11,6 +11,7 @@ import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:irich/components/split_panel_ctrl/split_panel.dart';
+import 'package:irich/components/split_panel_ctrl/split_panel_ctrl.dart';
 
 // 布局管理器
 class SplitPanelLayout with ChangeNotifier {
@@ -204,97 +205,155 @@ class SplitPanelLayout with ChangeNotifier {
   /// [line] 分割线
   /// [delta] 左右/上下分割线拖动的偏移量
   void dragSplitLine(SplitLine line, Offset delta) {
-    // 获取关联的两个面板
-    final firstPanel = line.firstPanel;
-    final secondPanel = line.secondPanel;
-
-    if (line.isHorizontal) {
-      // 水平分割线（调整上下面板）
-      _adjustVerticalLayout(
-        line: line,
-        delta: delta.dy,
-        topPanel: firstPanel,
-        bottomPanel: secondPanel,
-      );
-    } else {
-      // 垂直分割线（调整左右面板）
-      _adjustHorizontalLayout(
-        line: line,
-        delta: delta.dx,
-        leftPanel: firstPanel,
-        rightPanel: secondPanel,
-      );
-    }
+    // 水平分割线（调整上下面板, 垂直分割线（调整左右面板）
+    _adjustPanelLayout(
+      line: line,
+      delta: line.isHorizontal ? delta.dy : delta.dx,
+      primaryPanel: line.firstPanel,
+      secondaryPanel: line.secondPanel,
+      isHorizontal: line.isHorizontal,
+    );
     _sortSplitLines(_horizontalLines);
     _sortSplitLines(_verticalLines);
   }
 
-  void _adjustVerticalLayout({
+  /// 调整面板布局
+  /// [line] 分割线
+  /// [delta] 拖动偏移量
+  /// [primaryPanel] 主面板（原firstPanel）
+  /// [secondaryPanel] 次面板（原secondPanel）
+  /// [isHorizontal] 是否为水平分割线
+  void _adjustPanelLayout({
     required SplitLine line,
     required double delta,
-    required SplitPanel topPanel,
-    required SplitPanel bottomPanel,
+    required SplitPanel primaryPanel,
+    required SplitPanel secondaryPanel,
+    required bool isHorizontal,
   }) {
-    final minPanelHeight = 0;
+    const minPanelSize = 0.0;
+    // 获取父容器尺寸用于计算百分比
+    final parentRect = primaryPanel.parent!.rect;
+
     // 1. 更新分割线位置（限制在有效范围内）
-    final newY = (line.position + delta).clamp(
-      topPanel.rect.top + minPanelHeight,
-      bottomPanel.rect.bottom - minPanelHeight,
+    final newPosition = (line.position + delta).clamp(
+      isHorizontal ? primaryPanel.rect.top + minPanelSize : primaryPanel.rect.left + minPanelSize,
+      isHorizontal
+          ? secondaryPanel.rect.bottom - minPanelSize
+          : secondaryPanel.rect.right - minPanelSize,
     );
-    line.position = newY;
+    line.position = newPosition;
 
-    // 2. 调整左右面板宽度
-    topPanel.rect = topPanel.rect.copyWith(bottom: newY);
-    bottomPanel.rect = bottomPanel.rect.copyWith(top: newY);
+    // 2. 调整面板尺寸
+    if (isHorizontal) {
+      // 水平分割线调整上下面板高度
+      primaryPanel.rect = primaryPanel.rect.copyWith(bottom: newPosition);
+      secondaryPanel.rect = secondaryPanel.rect.copyWith(top: newPosition);
+      // 更新上下面板高度占比
+      primaryPanel.percent = primaryPanel.rect.height / parentRect.height;
+      secondaryPanel.percent = secondaryPanel.rect.height / parentRect.height;
+    } else {
+      // 垂直分割线调整左右面板宽度
+      primaryPanel.rect = primaryPanel.rect.copyWith(right: newPosition);
+      secondaryPanel.rect = secondaryPanel.rect.copyWith(left: newPosition);
+      // 更新左右面板宽度占比
+      primaryPanel.percent = primaryPanel.rect.width / parentRect.width;
+      secondaryPanel.percent = secondaryPanel.rect.width / parentRect.width;
+    }
 
-    // 4. 递归更新子面板（针对容器类型面板）
-    // 3. 递归更新子面板
-    _recursiveUpdatePanel(topPanel);
-    _recursiveUpdatePanel(bottomPanel);
+    // 3. 确定拖动方向用于递归更新
+    final direction =
+        delta > 0
+            ? (isHorizontal ? DragDirection.bottom : DragDirection.right)
+            : (isHorizontal ? DragDirection.top : DragDirection.left);
+
+    // 递归更新子面板（针对容器类型面板）
+    _recursiveUpdatePanel(primaryPanel, direction);
+    _recursiveUpdatePanel(secondaryPanel, direction);
   }
 
-  void _adjustHorizontalLayout({
-    required SplitLine line,
-    required double delta,
-    required SplitPanel leftPanel,
-    required SplitPanel rightPanel,
-  }) {
-    final minPanelWidth = 0;
-    // 1. 更新分割线位置（限制在有效范围内）
-    final newX = (line.position + delta).clamp(
-      leftPanel.rect.left + minPanelWidth,
-      rightPanel.rect.right - minPanelWidth,
-    );
-    line.position = newX;
+  /// 递归更新面板及其子面板
+  /// [panel] 当前要更新的面板
+  /// [direction] 拖动方向
+  void _recursiveUpdatePanel(SplitPanel panel, DragDirection direction) {
+    // 叶子节点无需处理
+    if (panel.isLeaf) return;
 
-    // 2. 调整左右面板宽度
-    leftPanel.rect = leftPanel.rect.copyWith(right: newX);
-    rightPanel.rect = rightPanel.rect.copyWith(left: newX);
-
-    // 3. 递归更新子面板
-    _recursiveUpdatePanel(leftPanel);
-    _recursiveUpdatePanel(rightPanel);
-  }
-
-  void _recursiveUpdatePanel(SplitPanel panel) {
-    if (!panel.isLeaf) return;
-    // 根据面板 类型决定布局方向
+    // 根据面板类型决定布局方向
     final isColumn = panel.type == SplitType.column;
-    // 计算子面板的新边界
-    double cursor = isColumn ? panel.rect.top : panel.rect.left;
-    final totalFlex = panel.children.fold(0.0, (sum, child) => sum + child.percent);
+    // 判断是否为水平拖动（上下方向）
+    final isHorizontalDrag = direction == DragDirection.top || direction == DragDirection.bottom;
 
-    for (final child in panel.children) {
-      final extent =
-          (isColumn ? panel.rect.height : panel.rect.width) * (child.percent / totalFlex);
-      // 更新子面板rect
-      child.rect =
-          isColumn
-              ? Rect.fromLTWH(panel.rect.left, cursor, panel.rect.width, extent)
-              : Rect.fromLTWH(cursor, panel.rect.top, extent, panel.rect.height);
+    // 更新起始位置（列布局用top，行布局用left）
+    double position = isColumn ? panel.rect.top : panel.rect.left;
+
+    for (int i = 0; i < panel.children.length; i++) {
+      final child = panel.children[i];
+
+      if (isColumn) {
+        if (!isHorizontalDrag) {
+          // 列布局中的水平拖动：更新左上角X坐标和宽度
+          child.rect = Rect.fromLTWH(
+            panel.rect.left,
+            child.rect.top,
+            panel.rect.width,
+            child.rect.height,
+          );
+        } else {
+          // 列布局中的垂直拖动：按百分比更新左上角Y坐标和高度
+          final newHeight = panel.rect.height * child.percent;
+          child.rect = Rect.fromLTWH(panel.rect.left, position, child.rect.width, newHeight);
+          position += newHeight;
+        }
+      } else {
+        if (isHorizontalDrag) {
+          // 行布局中的垂直拖动：只更新左上角Y坐标和高度
+          child.rect = Rect.fromLTWH(
+            child.rect.left,
+            panel.rect.top,
+            child.rect.width,
+            panel.rect.height,
+          );
+        } else {
+          // 行布局中的水平拖动：按百分比更新左上角X坐标和宽度
+          final newWidth = panel.rect.width * child.percent;
+          child.rect = Rect.fromLTWH(position, panel.rect.top, newWidth, child.rect.height);
+          position += newWidth;
+        }
+      }
+
+      // 调整分割线（分割线比分割的矩形少一个）
+      if (i < panel.lines.length) {
+        _updateSplitLinePosition(
+          line: panel.lines[i],
+          adjacentPanelRect: child.rect,
+          isColumn: isColumn,
+        );
+      }
+
       // 递归更新子面板的子面板
-      _recursiveUpdatePanel(child);
-      cursor += extent;
+      _recursiveUpdatePanel(child, direction);
+    }
+  }
+
+  /// 更新分割线位置和边界
+  /// [line] 要更新的分割线
+  /// [adjacentPanelRect] 相邻面板的矩形区域
+  /// [isColumn] 是否为列布局
+  void _updateSplitLinePosition({
+    required SplitLine line,
+    required Rect adjacentPanelRect,
+    required bool isColumn,
+  }) {
+    if (isColumn) {
+      // 列布局：分割线位置在面板底部，边界为左右边
+      line.position = adjacentPanelRect.bottom;
+      line.start = adjacentPanelRect.left;
+      line.end = adjacentPanelRect.right;
+    } else {
+      // 行布局：分割线位置在面板右侧，边界为上下边
+      line.position = adjacentPanelRect.right;
+      line.start = adjacentPanelRect.top;
+      line.end = adjacentPanelRect.bottom;
     }
   }
 
@@ -555,9 +614,7 @@ class SplitPanelLayout with ChangeNotifier {
     );
 
     targetList.add(splitLine);
-    if (!parentPanel.isLeaf || !isHorizontal) {
-      parentPanel.lines.add(splitLine);
-    }
+    parentPanel.lines.add(splitLine);
   }
 
   /// 添加多条同方向分割线
@@ -677,10 +734,12 @@ class SplitPanelLayout with ChangeNotifier {
   void printSplitTree() {
     final stack = Queue<(SplitPanel, int)>(); // (节点, 层级)
     stack.add((_root, 0));
-
+    debugPrint("\n\n");
     while (stack.isNotEmpty) {
       final (node, level) = stack.removeLast();
-      debugPrint('${'  ' * level}${node.type.name} -- ${node.pos}'); // 按层级缩进
+      debugPrint(
+        '${'  ' * level}${node.type.name} | ${node.pos} | ${node.percent} | ${node.rect.left.toInt()},${node.rect.top.toInt()},${node.rect.width.toInt()},${node.rect.height.toInt()}',
+      ); // 按层级缩进
 
       // 子节点逆序入栈（保证从左到右遍历）
       for (var child in node.children.reversed) {

@@ -114,6 +114,7 @@ class _SplitPanelCtrlState extends ConsumerState<SplitPanelCtrl> {
   void onMouseUp(PointerUpEvent event) {
     inDragging = false;
     isLeftBtnDown = false;
+    layout.printSplitTree();
     setState(() {});
   }
 
