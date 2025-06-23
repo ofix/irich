@@ -27,6 +27,21 @@ enum SplitType {
         return 'none';
     }
   }
+
+  static SplitType deserialize(String name) {
+    switch (name) {
+      case 'leaf':
+        return SplitType.leaf;
+      case 'row':
+        return SplitType.row;
+      case 'column':
+        return SplitType.column;
+      case 'none':
+        return SplitType.none;
+      default:
+        return SplitType.leaf;
+    }
+  }
 }
 
 enum DragMode { absolute, relative }
@@ -79,6 +94,18 @@ class SplitLine {
       secondPanel = other.secondPanel,
       isSelected = other.isSelected,
       super();
+
+  Map<String, dynamic> serialize() {
+    return {
+      'isHorizontal': isHorizontal,
+      'position': position,
+      'start': start,
+      'end': end,
+      'firstPanel': firstPanel.pos,
+      'secondPanel': secondPanel.pos,
+      'isSelected': false,
+    };
+  }
 }
 
 class SplitPanel {
@@ -102,6 +129,123 @@ class SplitPanel {
     this.widget,
   }) : children = children ?? [],
        lines = lines ?? [];
+
+  // 序列化为 JSON
+  Map<String, dynamic> serialize() {
+    return {
+      'type': type.name,
+      'percent': percent,
+      'children': children.map((child) => child.serialize()).toList(),
+      'lines': lines.map((line) => line.serialize()).toList(),
+      'pos': pos,
+      'groupId': groupId,
+      'widgetType': widget.runtimeType.toString(),
+    };
+  }
+
+  factory SplitPanel.deserialize(
+    Map<String, dynamic> json, {
+    required Rect parentRect,
+    required SplitType parentType,
+  }) {
+    final splitType = SplitType.deserialize(json['type'] as String);
+    final percent = json['percent'] ?? 1.0;
+
+    // 根据父容器类型和当前面板类型计算 Rect
+    final rect = _calculateRect(
+      parentRect: parentRect,
+      parentType: parentType,
+      currentType: splitType,
+      percent: percent,
+    );
+
+    final panel = SplitPanel(
+      rect: rect,
+      type: splitType,
+      percent: percent,
+      pos: json['pos'] ?? 0,
+      groupId: json['groupId'] ?? 0,
+      widget: _deserializeWidget(json), // 假设有这个方法来反序列化 widget
+    );
+
+    // 递归反序列化子节点
+    if (json['children'] != null) {
+      panel.children =
+          (json['children'] as List)
+              .map(
+                (childJson) => SplitPanel.deserialize(
+                  childJson as Map<String, dynamic>,
+                  parentRect: rect,
+                  parentType: splitType,
+                ),
+              )
+              .toList();
+    }
+
+    // 设置子节点的 parent 引用
+    for (final child in panel.children) {
+      child.parent = panel;
+    }
+
+    return panel;
+  }
+
+  static Rect _calculateRect({
+    required Rect parentRect,
+    required SplitType parentType,
+    required SplitType currentType,
+    required double percent,
+  }) {
+    switch (parentType) {
+      case SplitType.row:
+        // 在行布局中，子元素水平排列
+        return Rect.fromLTWH(
+          parentRect.left,
+          parentRect.top,
+          parentRect.width * percent,
+          parentRect.height,
+        );
+      case SplitType.column:
+        // 在列布局中，子元素垂直排列
+        return Rect.fromLTWH(
+          parentRect.left,
+          parentRect.top,
+          parentRect.width,
+          parentRect.height * percent,
+        );
+      case SplitType.leaf:
+      case SplitType.none:
+        // 如果是叶子节点或无类型父节点，默认使用父容器的全部空间
+        return parentRect;
+    }
+  }
+
+  // 示例性的 widget 反序列化方法
+  static Widget? _deserializeWidget(Map<String, dynamic> json) {
+    final widgetType = json['widgetType'];
+    final config = json['widgetConfig'];
+
+    if (widgetType == null) return null;
+
+    switch (widgetType) {
+      case 'text':
+        return Text(config?['content'] ?? '');
+      case 'container':
+        return Container(
+          color: _parseColor(config?['color']),
+          child: _deserializeWidget(config?['child']),
+        );
+      // 添加更多 widget 类型的处理
+      default:
+        return null;
+    }
+  }
+
+  static Color? _parseColor(String? colorString) {
+    if (colorString == null) return null;
+    // 简单的颜色解析逻辑
+    return Color(int.parse(colorString.substring(1), radix: 16) + 0xFF000000);
+  }
 
   SplitPanel.deepCopy(SplitPanel other)
     : groupId = other.groupId,
@@ -313,10 +457,6 @@ class SplitPanel {
     _bindSubPanels(splitRow, subPanels);
     return splitRow;
   }
-
-  ///
-  // 转换为JSON
-  Map<String, dynamic> serialize() => {'GroupId': groupId};
 }
 
 // 操作历史记录
