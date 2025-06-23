@@ -11,7 +11,6 @@ import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:irich/components/split_panel_ctrl/split_panel.dart';
-import 'package:irich/components/split_panel_ctrl/split_panel_ctrl.dart';
 
 // 布局管理器
 class SplitPanelLayout with ChangeNotifier {
@@ -202,6 +201,56 @@ class SplitPanelLayout with ChangeNotifier {
     doLayout(node, newRect);
   }
 
+  /// 用户调整窗口尺寸的时候，需要同步递归更新整棵动态面板树的矩形大小
+  /// [newRect] 新的窗口尺寸
+  void doLayout(SplitPanel node, Rect newRect) {
+    if (!_layoutDirty) return;
+
+    double scaleX = newRect.width / node.rect.width;
+    double scaleY = newRect.height / node.rect.height;
+    node.rect = newRect;
+    // 2. 递归更新子节点
+    scaleSplitPanel(node, scaleX, scaleY);
+    scaleSplitLines(_horizontalLines, scaleX, scaleY);
+    scaleSplitLines(_verticalLines, scaleX, scaleY);
+
+    _sortSplitLines(_horizontalLines);
+    _sortSplitLines(_verticalLines);
+    _layoutDirty = false;
+  }
+
+  void scaleSplitLines(List<SplitLine> lines, double scaleX, double scaleY) {
+    for (final line in lines) {
+      if (line.isHorizontal) {
+        line.start *= scaleX;
+        line.end *= scaleX;
+        line.position *= scaleY;
+      } else {
+        line.start *= scaleY;
+        line.end *= scaleY;
+        line.position *= scaleX;
+      }
+    }
+  }
+
+  void scaleSplitPanel(SplitPanel node, double scaleX, double scaleY) {
+    for (final child in node.children) {
+      // 计算新的物理坐标
+      Rect childNewRect = Rect.fromLTRB(
+        child.rect.left * scaleX,
+        child.rect.top * scaleY,
+        child.rect.right * scaleX,
+        child.rect.bottom * scaleY,
+      );
+      child.rect = childNewRect;
+
+      // 递归处理子节点
+      if (!child.isLeaf) {
+        scaleSplitPanel(child, scaleX, scaleY);
+      }
+    }
+  }
+
   /// [line] 分割线
   /// [delta] 左右/上下分割线拖动的偏移量
   void dragSplitLine(SplitLine line, Offset delta) {
@@ -362,88 +411,6 @@ class SplitPanelLayout with ChangeNotifier {
         point.dy <= rect.right &&
         point.dy >= rect.top &&
         point.dy <= rect.bottom);
-  }
-
-  /// 用户调整窗口尺寸的时候，需要同步递归更新整棵动态面板树的矩形大小
-  /// [newRect] 新的窗口尺寸
-  void doLayout(SplitPanel node, Rect newRect) {
-    if (!_layoutDirty) return;
-
-    double scaleX = newRect.width / node.rect.width;
-    double scaleY = newRect.height / node.rect.height;
-    Rect oldRect = node.rect;
-    node.rect = newRect;
-    // 2. 递归更新子节点
-    _doLayoutChildren(node, newRect);
-
-    // // 3. 更新横向分割线
-    // for (final line in _horizontalLines) {
-    //   if (line != _selectedSplitLine) {
-    //     Offset ptStart = Offset(line.start, line.position);
-    //     Offset ptEnd = Offset(line.end, line.position);
-    //     if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
-    //       line.start *= scaleX;
-    //       line.end *= scaleX;
-    //       line.position *= scaleY;
-    //     }
-    //   }
-    // }
-    // // 4. 更新竖向分割线
-    // for (final line in _verticalLines) {
-    //   if (line != _selectedSplitLine) {
-    //     Offset ptStart = Offset(line.position, line.start);
-    //     Offset ptEnd = Offset(line.position, line.end);
-    //     if (isPtInRect(oldRect, ptStart) && isPtInRect(oldRect, ptEnd)) {
-    //       line.start *= scaleY;
-    //       line.end *= scaleY;
-    //       line.position *= scaleX;
-    //     }
-    //   }
-    // }
-
-    _sortSplitLines(_horizontalLines);
-    _sortSplitLines(_verticalLines);
-    _layoutDirty = false;
-  }
-
-  void _doLayoutChildren(SplitPanel node, Rect newRect) {
-    if (node.type == SplitType.row) {
-      double percent = 0;
-      for (final child in node.children) {
-        // 计算新的物理坐标
-        Rect childNewRect = Rect.fromLTRB(
-          newRect.left + percent * newRect.width,
-          newRect.top,
-          newRect.width * child.percent,
-          newRect.height,
-        );
-        child.rect = childNewRect;
-        percent += child.percent;
-
-        // 递归处理子节点
-        if (!child.isLeaf) {
-          _doLayoutChildren(child, childNewRect);
-        }
-      }
-    } else if (node.type == SplitType.column) {
-      double percent = 0;
-      for (final child in node.children) {
-        // 计算新的物理坐标
-        Rect childNewRect = Rect.fromLTRB(
-          newRect.left,
-          newRect.top + percent * newRect.height,
-          newRect.width,
-          newRect.height * child.percent,
-        );
-        child.rect = childNewRect;
-        percent += child.percent;
-
-        // 递归处理子节点
-        if (!child.isLeaf) {
-          _doLayoutChildren(child, childNewRect);
-        }
-      }
-    }
   }
 
   void updateActiveSplitLine(Offset ptStart, Offset ptEnd) {
