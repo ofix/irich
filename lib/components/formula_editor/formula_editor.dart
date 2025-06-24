@@ -10,10 +10,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:irich/components/formula_engine/formula_completer.dart';
-import 'package:irich/components/formula_engine/formula_defines.dart';
-import 'package:irich/components/formula_engine/formula_engine.dart';
-import 'package:irich/components/formula_engine/formula_parser.dart';
+import 'package:irich/service/formula_engine/formula_completer.dart';
+import 'package:irich/service/formula_engine/formula_defines.dart';
+import 'package:irich/service/formula_engine/formula_engine.dart';
+import 'package:irich/service/formula_engine/formula_parser.dart';
 
 class FormulaEditorScreen extends StatefulWidget {
   final StockFormula? initialFormula = null;

@@ -7,8 +7,8 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'package:irich/components/formula_engine/formula_defines.dart';
-import 'package:irich/components/formula_engine/formula_parser.dart';
+import 'package:irich/service/formula_engine/formula_defines.dart';
+import 'package:irich/service/formula_engine/formula_parser.dart';
 
 class FormulaEngine {
   final Map<String, List<double>> _data;

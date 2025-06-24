@@ -7,7 +7,7 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'package:irich/components/formula_engine/formula_defines.dart';
+import 'package:irich/service/formula_engine/formula_defines.dart';
 
 // 语法规则定义
 // program       : statement+
