@@ -23,6 +23,37 @@ enum KlineWndMode {
   mini, // 迷你模式
 }
 
+enum MinuteKlineWndMode {
+  normal('正常模式'),
+  limitUp('涨停模式'),
+  ema('EMA模式');
+
+  final String displayName;
+  const MinuteKlineWndMode(this.displayName);
+
+  String get name => toString().split('.').last;
+  static MinuteKlineWndMode? fromVal(String displayName) {
+    switch (displayName) {
+      case '正常模式':
+        return MinuteKlineWndMode.normal;
+      case '涨停模式':
+        return MinuteKlineWndMode.limitUp;
+      case 'EMA模式':
+        return MinuteKlineWndMode.ema;
+      default:
+        return null; // 无匹配时返回null
+    }
+  }
+}
+
+// 分时价格区间
+class MinutePriceZone {
+  int period; // 周期
+  double price; // 价格
+  Color color; // 颜色
+  MinutePriceZone(this.period, this.price, this.color);
+}
+
 class ColorText {
   String text; // 文本
   Color color; // 颜色
@@ -40,6 +71,7 @@ class KlineCtrlLayout {
 // K线组件核心类
 class KlineCtrlState {
   KlineWndMode wndMode; // 窗口模式
+  MinuteKlineWndMode minuteWndMode; // 分时图窗口模式
   String shareCode; // 股票代码
   Share? share; // 股票
   KlineType klineType = KlineType.day; // 当前绘制的K线类型
@@ -91,6 +123,7 @@ class KlineCtrlState {
     Map<String, List<double>>? macd,
     Map<String, List<double>>? boll,
     this.wndMode = KlineWndMode.full,
+    this.minuteWndMode = MinuteKlineWndMode.normal,
     this.klineRngMinPrice = double.infinity,
     this.klineRngMaxPrice = double.negativeInfinity,
     this.crossLineMode = CrossLineMode.none, // 十字线参数
@@ -127,6 +160,7 @@ class KlineCtrlState {
     String? shareCode,
     Share? share,
     KlineWndMode? wndMode,
+    MinuteKlineWndMode? minuteWndMode,
     KlineType? klineType,
     List<UiKline>? klines,
     List<MinuteKline>? minuteKlines,
@@ -160,6 +194,7 @@ class KlineCtrlState {
   }) {
     return KlineCtrlState(
       wndMode: wndMode ?? this.wndMode,
+      minuteWndMode: minuteWndMode ?? this.minuteWndMode,
       shareCode: shareCode ?? this.shareCode,
       share: share ?? this.share,
       klineType: klineType ?? this.klineType,
@@ -200,6 +235,7 @@ class KlineCtrlState {
     if (identical(this, other)) return true;
     return other is KlineCtrlState &&
         other.wndMode == wndMode &&
+        other.minuteWndMode == minuteWndMode &&
         other.shareCode == shareCode &&
         other.klineType == klineType &&
         other.emaCurveSettings == emaCurveSettings &&
@@ -218,6 +254,7 @@ class KlineCtrlState {
   int get hashCode {
     return Object.hash(
       wndMode,
+      minuteWndMode,
       shareCode,
       klineType,
       emaCurveSettings,

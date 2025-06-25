@@ -139,8 +139,13 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(children: [_buildKlineName(state.share!.name), _buildKlineTypeTabs()]),
-                    // 自选按钮
-                    _buildFavoriteButton(state, stockColors),
+                    Row(
+                      children: [
+                        _buildMinuteKlineWndMode(state), // 分时窗口模式选择
+                        SizedBox(width: 8),
+                        _buildFavoriteButton(state, stockColors), // 自选按钮
+                      ],
+                    ),
                   ],
                 ),
                 // K线主图
@@ -188,6 +193,28 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
       },
       height: KlineCtrlLayout.titleBarHeight,
     );
+  }
+
+  Widget _buildMinuteKlineWndMode(KlineCtrlState klineState) {
+    if (klineState.klineType.isMinuteType) {
+      return DropdownButton<MinuteKlineWndMode>(
+        value: klineState.minuteWndMode, // 直接使用枚举值
+        hint: Text('请选择模式'),
+        items:
+            MinuteKlineWndMode.values.map((mode) {
+              return DropdownMenuItem<MinuteKlineWndMode>(
+                value: mode,
+                child: Text(mode.displayName), // 显示中文名称
+              );
+            }).toList(),
+        onChanged: (newMode) {
+          if (newMode != null) {
+            ref.read(klineCtrlProvider.notifier).changeMinuteWndMode(newMode); // 传递枚举值
+          }
+        },
+      );
+    }
+    return Container();
   }
 
   // 自选按钮组件

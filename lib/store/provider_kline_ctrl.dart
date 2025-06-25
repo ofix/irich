@@ -172,6 +172,12 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     updateEmaPrices();
   }
 
+  void changeMinuteWndMode(MinuteKlineWndMode mode) {
+    if (state.klineType.isMinuteType) {
+      state = state.copyWith(minuteWndMode: mode);
+    }
+  }
+
   void updateEmaPrices() {
     int index = state.crossLineFollowKlineIndex;
     if (index == -1) {

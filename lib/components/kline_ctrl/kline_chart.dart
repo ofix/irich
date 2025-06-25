@@ -41,6 +41,8 @@ class _KlineChartState extends ConsumerState<KlineChart> {
           state.klineRngMaxPrice,
           state.emaCurves,
           state.klineType,
+          state.wndMode,
+          state.minuteWndMode,
         ),
       ),
     );
@@ -63,6 +65,8 @@ class _KlineChartState extends ConsumerState<KlineChart> {
                     size: Size(state.klineCtrlWidth, state.klineChartHeight),
                     painter: KlinePainter(
                       share: state.share!,
+                      wndMode: state.wndMode,
+                      minuteWndMode: state.minuteWndMode,
                       klineChartWidth: state.klineChartWidth,
                       klineChartHeight: state.klineChartHeight,
                       klineChartLeftMargin: state.klineChartLeftMargin,

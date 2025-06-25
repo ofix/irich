@@ -16,6 +16,8 @@ import 'package:irich/theme/stock_colors.dart';
 
 class KlinePainter extends CustomPainter {
   Share share; // 当前股票
+  KlineWndMode wndMode; // 当前窗口模式
+  MinuteKlineWndMode minuteWndMode; // 分时窗口模式
   List<UiKline> klines; // 前复权日K线数据
   KlineType klineType; // 当前绘制的K线类型
   List<MinuteKline> minuteKlines; // 分时K线数据
@@ -38,6 +40,8 @@ class KlinePainter extends CustomPainter {
   StockColors stockColors; // 主题色
 
   KlinePainter({
+    required this.wndMode,
+    required this.minuteWndMode,
     required this.share,
     required this.klineType,
     required this.klines,
@@ -87,6 +91,8 @@ class KlinePainter extends CustomPainter {
 
     // 比较基础类型和引用
     if (old.klineStep != klineStep ||
+        old.wndMode != wndMode ||
+        old.minuteWndMode != minuteWndMode ||
         old.klineWidth != klineWidth ||
         old.share.code != share.code ||
         old.klineType != klineType ||
@@ -291,12 +297,35 @@ class KlinePainter extends CustomPainter {
     double minPrice = double.infinity;
     double maxPrice = -double.infinity;
 
-    for (final kline in minuteKlines) {
-      if (kline.price < minPrice) minPrice = kline.price;
-      if (kline.price > maxPrice) maxPrice = kline.price;
-    }
     // 计算昨日收盘价
     double yesterdayClosePrice = minuteKlines.first.price - minuteKlines.first.changeAmount;
+    // 计算分时图价格压力位和支撑位
+    List<MinutePriceZone> priceZones = [];
+
+    if (minuteWndMode == MinuteKlineWndMode.ema) {
+      final minLimitPrice = yesterdayClosePrice * 0.9; // 涨停价下限
+      final maxLimitPrice = yesterdayClosePrice * 1.1; // 涨停价上限
+      for (final ema in emaCurves) {
+        if (ema.emaPrice.last < maxLimitPrice && ema.emaPrice.last > maxPrice) {
+          maxPrice = ema.emaPrice.last;
+          priceZones.add(MinutePriceZone(ema.period, ema.emaPrice.last, ema.color));
+        }
+        if (ema.emaPrice.last > minLimitPrice && ema.emaPrice.last < minPrice) {
+          minPrice = ema.emaPrice.last;
+          priceZones.add(MinutePriceZone(ema.period, ema.emaPrice.last, ema.color));
+        }
+      }
+      // 需要进一步考虑涨跌停价进行过滤
+    } else if (minuteWndMode == MinuteKlineWndMode.limitUp) {
+      // 需要根据市场考虑 10%｜20%｜30% 价格
+      minPrice = yesterdayClosePrice * 0.9; // 涨停价下限
+      maxPrice = yesterdayClosePrice * 1.1; // 涨停价上限
+    } else {
+      for (final kline in minuteKlines) {
+        if (kline.price < minPrice) minPrice = kline.price;
+        if (kline.price > maxPrice) maxPrice = kline.price;
+      }
+    }
 
     // 计算上下部分价格区间较大的那个
     double topPrice = (maxPrice - yesterdayClosePrice).abs();
@@ -345,6 +374,26 @@ class KlinePainter extends CustomPainter {
     }
     canvas.drawPath(avgPath, avgPaint);
     canvas.restore();
+
+    if (minuteWndMode == MinuteKlineWndMode.ema) {
+      // 绘制价格支撑位
+      for (final zone in priceZones) {
+        final period = zone.period;
+        final price = zone.price;
+        final x = minuteStep * nMinuteKlines;
+        final y = (maxPrice - price) * priceRatio;
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: "$period日 $price",
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        final width = textPainter.width;
+        textPainter.paint(canvas, Offset(x - width / 2, y - 6));
+      }
+    }
 
     // 绘制网格
     canvas.save();
