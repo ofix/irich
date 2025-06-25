@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/components/formula_engine/formula_edit_ctrl.dart
+// Purpose:     formula edit ctrl
+// Author:      songhuabiao
+// Created:     2025-06-23 20:30
+// Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:irich/components/formula_editor/chunk_table.dart';

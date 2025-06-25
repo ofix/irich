@@ -1,3 +1,12 @@
+// ///////////////////////////////////////////////////////////////////////////
+// Name:        irich/lib/components/formula_editor/chunk_table.dart
+// Purpose:     chunk table for formula editor
+// Author:      songhuabiao
+// Created:     2025-06-23 20:30
+// Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
+// Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
+// ///////////////////////////////////////////////////////////////////////////
+
 import 'dart:async';
 import 'dart:math';
 
