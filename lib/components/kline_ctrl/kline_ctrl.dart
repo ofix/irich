@@ -89,7 +89,14 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     final stockColors = Theme.of(context).extension<StockColors>()!;
     ref.watch(
       klineCtrlProvider.select(
-        (s) => (s.klineCtrlWidth, s.klineCtrlHeight, s.klineRng.begin, s.klineRng.end),
+        (s) => (
+          s.klineCtrlWidth,
+          s.klineCtrlHeight,
+          s.klineRng.begin,
+          s.klineRng.end,
+          s.klineType,
+          s.minuteWndMode,
+        ),
       ),
     );
     final klineCtrlState = ref.read(klineCtrlProvider);
@@ -197,21 +204,31 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
 
   Widget _buildMinuteKlineWndMode(KlineCtrlState klineState) {
     if (klineState.klineType.isMinuteType) {
-      return DropdownButton<MinuteKlineWndMode>(
-        value: klineState.minuteWndMode, // 直接使用枚举值
-        hint: Text('请选择模式'),
-        items:
-            MinuteKlineWndMode.values.map((mode) {
-              return DropdownMenuItem<MinuteKlineWndMode>(
-                value: mode,
-                child: Text(mode.displayName), // 显示中文名称
-              );
-            }).toList(),
-        onChanged: (newMode) {
-          if (newMode != null) {
-            ref.read(klineCtrlProvider.notifier).changeMinuteWndMode(newMode); // 传递枚举值
-          }
-        },
+      return DropdownButtonHideUnderline(
+        child: DropdownButton<MinuteKlineWndMode>(
+          value: klineState.minuteWndMode,
+          hint: Text('请选择模式'),
+          items:
+              MinuteKlineWndMode.values.map((mode) {
+                return DropdownMenuItem<MinuteKlineWndMode>(
+                  value: mode,
+                  child: Text(mode.displayName),
+                );
+              }).toList(),
+          onChanged: (newMode) {
+            if (newMode != null) {
+              debugPrint("newMode: ${newMode.displayName}");
+              ref.read(klineCtrlProvider.notifier).changeMinuteWndMode(newMode);
+            }
+          },
+          //dropdownColor: Colors.transparent, // Remove dropdown background color
+          icon: Icon(Icons.arrow_drop_down), // Custom icon if needed
+          style: TextStyle(
+            color: Colors.blue, // Custom text color
+            // Add other text styling as needed
+          ),
+          elevation: 0, // Remove shadow
+        ),
       );
     }
     return Container();

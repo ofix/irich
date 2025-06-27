@@ -288,6 +288,61 @@ class KlinePainter extends CustomPainter {
     canvas.restore();
   }
 
+  /// EMA 分时价格窗口模式下根据当前价格，返回最近的两个EMA价格区间
+  /// [zonePrices] 从大到小排序的EMA价格区间列表
+  /// [priceNow] 当前价格
+  List<MinutePriceZone> getNearestZonePrices(
+    List<MinutePriceZone> zonePrices, // 从大到小排序
+    double priceNow,
+  ) {
+    if (zonePrices.isEmpty) throw ArgumentError('价格列表不能为空');
+    if (zonePrices.length == 1) return [zonePrices.first]; // 只有1个价格时特殊处理
+
+    // 边界情况处理
+    if (priceNow >= zonePrices.first.price) {
+      return zonePrices.length >= 2 ? [zonePrices[0], zonePrices[1]] : [zonePrices[0]];
+    }
+    if (priceNow <= zonePrices.last.price) {
+      return zonePrices.length >= 2
+          ? [zonePrices[zonePrices.length - 2], zonePrices.last]
+          : [zonePrices.last];
+    }
+
+    // 二分查找
+    int low = 0;
+    int high = zonePrices.length - 1;
+
+    while (low <= high) {
+      final mid = (low + high) ~/ 2;
+      final currentPrice = zonePrices[mid].price;
+
+      if (currentPrice >= priceNow) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    // 确定要返回的两个价格索引
+    int firstIndex = high;
+    int secondIndex = low;
+
+    // 处理索引越界情况
+    if (firstIndex < 0) firstIndex = 0;
+    if (secondIndex >= zonePrices.length) secondIndex = zonePrices.length - 1;
+
+    // 如果两个索引相同（比如正好在边界），尝试获取不同的价格
+    if (firstIndex == secondIndex) {
+      if (firstIndex > 0) {
+        return [zonePrices[firstIndex - 1], zonePrices[firstIndex]];
+      } else {
+        return [zonePrices[firstIndex], zonePrices[firstIndex + 1]];
+      }
+    }
+
+    return [zonePrices[firstIndex], zonePrices[secondIndex]];
+  }
+
   void drawMinuteKlines(Canvas canvas) {
     if (minuteKlines.isEmpty) {
       debugPrint("分时图数据为空");
@@ -302,29 +357,33 @@ class KlinePainter extends CustomPainter {
     // 计算分时图价格压力位和支撑位
     List<MinutePriceZone> priceZones = [];
 
+    if (minuteWndMode == MinuteKlineWndMode.normal || minuteWndMode == MinuteKlineWndMode.ema) {
+      for (final kline in minuteKlines) {
+        if (kline.price < minPrice) minPrice = kline.price;
+        if (kline.price > maxPrice) maxPrice = kline.price;
+      }
+    }
     if (minuteWndMode == MinuteKlineWndMode.ema) {
       final minLimitPrice = yesterdayClosePrice * 0.9; // 涨停价下限
       final maxLimitPrice = yesterdayClosePrice * 1.1; // 涨停价上限
+      final zones = <MinutePriceZone>[];
       for (final ema in emaCurves) {
-        if (ema.emaPrice.last < maxLimitPrice && ema.emaPrice.last > maxPrice) {
+        if (ema.emaPrice.last <= maxLimitPrice && ema.emaPrice.last > maxPrice) {
           maxPrice = ema.emaPrice.last;
-          priceZones.add(MinutePriceZone(ema.period, ema.emaPrice.last, ema.color));
+          zones.add(MinutePriceZone(ema.period, ema.emaPrice.last, ema.color));
         }
-        if (ema.emaPrice.last > minLimitPrice && ema.emaPrice.last < minPrice) {
+        if (ema.emaPrice.last >= minLimitPrice && ema.emaPrice.last < minPrice) {
           minPrice = ema.emaPrice.last;
-          priceZones.add(MinutePriceZone(ema.period, ema.emaPrice.last, ema.color));
+          zones.add(MinutePriceZone(ema.period, ema.emaPrice.last, ema.color));
         }
       }
+      zones.sort((a, b) => b.price.compareTo(a.price));
+      priceZones = getNearestZonePrices(zones, minuteKlines.last.price);
       // 需要进一步考虑涨跌停价进行过滤
     } else if (minuteWndMode == MinuteKlineWndMode.limitUp) {
       // 需要根据市场考虑 10%｜20%｜30% 价格
       minPrice = yesterdayClosePrice * 0.9; // 涨停价下限
       maxPrice = yesterdayClosePrice * 1.1; // 涨停价上限
-    } else {
-      for (final kline in minuteKlines) {
-        if (kline.price < minPrice) minPrice = kline.price;
-        if (kline.price > maxPrice) maxPrice = kline.price;
-      }
     }
 
     // 计算上下部分价格区间较大的那个
@@ -373,10 +432,9 @@ class KlinePainter extends CustomPainter {
       avgPath.lineTo(x, y);
     }
     canvas.drawPath(avgPath, avgPaint);
-    canvas.restore();
 
     if (minuteWndMode == MinuteKlineWndMode.ema) {
-      // 绘制价格支撑位
+      // 绘制最近的压力位和支撑位
       for (final zone in priceZones) {
         final period = zone.period;
         final price = zone.price;
@@ -384,16 +442,23 @@ class KlinePainter extends CustomPainter {
         final y = (maxPrice - price) * priceRatio;
         final textPainter = TextPainter(
           text: TextSpan(
-            text: "$period日 $price",
-            style: TextStyle(color: Colors.white, fontSize: 12),
+            text: "${price.toStringAsFixed(2)}@$period",
+            style: TextStyle(color: zone.color, fontSize: 12),
           ),
           textDirection: TextDirection.ltr,
         );
         textPainter.layout();
-        final width = textPainter.width;
-        textPainter.paint(canvas, Offset(x - width / 2, y - 6));
+        textPainter.paint(canvas, Offset(x, y - 8));
+        // 绘制参考线
+        drawDashedLine(
+          canvas: canvas,
+          startPoint: Offset(0, y),
+          endPoint: Offset(x, y),
+          color: zone.color,
+        );
       }
     }
+    canvas.restore();
 
     // 绘制网格
     canvas.save();
