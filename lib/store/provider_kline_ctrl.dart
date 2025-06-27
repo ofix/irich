@@ -183,22 +183,67 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     );
     updateEmaPrices();
 
-    // 分时图或5日分时图,交易时段才需要定时刷新
-    if (state.klineType.isMinuteType && TradingCalendar().isTradingTime()) {
-      // 还要考虑是否是交易时间
+    // 如果是交易时段，需要定时刷新分时数据
+    if (TradingCalendar().isTradingTime()) {
       startTimer();
     }
   }
 
   void startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
       if (state.shareCode.isEmpty) return; // 没有股票代码时不执行
-      // 刷新K线数据
-      final result = await _queryKlines(storeKlines, state.shareCode, state.klineType);
-      if (!result.ok()) {
-        debugPrint("Failed to load ${state.shareCode},${state.klineType}: ${result.desc}");
-        return;
+      // 如果是日/周/月/季/年的K线图，则必须请求分时数据
+      if (state.klineType == KlineType.day ||
+          state.klineType == KlineType.week ||
+          state.klineType == KlineType.month ||
+          state.klineType == KlineType.quarter ||
+          state.klineType == KlineType.year ||
+          state.klineType == KlineType.minute) {
+        final result = await _queryKlines(storeKlines, state.shareCode, KlineType.minute);
+        if (!result.ok()) {
+          debugPrint("Failed to load minute Klines for ${state.shareCode}: ${result.desc}");
+          return;
+        }
+        // 更新日K线的最后一条记录的最低价，最高价，最新价，成交量，成交额等
+        final minuteKlines = state.minuteKlines;
+        if (minuteKlines.isNotEmpty) {
+          double todayMinPrice = double.infinity;
+          double todayMaxPrice = double.negativeInfinity;
+          BigInt todayVolume = BigInt.from(0);
+          double todayAmount = 0;
+          double todayChangeRate = 0;
+          for (final minuteKline in minuteKlines) {
+            if (minuteKline.price < todayMinPrice) {
+              todayMinPrice = minuteKline.price;
+            }
+            if (minuteKline.price > todayMaxPrice) {
+              todayMaxPrice = minuteKline.price;
+            }
+            todayVolume += minuteKline.volume;
+            todayAmount += minuteKline.amount;
+            todayChangeRate += minuteKline.changeRate;
+          }
+          if (state.klines.isNotEmpty) {
+            // 更新日K线的最后一条记录，周/月/季/年的K线图需要额外处理
+            final todayKline = state.klines.last;
+            todayKline.priceMin = todayMinPrice; // 当日最低价
+            todayKline.priceMax = todayMaxPrice; // 当日最高价
+            todayKline.priceNow = minuteKlines.last.price; // 当日最新价
+            todayKline.priceOpen =
+                minuteKlines.first.price - minuteKlines.first.changeAmount; // 当日开盘价
+            todayKline.priceClose = minuteKlines.last.price; // 当日收盘价
+            todayKline.volume = todayVolume; // 当日成交量
+            todayKline.amount = todayAmount; // 当日成交额
+            todayKline.changeRate = todayChangeRate; // 当日换手率
+          }
+        }
+      } else {
+        final result = await _queryKlines(storeKlines, state.shareCode, state.klineType);
+        if (!result.ok()) {
+          debugPrint("Failed to load ${state.shareCode},${state.klineType}: ${result.desc}");
+          return;
+        }
       }
       state = state.copyWith(refreshCount: state.refreshCount + 1);
       // 检查交易时间是否结束
