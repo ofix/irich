@@ -43,6 +43,7 @@ class _KlineChartState extends ConsumerState<KlineChart> {
           state.klineType,
           state.wndMode,
           state.minuteWndMode,
+          state.refreshCount,
         ),
       ),
     );
@@ -85,6 +86,7 @@ class _KlineChartState extends ConsumerState<KlineChart> {
                       klineStep: state.klineStep,
                       klineWidth: state.klineWidth,
                       stockColors: widget.stockColors,
+                      refreshCount: state.refreshCount,
                     ),
                   ),
                 ),

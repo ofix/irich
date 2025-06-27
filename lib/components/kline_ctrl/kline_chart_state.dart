@@ -107,6 +107,7 @@ class KlineCtrlState {
   double klineChartRightMargin; // K线图右边宽度(显示涨幅指示图)
   double indicatorChartHeight; // 指标附图高度
   double indicatorChartTitleBarHeight; // 指标附图标题栏高度
+  int refreshCount; // 交易时间定时刷新次数
 
   KlineCtrlState({
     required this.shareCode,
@@ -141,6 +142,7 @@ class KlineCtrlState {
     this.klineChartRightMargin = KlineCtrlLayout.klineChartRightMargin,
     this.indicatorChartHeight = 80,
     this.indicatorChartTitleBarHeight = KlineCtrlLayout.titleBarHeight,
+    this.refreshCount = 0,
     List<EmaCurveSetting>? emaCurveSettings,
   }) : klines = klines ?? [], // 使用const空列表避免共享引用
        minuteKlines = minuteKlines ?? [],
@@ -191,6 +193,7 @@ class KlineCtrlState {
     double? indicatorChartHeight,
     double? indicatorChartTitleBarHeight,
     List<EmaCurveSetting>? emaCurveSettings,
+    int? refreshCount,
   }) {
     return KlineCtrlState(
       wndMode: wndMode ?? this.wndMode,
@@ -227,6 +230,7 @@ class KlineCtrlState {
       indicatorChartTitleBarHeight:
           indicatorChartTitleBarHeight ?? this.indicatorChartTitleBarHeight,
       emaCurveSettings: emaCurveSettings ?? this.emaCurveSettings,
+      refreshCount: refreshCount ?? this.refreshCount,
     );
   }
 

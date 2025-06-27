@@ -7,6 +7,8 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
@@ -15,6 +17,7 @@ import 'package:irich/formula/formula_ema.dart';
 import 'package:irich/formula/formula_kdj.dart';
 import 'package:irich/formula/formula_macd.dart';
 import 'package:irich/global/stock.dart';
+import 'package:irich/service/trading_calendar.dart';
 import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/store_klines.dart';
 import 'package:irich/store/store_quote.dart';
@@ -91,6 +94,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
 
   Ref ref;
   StoreKlines storeKlines = StoreKlines();
+  Timer? _timer;
 
   KlineCtrlNotifier({
     required this.ref,
@@ -101,6 +105,14 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
   // 切换股票代码的时候需要重新初始化
   void changeShareCode(String shareCode) async {
     Share? share = StoreQuote.query(shareCode);
+    // 如果切换股票的时候，当前窗口是分时图或者5日分时图，则需要先加载日K线图
+    // 因为分时窗口需要EMA价格数据，而EMA价格数据需要日K线图数据
+    if (state.klineType.isMinuteType) {
+      final dayKlineResult = await _queryKlines(storeKlines, shareCode, KlineType.day);
+      if (!dayKlineResult.ok()) {
+        debugPrint("Failed to load day Kline for $shareCode");
+      }
+    }
     // 更新股票K线数据
     RichResult result = await _queryKlines(storeKlines, shareCode, state.klineType);
     if (!result.ok()) {
@@ -170,6 +182,31 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
       crossLineFollowKlineIndex: -1, // 切换股票的时候 crossLineFolleKlineIndex 未同步更新，有可能超过当前K线数量,需要重置
     );
     updateEmaPrices();
+
+    // 分时图或5日分时图,交易时段才需要定时刷新
+    if (state.klineType.isMinuteType && TradingCalendar().isTradingTime()) {
+      // 还要考虑是否是交易时间
+      startTimer();
+    }
+  }
+
+  void startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      if (state.shareCode.isEmpty) return; // 没有股票代码时不执行
+      // 刷新K线数据
+      final result = await _queryKlines(storeKlines, state.shareCode, state.klineType);
+      if (!result.ok()) {
+        debugPrint("Failed to load ${state.shareCode},${state.klineType}: ${result.desc}");
+        return;
+      }
+      state = state.copyWith(refreshCount: state.refreshCount + 1);
+      // 检查交易时间是否结束
+      if (!TradingCalendar().isTradingTime()) {
+        _timer?.cancel(); // 停止定时器
+        _timer = null;
+      }
+    });
   }
 
   void changeMinuteWndMode(MinuteKlineWndMode mode) {

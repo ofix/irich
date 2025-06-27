@@ -53,7 +53,7 @@ Future<void> maximizeWnd() async {
   final screenSize = await ScreenRetriever.instance.getPrimaryDisplay().then(
     (display) => display.size,
   );
-  final windowWidth = screenSize.width * 0.75;
+  final windowWidth = screenSize.width;
   final windowHeight = screenSize.height * 0.75;
 
   WindowOptions windowOptions = WindowOptions(

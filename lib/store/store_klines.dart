@@ -15,6 +15,7 @@ import 'package:irich/service/api_provider_capabilities.dart';
 import 'package:irich/service/api_service.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/service/lru_cache.dart';
+import 'package:irich/service/trading_calendar.dart';
 import 'package:irich/utils/date_time.dart';
 import 'package:irich/utils/file_tool.dart';
 import 'package:irich/utils/rich_result.dart';
@@ -52,9 +53,12 @@ class StoreKlines {
 
   /// 获取单个股票分时K线
   Future<MinuteKlineResult> queryMinuteKlines(String shareCode) async {
-    List<MinuteKline>? cachedMinuteKlines = _lruCacheMinuteKlines[0].get(shareCode);
-    if (cachedMinuteKlines != null) {
-      return (success(), cachedMinuteKlines);
+    if (!TradingCalendar().isTradingTime()) {
+      // 非交易时间，分时数据才走缓存
+      List<MinuteKline>? cachedMinuteKlines = _lruCacheMinuteKlines[0].get(shareCode);
+      if (cachedMinuteKlines != null) {
+        return (success(), cachedMinuteKlines);
+      }
     }
     // 缓存不存在
     final (result, newestMinuteKlines as List<MinuteKline>) = await ApiService(
@@ -68,9 +72,12 @@ class StoreKlines {
 
   /// 获取单个股票5日分时K线
   Future<MinuteKlineResult> queryFiveDayMinuteKlines(String shareCode) async {
-    List<MinuteKline>? cachedFiveDayMinuteKlines = _lruCacheMinuteKlines[1].get(shareCode);
-    if (cachedFiveDayMinuteKlines != null) {
-      return (success(), cachedFiveDayMinuteKlines);
+    if (!TradingCalendar().isTradingTime()) {
+      // 非交易时间，五日分时数据才走缓存
+      List<MinuteKline>? cachedFiveDayMinuteKlines = _lruCacheMinuteKlines[1].get(shareCode);
+      if (cachedFiveDayMinuteKlines != null) {
+        return (success(), cachedFiveDayMinuteKlines);
+      }
     }
     // 缓存不存在
     final (result, newestFiveDayMinuteKlines as List<MinuteKline>) = await ApiService(

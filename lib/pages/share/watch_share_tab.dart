@@ -110,7 +110,7 @@ class _WatchShareTabState extends ConsumerState<WatchShareTab> with AutomaticKee
                       style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
                     ),
                     Text(
-                      '${share.changeRate >= 0 ? '' : '-'}${(share.changeRate * 100).toStringAsFixed(2)}%',
+                      '${(share.changeRate * 100).toStringAsFixed(2)}%',
                       style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
                     ),
                   ],

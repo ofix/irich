@@ -36,6 +36,7 @@ class KlinePainter extends CustomPainter {
   double klineRngMaxPrice; // 可视K线区域最高价
   int klineRngBegin;
   int klineRngEnd;
+  int refreshCount; // 交易时段，需要定时刷新
 
   StockColors stockColors; // 主题色
 
@@ -61,6 +62,7 @@ class KlinePainter extends CustomPainter {
     required this.klineRngMinPrice,
     required this.klineRngMaxPrice,
     required this.stockColors,
+    required this.refreshCount,
   }) : klineRng = UiKlineRange(begin: klineRngBegin, end: klineRngEnd);
 
   @override
@@ -101,6 +103,7 @@ class KlinePainter extends CustomPainter {
         old.klineRng.begin != klineRng.begin ||
         old.klineRng.end != klineRng.end ||
         old.stockColors != stockColors ||
+        old.refreshCount != refreshCount ||
         old.klineChartLeftMargin != klineChartLeftMargin ||
         old.klineChartRightMargin != klineChartRightMargin) {
       return true;
@@ -440,9 +443,10 @@ class KlinePainter extends CustomPainter {
         final price = zone.price;
         final x = minuteStep * nMinuteKlines;
         final y = (maxPrice - price) * priceRatio;
+        final zonePercent = (price - yesterdayClosePrice) / yesterdayClosePrice * 100;
         final textPainter = TextPainter(
           text: TextSpan(
-            text: "${price.toStringAsFixed(2)}@$period",
+            text: "${zonePercent.toStringAsFixed(2)}% ${price.toStringAsFixed(2)} $period",
             style: TextStyle(color: zone.color, fontSize: 12),
           ),
           textDirection: TextDirection.ltr,
