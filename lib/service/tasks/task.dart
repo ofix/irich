@@ -125,6 +125,7 @@ enum TaskType implements Comparable<TaskType> {
   smartShareAnalysis(100), // 股票智选
   //
   taskGroup(200), // 任务组
+  mock(201), // 模拟任务
   unknown(255);
 
   final int type;
@@ -180,6 +181,8 @@ enum TaskType implements Comparable<TaskType> {
         return smartShareAnalysis;
       case 200:
         return taskGroup;
+      case 201:
+        return mock;
 
       // 未知类型
       case 255:
@@ -208,6 +211,7 @@ enum TaskType implements Comparable<TaskType> {
       15: '指数分时图(全量)',
       100: '智能选股分析',
       200: '任务组',
+      201: '模拟任务',
       255: '未知类型',
     };
     return names[type] ?? '未知任务类型';
