@@ -96,6 +96,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
           s.klineRng.end,
           s.klineType,
           s.minuteWndMode,
+          s.dataLoaded,
         ),
       ),
     );

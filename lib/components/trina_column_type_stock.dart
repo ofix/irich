@@ -43,7 +43,7 @@ class TrinaColumnTypeStock
     } else if (cellType == CellType.volume) {
       return Helper.richUnit(value.toDouble());
     } else if (cellType == CellType.text) {
-      return value;
+      return value ?? '';
     } else if (cellType == CellType.number) {
       return value.toString(); // Default string representation
     }

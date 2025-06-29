@@ -107,17 +107,38 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     Share? share = StoreQuote.query(shareCode);
     // 如果切换股票的时候，当前窗口是分时图或者5日分时图，则需要先加载日K线图
     // 因为分时窗口需要EMA价格数据，而EMA价格数据需要日K线图数据
+    RichResult result;
+    List<UiKline> klines = [];
+    List<MinuteKline> minuteKlines = [];
     if (state.klineType.isMinuteType) {
-      final dayKlineResult = await _queryKlines(storeKlines, shareCode, KlineType.day);
-      if (!dayKlineResult.ok()) {
+      (result, klines) = await _queryKlines<UiKline>(
+        store: storeKlines,
+        shareCode: shareCode,
+        klineType: KlineType.day,
+      );
+      if (!result.ok()) {
         debugPrint("Failed to load day Kline for $shareCode");
+      }
+      (result, minuteKlines) = await _queryKlines<MinuteKline>(
+        store: storeKlines,
+        shareCode: shareCode,
+        klineType: state.klineType,
+      );
+      if (!result.ok()) {
+        debugPrint("Failed to load minute Kline for $shareCode");
+      }
+    } else {
+      (result, klines) = await _queryKlines<UiKline>(
+        store: storeKlines,
+        shareCode: shareCode,
+        klineType: state.klineType,
+      );
+      if (!result.ok()) {
+        debugPrint("Failed to load ${state.klineType.name} Kline for $shareCode");
       }
     }
     // 更新股票K线数据
-    RichResult result = await _queryKlines(storeKlines, shareCode, state.klineType);
-    if (!result.ok()) {
-      return;
-    }
+
     // 初始化技术指标附图
     List<UiIndicator> indicators = _initIndicators(state.klineType);
     // 初始化子控件宽高
@@ -134,27 +155,28 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
       ratio,
       indicators.length,
     );
-    final klineRng = _initKlineRng(state.klines);
+    final klineRng = _initKlineRng(klines);
     final visibleKlineCount = klineRng.end - klineRng.begin + 1;
     double klineStep = _calcVisibleKlineStep(visibleKlineCount, klineChartWidth);
     double klineWidth = _calcVisibleKlineWidth(klineStep);
     // 先初始化EMA曲线和EMA价格
     List<ShareEmaCurve> emaCurves = [];
     for (final setting in state.emaCurveSettings) {
-      final curve = _initEmaCurve(setting.period, setting.color, state.klines);
+      final curve = _initEmaCurve(setting.period, setting.color, klines);
       emaCurves.add(curve);
     }
     // 填充技术指标数据
-    _calcIndicators(indicators, state.klines);
+    _calcIndicators(indicators, klines);
     // 初始化可见范围最高价/最低价
     final (klineRngMinPrice, klineRngMaxPrice) = _calcKlineRngMinMaxPrice(
       klineRng,
-      state.klines,
+      klines,
       emaCurves,
     );
 
     debugPrint("++++++++++++++++++++++++++++++++++++++++++++");
     debugPrint("klineChartWidth = $klineChartWidth");
+    debugPrint("klineCtrlHeight = ${state.klineCtrlHeight}");
     debugPrint("klineChartHeight = $klineChartHeight");
     debugPrint("indicatorChartHeight = $indicatorChartHeight");
     debugPrint("klineRng = $klineRng");
@@ -164,9 +186,12 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     debugPrint("klineRngMinPrice = $klineRngMinPrice");
     debugPrint("klineRngMaxPrice = $klineRngMaxPrice");
     debugPrint("++++++++++++++++++++++++++++++++++++++++++++");
+
     state = state.copyWith(
       share: share,
       shareCode: shareCode,
+      indicators: indicators,
+      dynamicIndicators: indicators,
       klineChartWidth: klineChartWidth,
       klineChartHeight: klineChartHeight,
       indicatorChartHeight: indicatorChartHeight,
@@ -175,12 +200,14 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
       klineStep: klineStep,
       klineWidth: klineWidth,
       emaCurves: emaCurves,
-      indicators: indicators,
-      dynamicIndicators: indicators,
+      klines: klines,
+      minuteKlines: minuteKlines,
       klineRngMinPrice: klineRngMinPrice,
       klineRngMaxPrice: klineRngMaxPrice,
       crossLineFollowKlineIndex: -1, // 切换股票的时候 crossLineFolleKlineIndex 未同步更新，有可能超过当前K线数量,需要重置
+      dataLoaded: true,
     );
+
     updateEmaPrices();
 
     // 如果是交易时段，需要定时刷新分时数据
@@ -193,20 +220,24 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
       if (state.shareCode.isEmpty) return; // 没有股票代码时不执行
-      // 如果是日/周/月/季/年的K线图，则必须请求分时数据
+      List<MinuteKline> minuteKlines = [];
+      // 交易时间，如果是日/周/月/季/年的K线图，则必须请求分时数据
       if (state.klineType == KlineType.day ||
           state.klineType == KlineType.week ||
           state.klineType == KlineType.month ||
           state.klineType == KlineType.quarter ||
           state.klineType == KlineType.year ||
           state.klineType == KlineType.minute) {
-        final result = await _queryKlines(storeKlines, state.shareCode, KlineType.minute);
+        final (result, minuteKlines) = await _queryKlines<MinuteKline>(
+          store: storeKlines,
+          shareCode: state.shareCode,
+          klineType: KlineType.minute,
+        );
         if (!result.ok()) {
           debugPrint("Failed to load minute Klines for ${state.shareCode}: ${result.desc}");
           return;
         }
         // 更新日K线的最后一条记录的最低价，最高价，最新价，成交量，成交额等
-        final minuteKlines = state.minuteKlines;
         if (minuteKlines.isNotEmpty) {
           double todayMinPrice = double.infinity;
           double todayMaxPrice = double.negativeInfinity;
@@ -239,13 +270,17 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
           }
         }
       } else {
-        final result = await _queryKlines(storeKlines, state.shareCode, state.klineType);
+        final (result, minuteKlines) = await _queryKlines<MinuteKline>(
+          store: storeKlines,
+          shareCode: state.shareCode,
+          klineType: state.klineType,
+        );
         if (!result.ok()) {
           debugPrint("Failed to load ${state.shareCode},${state.klineType}: ${result.desc}");
           return;
         }
       }
-      state = state.copyWith(refreshCount: state.refreshCount + 1);
+      state = state.copyWith(refreshCount: state.refreshCount + 1, minuteKlines: minuteKlines);
       // 检查交易时间是否结束
       if (!TradingCalendar().isTradingTime()) {
         _timer?.cancel(); // 停止定时器
@@ -272,45 +307,53 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     ref.read(emaCurveProvider.notifier).update(emaPrices);
   }
 
-  Future<RichResult> _queryKlines(StoreKlines store, String stockCode, KlineType type) async {
-    // 统一处理所有返回 (RichResult, List<T>) 的K线类型
-    Future<RichResult> handleQuery<T>(
-      Future<(RichResult, List<T>)> Function(String) queryFn,
-      void Function(List<T>) assignFn,
-    ) async {
-      final (result, data) = await queryFn(stockCode);
-      if (result.ok()) assignFn(data);
-      return result;
-    }
-
-    return switch (type) {
-      KlineType.day => handleQuery<UiKline>(store.queryDayKlines, (v) {
-        state = state.copyWith(klines: v);
-      }),
-      KlineType.week => handleQuery<UiKline>(store.queryWeekKlines, (v) {
-        state = state.copyWith(klines: v);
-      }),
-      KlineType.month => handleQuery<UiKline>(store.queryMonthKlines, (v) {
-        state = state.copyWith(klines: v);
-      }),
-      KlineType.quarter => handleQuery<UiKline>(store.queryQuarterKlines, (v) {
-        state = state.copyWith(klines: v);
-      }),
-      KlineType.year => handleQuery<UiKline>(store.queryYearKlines, (v) {
-        state = state.copyWith(klines: v);
-      }),
-      KlineType.minute => handleQuery<MinuteKline>(store.queryMinuteKlines, (v) {
-        state = state.copyWith(minuteKlines: v);
-      }),
-
-      KlineType.fiveDay => handleQuery<MinuteKline>(store.queryFiveDayMinuteKlines, (v) {
-        state = state.copyWith(fiveDayMinuteKlines: v);
-      }),
+  Future<(RichResult, List<T>)> _queryKlines<T>({
+    required StoreKlines store,
+    required String shareCode,
+    required KlineType klineType,
+  }) async {
+    final queryFn = switch (klineType) {
+      KlineType.day => store.queryDayKlines,
+      KlineType.week => store.queryWeekKlines,
+      KlineType.month => store.queryMonthKlines,
+      KlineType.quarter => store.queryQuarterKlines,
+      KlineType.year => store.queryYearKlines,
+      KlineType.minute => store.queryMinuteKlines,
+      KlineType.fiveDay => store.queryFiveDayMinuteKlines,
     };
+
+    final result = await queryFn(shareCode);
+    return (result.$1, result.$2 as List<T>);
   }
 
-  void changeKlineType(KlineType type) {
-    state = state.copyWith(klineType: type);
+  void changeKlineType(KlineType klineType) {
+    // 切换K线类型必须重新初始化附图指标个数和宽高，否则 flutter 渲染的时候会溢出
+    List<UiIndicator> indicators = _initIndicators(klineType);
+    // 初始化子控件宽高
+    double ratio = 1;
+    if (indicators.length <= 4) {
+      ratio = chartHeightMap[indicators.length]!;
+    }
+    final klineChartWidth =
+        state.klineCtrlWidth - state.klineChartLeftMargin - state.klineChartRightMargin;
+    final klineChartHeight = _getKlineChartHeight(state.klineCtrlHeight, klineType, ratio);
+    final indicatorChartHeight = _getIndicatorChartHeight(
+      state.klineCtrlHeight,
+      klineType,
+      ratio,
+      indicators.length,
+    );
+
+    state = state.copyWith(
+      klineType: klineType,
+      klineChartWidth: klineChartWidth,
+      klineChartHeight: klineChartHeight,
+      indicatorChartHeight: indicatorChartHeight,
+      indicators: indicators,
+      dynamicIndicators: indicators,
+      dataLoaded: false,
+    );
+
     changeShareCode(state.shareCode);
   }
 

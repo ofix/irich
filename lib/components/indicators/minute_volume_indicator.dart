@@ -37,7 +37,7 @@ class _MinuteVolumeIndicatorState extends State<MinuteVolumeIndicator> {
 
     return SizedBox(
       width: state.klineCtrlWidth,
-      height: state.indicatorChartHeight,
+      height: state.indicatorChartHeight - 18,
       child: CustomPaint(
         painter: _MinuteVolumePainter(
           klineChartLeftMargin: state.klineChartLeftMargin,
@@ -145,15 +145,32 @@ class _MinuteVolumePainter extends CustomPainter {
   void drawVolumeBars(Canvas canvas, double height, List<MinuteKline> klines) {
     final maxKlines = klineType == KlineType.minute ? 240 : 1200;
     final barWidth = klineChartWidth / maxKlines;
-    final totalLines =
-        klineType == KlineType.minute ? klines.length.clamp(0, 240) : klines.length.clamp(0, 1200);
+    final totalLines = klines.length.clamp(0, maxKlines);
+    double hScale = height / BigInt.from(maxVolume).toDouble();
 
-    Paint pen = Paint()..color = const Color.fromARGB(255, 136, 211, 251);
+    Paint whitePen =
+        Paint()
+          ..color = Colors.white
+          ..strokeWidth = 2;
+    Paint redPen =
+        Paint()
+          ..color = stockColors.klineUp
+          ..strokeWidth = 2;
+    Paint greenPen =
+        Paint()
+          ..color = stockColors.klineDown
+          ..strokeWidth = 2;
     for (int i = 1; i < totalLines; i++) {
       final x = i * barWidth;
-      final y = height * (1 - klines[i].volume / BigInt.from(maxVolume));
-      final h = height * klines[i].volume.toDouble() / maxVolume;
-      canvas.drawLine(Offset(x, y), Offset(x, y + h), pen);
+      final y = height - klines[i].volume.toDouble() * hScale;
+      final h = klines[i].volume.toDouble() * hScale;
+      if (klines[i].price > klines[i - 1].price) {
+        canvas.drawLine(Offset(x, y), Offset(x, y + h), redPen);
+      } else if (klines[i].price < klines[i - 1].price) {
+        canvas.drawLine(Offset(x, y), Offset(x, y + h), greenPen);
+      } else {
+        canvas.drawLine(Offset(x, y), Offset(x, y + h), whitePen);
+      }
     }
   }
 }

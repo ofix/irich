@@ -39,20 +39,21 @@ class _MinuteAmountIndicatorState extends State<MinuteAmountIndicator> {
       width: state.klineCtrlWidth,
       height: state.indicatorChartHeight,
       child: CustomPaint(
-        painter: _MinuteVolumePainter(
+        painter: _MinuteAmountPainter(
           klineChartLeftMargin: state.klineChartLeftMargin,
           klineChartWidth: state.klineChartWidth,
           minuteKlines: state.minuteKlines,
           fiveDayMinuteKlines: state.fiveDayMinuteKlines,
           klineType: state.klineType,
           crossLineFollowKlineIndex: state.crossLineFollowKlineIndex,
+          stockColors: widget.stockColors,
         ),
       ),
     );
   }
 }
 
-class _MinuteVolumePainter extends CustomPainter {
+class _MinuteAmountPainter extends CustomPainter {
   final double klineChartLeftMargin;
   final double klineChartWidth;
   final List<MinuteKline> minuteKlines;
@@ -60,14 +61,16 @@ class _MinuteVolumePainter extends CustomPainter {
   final int crossLineFollowKlineIndex;
   final KlineType klineType;
   late final double maxAmount;
+  final StockColors stockColors;
 
-  _MinuteVolumePainter({
+  _MinuteAmountPainter({
     required this.klineChartLeftMargin,
     required this.klineChartWidth,
     required this.minuteKlines,
     required this.fiveDayMinuteKlines,
     required this.crossLineFollowKlineIndex,
     required this.klineType,
+    required this.stockColors,
   }) {
     maxAmount = calcMaxAmount().toDouble();
   }
@@ -144,16 +147,25 @@ class _MinuteVolumePainter extends CustomPainter {
   void drawAmountBars(Canvas canvas, double height, List<MinuteKline> klines) {
     final maxKlines = klineType == KlineType.minute ? 240 : 1200;
     final barStep = klineChartWidth / maxKlines;
-    final totalLines =
-        klineType == KlineType.minute ? klines.length.clamp(0, 240) : klines.length.clamp(0, 1200);
+    final totalLines = klines.length.clamp(0, maxKlines);
 
-    Paint whitePen = Paint()..color = Colors.white;
-    Paint redPen = Paint()..color = Colors.red;
-    Paint greenPen = Paint()..color = Colors.green;
+    Paint whitePen =
+        Paint()
+          ..color = Colors.white
+          ..strokeWidth = 2;
+    Paint redPen =
+        Paint()
+          ..color = stockColors.klineUp
+          ..strokeWidth = 2;
+    Paint greenPen =
+        Paint()
+          ..color = stockColors.klineDown
+          ..strokeWidth = 2;
+    double hScale = height / maxAmount;
     for (int i = 1; i < totalLines; i++) {
       final x = i * barStep;
-      final y = height * (1 - klines[i].amount / maxAmount);
-      final h = height * klines[i].amount.toDouble() / maxAmount;
+      final y = height - klines[i].amount * hScale;
+      final h = klines[i].amount.toDouble() * hScale;
       if (klines[i].price > klines[i - 1].price) {
         canvas.drawLine(Offset(x, y), Offset(x, y + h), redPen);
       } else if (klines[i].price < klines[i - 1].price) {
