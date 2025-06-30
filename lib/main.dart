@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/components/share_search_panel.dart';
 import 'package:irich/router/router_provider.dart';
 import 'package:irich/service/sql_service.dart';
+import 'package:irich/service/task_scheduler.dart';
 import 'package:irich/service/trading_calendar.dart';
 // import 'package:irich/store/provider_debug.dart';
 import 'package:irich/store/state_share_search.dart';
@@ -28,6 +29,8 @@ void main() async {
   await FileTool.installDir("lib/runtime");
   // 加载交易日期数据文件并初始化
   await TradingCalendar().initialize();
+  // 初始化线程池
+  await TaskScheduler.getInstance();
   // 初始化数据库SQLite
   await initDatabase();
   // 隐藏原生标题栏

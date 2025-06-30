@@ -78,10 +78,10 @@ flutter:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
   assets:
-    - images/百度财经.svg
-    - images/东方财富.svg
-    - images/和讯网.svg
-    - images/同花顺.svg
+    - images/baidu_finance.svg
+    - images/eastmoney.svg
+    - images/hexun.svg
+    - images/ifind.svg
     - images/irich.svg
     - images/skymoney.png
     - images/vertical.svg

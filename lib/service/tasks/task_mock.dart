@@ -48,7 +48,7 @@ class TaskMock extends BatchApiTask {
       await Future.delayed(Duration(milliseconds: 1000 + Random().nextInt(400)));
       final responseTime = DateTime.now();
       final log = RequestLog(
-        taskId: params['TaskId'],
+        taskId: taskId,
         providerId: EnumApiProvider.eastMoney,
         apiType: apiType,
         responseBytes: Random().nextInt(60000), // 模拟响应字节数

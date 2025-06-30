@@ -44,6 +44,21 @@ enum EnumApiProvider {
   String get name {
     switch (this) {
       case EnumApiProvider.eastMoney:
+        return 'eastmoney';
+      case EnumApiProvider.heXun:
+        return 'hexun';
+      case EnumApiProvider.baiduFinance:
+        return 'baidu_finance';
+      case EnumApiProvider.iFind:
+        return 'ifind';
+      case EnumApiProvider.unknown:
+        return 'unknown';
+    }
+  }
+
+  String get chineseName {
+    switch (this) {
+      case EnumApiProvider.eastMoney:
         return '东方财富';
       case EnumApiProvider.heXun:
         return '和讯网';

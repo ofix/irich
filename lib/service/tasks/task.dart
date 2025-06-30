@@ -14,6 +14,7 @@ import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:irich/global/config.dart';
 import 'package:irich/service/task_events.dart';
+import 'package:irich/service/tasks/task_mock.dart';
 import 'package:irich/service/tasks/task_sync_share_concept.dart';
 import 'package:irich/service/tasks/task_sync_share_industry.dart';
 import 'package:irich/service/tasks/task_sync_share_quote.dart';
@@ -296,6 +297,8 @@ abstract class Task<T> implements Comparable<Task<T>> {
         return TaskSyncShareRegion.build(json);
       case TaskType.syncShareConcept:
         return TaskSyncShareConcept.build(json);
+      case TaskType.mock:
+        return TaskMock.build(json);
       default:
         throw UnsupportedError('Unknown task type: ${json['type']}');
     }

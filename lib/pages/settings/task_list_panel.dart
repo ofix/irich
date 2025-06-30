@@ -10,15 +10,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/service/tasks/task.dart';
-import 'package:irich/store/state_tasks.dart';
+import 'package:irich/service/tasks/task_mock.dart';
+import 'package:irich/store/provider_task.dart';
 
-class TaskListPanel extends ConsumerWidget {
+class TaskListPanel extends ConsumerStatefulWidget {
   const TaskListPanel({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tasks = ref.watch(stateTaskListProvider);
-    final selectedTask = ref.watch(selectedTaskProvider);
+  ConsumerState<TaskListPanel> createState() => _TaskListPanelState();
+}
+
+class _TaskListPanelState extends ConsumerState<TaskListPanel> {
+  @override
+  void initState() {
+    super.initState();
+    initMockTask();
+  }
+
+  void initMockTask() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final task = TaskMock(
+        params: [
+          {"Placeholder": "Task 1"},
+          {"Placeholder": "Task 2"},
+          {"Placeholder": "Task 3"},
+        ],
+      );
+      // 在帧绘制完成后执行{
+      ref.read(taskProvider.notifier).addTask(task); // 重置任务状态
+      ref.read(taskProvider.notifier).selectTask(task);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final taskState = ref.watch(taskProvider);
+    final tasks = taskState.tasks;
+    final selectedTask = taskState.selectedTask;
 
     return Column(
       children: [
@@ -35,6 +63,9 @@ class TaskListPanel extends ConsumerWidget {
                 key: ValueKey(task.taskId), // 确保每个任务项有唯一key
                 task: task,
                 isSelected: selectedTask?.taskId == task.taskId,
+                onTap: () {
+                  ref.read(taskProvider.notifier).selectTask(task);
+                },
               );
             },
           ),
@@ -47,15 +78,22 @@ class TaskListPanel extends ConsumerWidget {
 class TaskListItem extends ConsumerWidget {
   final Task task;
   final bool isSelected;
+  final VoidCallback? onTap;
 
-  const TaskListItem({super.key, required this.task, required this.isSelected});
+  const TaskListItem({
+    super.key,
+    required this.task,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
-      color: isSelected ? Colors.blue[50] : null,
+      color: isSelected ? const Color.fromARGB(255, 210, 233, 250) : null,
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: InkWell(
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
@@ -136,32 +174,25 @@ class TaskListItem extends ConsumerWidget {
   }
 
   Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
-    final asyncScheduler = ref.watch(taskSchedulerProvider);
-
-    return asyncScheduler.when(
-      loading: () => const CircularProgressIndicator(),
-      error: (error, stack) => Text('Error: $error'),
-      data: (scheduler) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            if (task.status == TaskStatus.running)
-              IconButton(
-                icon: const Icon(Icons.pause, size: 20),
-                onPressed: () => scheduler.pauseTask(task.taskId),
-              ),
-            if (task.status == TaskStatus.paused)
-              IconButton(
-                icon: const Icon(Icons.play_arrow, size: 20),
-                onPressed: () => scheduler.resumeTask(task.taskId),
-              ),
-            IconButton(
-              icon: const Icon(Icons.cancel, size: 20),
-              onPressed: () => scheduler.cancelTask(task.taskId),
-            ),
-          ],
-        );
-      },
+    final taskState = ref.watch(taskProvider.notifier);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (task.status == TaskStatus.running)
+          IconButton(
+            icon: const Icon(Icons.pause, size: 20),
+            onPressed: () => taskState.pauseTask(task.taskId),
+          ),
+        if (task.status == TaskStatus.paused)
+          IconButton(
+            icon: const Icon(Icons.play_arrow, size: 20),
+            onPressed: () => taskState.resumeTask(task.taskId),
+          ),
+        IconButton(
+          icon: const Icon(Icons.cancel, size: 20),
+          onPressed: () => taskState.pauseTask(task.taskId),
+        ),
+      ],
     );
   }
 }
