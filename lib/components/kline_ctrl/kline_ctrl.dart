@@ -92,6 +92,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
         (s) => (
           s.klineCtrlWidth,
           s.klineCtrlHeight,
+          s.klineStep,
           s.klineRng.begin,
           s.klineRng.end,
           s.klineType,
