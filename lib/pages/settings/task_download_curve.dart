@@ -117,9 +117,9 @@ class _TaskDownloadCurveState extends State<TaskDownloadCurve> {
     // 检查相邻点（确保全局最近）
     final candidates =
         [
-          if (nearestLog != null && nearestLog != logs.first) logs[logs.indexOf(nearestLog!) - 1],
+          if (nearestLog != null && nearestLog != logs.first) logs[logs.indexOf(nearestLog) - 1],
           nearestLog,
-          if (nearestLog != null && nearestLog != logs.last) logs[logs.indexOf(nearestLog!) + 1],
+          if (nearestLog != null && nearestLog != logs.last) logs[logs.indexOf(nearestLog) + 1],
         ].whereType<TaskRequestLog>().toList();
 
     return candidates.isEmpty
@@ -159,10 +159,8 @@ class _TaskDownloadCurveState extends State<TaskDownloadCurve> {
     if (bytes <= 0 || seconds == 0) {
       return "0 B/s";
     }
-
     // 1. 计算速度（字节/秒）
     final double speed = bytes / seconds;
-
     // 2. 格式化单位
     const units = ["B/s", "KB/s", "MB/s", "GB/s"];
     int unitIndex = 0;
