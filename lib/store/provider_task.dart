@@ -8,19 +8,22 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:irich/service/request_log.dart';
 import 'package:irich/service/task_scheduler.dart';
 import 'package:irich/service/tasks/task.dart';
 
 class TaskState {
   List<Task> tasks;
   Task? selectedTask;
-  List<RequestLog> selectedTaskLogs;
-  TaskState({this.selectedTask, List<Task>? tasks, List<RequestLog>? selectedTaskLogs})
+  List<TaskRequestLog> selectedTaskLogs;
+  TaskState({this.selectedTask, List<Task>? tasks, List<TaskRequestLog>? selectedTaskLogs})
     : tasks = tasks ?? [],
       selectedTaskLogs = selectedTaskLogs ?? [];
 
-  TaskState copyWith({List<Task>? tasks, Task? selectedTask, List<RequestLog>? selectedTaskLogs}) {
+  TaskState copyWith({
+    List<Task>? tasks,
+    Task? selectedTask,
+    List<TaskRequestLog>? selectedTaskLogs,
+  }) {
     return TaskState(
       tasks: tasks ?? this.tasks,
       selectedTask: selectedTask ?? this.selectedTask,

@@ -22,6 +22,15 @@ import 'package:irich/service/tasks/task_group.dart';
 import 'package:irich/utils/ansi_color.dart';
 import 'package:irich/utils/file_tool.dart';
 
+class TaskRequestLog {
+  double percent;
+  RequestLog log;
+  TaskRequestLog({required this.percent, required this.log});
+  TaskRequestLog copyWith({double? percent, RequestLog? log}) {
+    return TaskRequestLog(percent: percent ?? this.percent, log: log ?? this.log);
+  }
+}
+
 class TaskScheduler {
   final Map<String, Task<dynamic>> _taskMap = {}; // 任务ID => task 的映射列表
   final PriorityQueue<Task> _pendingTaskQueue = PriorityQueue(
@@ -29,7 +38,7 @@ class TaskScheduler {
   ); // 优先级任务等待队列
   final List<Task<dynamic>> taskList = []; // 任务列表，返回给UI显示的副本
   final List<Task<dynamic>> runningTaskList = []; // 运行中的任务列表
-  final Map<String, List<RequestLog>> _isolateTaskLogs = {}; // 子线程执行的任务请求日志
+  final Map<String, List<TaskRequestLog>> _isolateTaskLogs = {}; // 子线程执行的任务请求日志
 
   final List<IsolateWorker> _idleWorkers = []; // 空闲子线程列表
   final List<IsolateWorker> _activeWorkers = []; // 活动子线程列表
@@ -174,7 +183,9 @@ class TaskScheduler {
         "[${log.providerId.name}][${log.apiType.name}][线程${task.threadId}] 进度: $progress, 状态码: ${log.statusCode} 耗时: ${log.duration} 毫秒 ${log.url} ",
       );
       if (log.url != "") {
-        _isolateTaskLogs.putIfAbsent(task.taskId, () => []).add(event.requestLog); // 添加请求日志
+        _isolateTaskLogs
+            .putIfAbsent(task.taskId, () => [])
+            .add(TaskRequestLog(percent: event.progress, log: event.requestLog)); // 添加请求日志
       }
       // 检查是否有父任务
       if (task.hasParentTask) {
@@ -324,7 +335,7 @@ class TaskScheduler {
   }
 
   // 选中任务的日志列表
-  List<RequestLog> selectTaskLogs() {
+  List<TaskRequestLog> selectTaskLogs() {
     if (_isolateTaskLogs.containsKey(_selectedTask?.taskId)) {
       return _isolateTaskLogs[_selectedTask?.taskId]!;
     }
