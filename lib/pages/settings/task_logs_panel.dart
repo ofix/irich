@@ -64,13 +64,14 @@ class RequestLogItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final log = requestLog.log;
     return Column(
       children: [
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 12),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: _getBackgroundColor(requestLog.log),
+            color: _getBackgroundColor(log),
             borderRadius: BorderRadius.circular(0),
           ),
           child: Row(
@@ -86,7 +87,7 @@ class RequestLogItem extends StatelessWidget {
                 width: 64,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _buildRequestProvider(requestLog.log),
+                  child: _buildRequestProvider(log),
                 ),
               ),
               // 请求API类型名称
@@ -94,14 +95,14 @@ class RequestLogItem extends StatelessWidget {
                 width: 80,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _buildProviderName(requestLog.log, context),
+                  child: _buildProviderName(log, context),
                 ),
               ),
               SizedBox(
                 width: 50,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _buildResponseStatusCode(requestLog.log, context),
+                  child: _buildResponseStatusCode(log, context),
                 ),
               ),
               // 请求URL
@@ -109,7 +110,7 @@ class RequestLogItem extends StatelessWidget {
                 flex: 4,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _buildRequestUrl(requestLog.log),
+                  child: _buildRequestUrl(log),
                 ),
               ),
               // 请求时间
@@ -117,7 +118,7 @@ class RequestLogItem extends StatelessWidget {
                 width: 140,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _buildRequestTime(requestLog.log),
+                  child: _buildRequestTime(log),
                 ),
               ),
               // 响应数据大小
@@ -125,7 +126,7 @@ class RequestLogItem extends StatelessWidget {
                 width: 120,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _buildResponseBytes(requestLog.log),
+                  child: _buildResponseBytes(log),
                 ),
               ),
               // 请求耗时
@@ -133,7 +134,7 @@ class RequestLogItem extends StatelessWidget {
                 width: 90,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _buildRequestDuration(requestLog.log),
+                  child: _buildRequestDuration(log),
                 ),
               ),
             ],
