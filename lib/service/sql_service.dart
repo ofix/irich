@@ -11,6 +11,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:irich/global/backtest.dart';
 import 'package:irich/utils/file_tool.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -214,5 +215,142 @@ class SqlService {
       }
       await batch.commit(noResult: true);
     });
+  }
+
+  Future<void> _createDb(Database db, int version) async {
+    // 创建股票表
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS stocks (
+        stock_code TEXT PRIMARY KEY,
+        stock_name TEXT,
+        industry TEXT
+      )
+    ''');
+
+    // 创建财务数据表
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS financial_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        stock_code TEXT,
+        report_date TEXT,
+        total_assets REAL,
+        total_liabilities REAL,
+        shareholders_equity REAL,
+        net_profit REAL,
+        operating_revenue REAL,
+        operating_profit REAL,
+        cash_flow_from_operations REAL,
+        FOREIGN KEY (stock_code) REFERENCES stocks (stock_code)
+      )
+    ''');
+
+    // 创建市场数据表
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS market_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        stock_code TEXT,
+        trade_date TEXT,
+        open_price REAL,
+        high_price REAL,
+        low_price REAL,
+        close_price REAL,
+        volume REAL,
+        FOREIGN KEY (stock_code) REFERENCES stocks (stock_code)
+      )
+    ''');
+
+    // 创建索引以提高查询性能
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_stocks_code ON stocks(stock_code)');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_financial_code_date ON financial_data(stock_code, report_date)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_market_code_date ON market_data(stock_code, trade_date)',
+    );
+  }
+
+  // 获取所有股票
+  Future<List<Stock>> getStocks() async {
+    final db = await database;
+    final result = await db.query('stocks');
+    return result.map((map) => Stock.fromMap(map)).toList();
+  }
+
+  // 获取单个股票的财务数据
+  Future<List<FinancialData>> getFinancialData(String stockCode) async {
+    final db = await database;
+    final result = await db.query(
+      'financial_data',
+      where: 'stock_code = ?',
+      whereArgs: [stockCode],
+      orderBy: 'report_date DESC',
+    );
+    return result.map((map) => FinancialData.fromMap(map)).toList();
+  }
+
+  // 获取单个股票的市场数据
+  Future<List<MarketData>> getMarketData(
+    String stockCode, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final db = await database;
+    String whereClause = 'stock_code = ?';
+    List<dynamic> whereArgs = [stockCode];
+
+    if (startDate != null && endDate != null) {
+      whereClause += ' AND trade_date BETWEEN ? AND ?';
+      whereArgs.addAll([startDate.toIso8601String(), endDate.toIso8601String()]);
+    }
+
+    final result = await db.query(
+      'market_data',
+      where: whereClause,
+      whereArgs: whereArgs,
+      orderBy: 'trade_date ASC',
+    );
+    return result.map((map) => MarketData.fromMap(map)).toList();
+  }
+
+  // 批量插入财务数据
+  Future<void> insertFinancialData(List<FinancialData> dataList) async {
+    final db = await database;
+    final batch = db.batch();
+
+    for (final data in dataList) {
+      batch.insert('financial_data', {
+        'stock_code': data.stockCode,
+        'report_date': data.reportDate.toIso8601String(),
+        'total_assets': data.totalAssets,
+        'total_liabilities': data.totalLiabilities,
+        'shareholders_equity': data.shareholdersEquity,
+        'net_profit': data.netProfit,
+        'operating_revenue': data.operatingRevenue,
+        'operating_profit': data.operatingProfit,
+        'cash_flow_from_operations': data.cashFlowFromOperations,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+
+    await batch.commit(noResult: true);
+  }
+
+  // 批量插入市场数据
+  Future<void> insertMarketData(List<MarketData> dataList) async {
+    final db = await database;
+    final batch = db.batch();
+
+    for (final data in dataList) {
+      batch.insert('market_data', {
+        'stock_code': data.stockCode,
+        'trade_date': data.date.toIso8601String(),
+        'open_price': data.open,
+        'high_price': data.high,
+        'low_price': data.low,
+        'close_price': data.close,
+        'volume': data.volume,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+
+    await batch.commit(noResult: true);
   }
 }

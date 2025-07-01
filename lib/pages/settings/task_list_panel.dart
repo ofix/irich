@@ -90,7 +90,7 @@ class TaskListItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
-      color: isSelected ? const Color.fromARGB(255, 210, 233, 250) : null,
+      color: isSelected ? const Color.fromARGB(55, 99, 116, 132) : null,
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: InkWell(
         onTap: onTap,
