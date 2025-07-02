@@ -673,6 +673,277 @@ class UiKline {
   });
 }
 
+class ShareFinance {
+  // 基础信息（必须）
+  final String code; // 股票代码
+  final int year; // 年份
+  final int quarter; // 季度 (1-4)
+
+  // 财务指标（必须）
+  final double mainBusinessIncome; // 主营收入(万元)
+  final double mainBusinessProfit; // 主营利润(万元)
+  final double totalAssets; // 总资产(万元)
+  final double currentAssets; // 流动资产(万元)
+  final double fixedAssets; // 固定资产(万元)
+  final double intangibleAssets; // 无形资产(万元)
+  final double longTermInvestment; // 长期投资(万元)
+  final double currentLiabilities; // 流动负债(万元)
+  final double longTermLiabilities; // 长期负债(万元)
+  final double capitalReserve; // 资本公积金(万元)
+  final double perShareReserve; // 每股公积金(元)
+  final double shareholderEquity; // 股东权益(万元)
+  final double perShareNetAssets; // 每股净资产(元)
+  final double operatingIncome; // 营业收入(万元)
+  final double netProfit; // 净利润(万元)
+  final double undistributedProfit; // 未分配利润(万元)
+  final double perShareUndistributedProfit; // 每股未分配利润(元)
+  final double perShareEarnings; // 每股收益(元)
+  final double perShareCashFlow; // 每股现金流(元)
+  final double perShareOperatingCashFlow; // 每股经营现金流(元)
+
+  // 成长能力指标（可选）
+  double netProfitGrowthRate; // 净利润增长率(%)
+  double operatingIncomeGrowthRate; // 营业收入增长率(%)
+  double totalAssetsGrowthRate; // 总资产增长率(%)
+  double shareholderEquityGrowthRate; // 股东权益增长率(%)
+
+  // 现金流指标（可选）
+  double operatingCashFlow; // 经营活动产生的现金流量净额(万元)
+  double investmentCashFlow; // 投资活动产生的现金流量净额(万元)
+  double financingCashFlow; // 筹资活动产生的现金流量净额(万元)
+  double cashIncrease; // 现金及现金等价物净增加额(万元)
+  double perShareOperatingCashFlowNet; // 每股经营活动产生的现金流量净额(元)
+  double perShareCashIncrease; // 每股现金及现金等价物净增加额(元)
+  double perShareEarningsAfterNonRecurring; // 扣除非经常性损益后的每股收益(元)
+
+  // 盈利能力指标（可选，自动计算）
+  late double netProfitRate; // 净利润率(%)
+  late double grossProfitRate; // 毛利率(%)
+  late double roe; // 净资产收益率(ROE,%)
+  late double roeAfterNonRecurring; // 扣除非经常性损益后的ROE(%)
+  late double weightedRoe; // 加权净资产收益率(%)
+  late double netProfitAfterNonRecurring; // 扣除非经常性损益后的净利润(万元)
+  late double weightedRoeAfterNonRecurring; // 加权扣非ROE(%)
+
+  // 偿债能力指标（可选，自动计算）
+  late double debtRatio; // 资产负债率(%)
+  late double currentRatio; // 流动比率
+  late double quickRatio; // 速动比率
+
+  // 主构造函数
+  ShareFinance({
+    required this.code,
+    required this.year,
+    required this.quarter,
+    required this.mainBusinessIncome,
+    required this.mainBusinessProfit,
+    required this.totalAssets,
+    required this.currentAssets,
+    required this.fixedAssets,
+    required this.intangibleAssets,
+    required this.longTermInvestment,
+    required this.currentLiabilities,
+    required this.longTermLiabilities,
+    required this.capitalReserve,
+    required this.perShareReserve,
+    required this.shareholderEquity,
+    required this.perShareNetAssets,
+    required this.operatingIncome,
+    required this.netProfit,
+    required this.undistributedProfit,
+    required this.perShareUndistributedProfit,
+    required this.perShareEarnings,
+    required this.perShareCashFlow,
+    required this.perShareOperatingCashFlow,
+
+    // 可选参数（可自动计算）
+    double? netProfitRate,
+    double? grossProfitRate,
+    double? roe,
+    double? roeAfterNonRecurring,
+    double? weightedRoe,
+    double? netProfitAfterNonRecurring,
+    double? weightedRoeAfterNonRecurring,
+    double? debtRatio,
+    double? currentRatio,
+    double? quickRatio,
+
+    // 成长能力指标（可选）
+    this.netProfitGrowthRate = 0.0,
+    this.operatingIncomeGrowthRate = 0.0,
+    this.totalAssetsGrowthRate = 0.0,
+    this.shareholderEquityGrowthRate = 0.0,
+
+    // 现金流指标（可选）
+    this.operatingCashFlow = 0.0,
+    this.investmentCashFlow = 0.0,
+    this.financingCashFlow = 0.0,
+    this.cashIncrease = 0.0,
+    this.perShareOperatingCashFlowNet = 0.0,
+    this.perShareCashIncrease = 0.0,
+    this.perShareEarningsAfterNonRecurring = 0.0,
+  }) {
+    // 自动计算盈利能力指标（如果未提供）
+    this.netProfitRate = netProfitRate ?? (netProfit / operatingIncome * 100);
+    this.grossProfitRate =
+        grossProfitRate ?? ((operatingIncome - mainBusinessIncome) / operatingIncome * 100);
+    this.roe = roe ?? (netProfit / shareholderEquity * 100);
+    this.debtRatio = debtRatio ?? ((currentLiabilities + longTermLiabilities) / totalAssets * 100);
+    this.currentRatio = currentRatio ?? (currentAssets / currentLiabilities);
+    this.quickRatio = quickRatio ?? ((currentAssets - fixedAssets) / currentLiabilities);
+
+    // 验证季度范围
+    if (quarter < 1 || quarter > 4) {
+      throw ArgumentError('季度必须在 1-4 之间');
+    }
+
+    // 验证财务逻辑
+    if (shareholderEquity > totalAssets) {
+      throw ArgumentError('股东权益不能大于总资产');
+    }
+  }
+
+  // 命名构造函数：创建空对象（用于测试）
+  factory ShareFinance.empty() {
+    return ShareFinance(
+      code: '',
+      year: 0,
+      quarter: 1,
+      mainBusinessIncome: 0,
+      mainBusinessProfit: 0,
+      totalAssets: 0,
+      currentAssets: 0,
+      fixedAssets: 0,
+      intangibleAssets: 0,
+      longTermInvestment: 0,
+      currentLiabilities: 0,
+      longTermLiabilities: 0,
+      capitalReserve: 0,
+      perShareReserve: 0,
+      shareholderEquity: 0,
+      perShareNetAssets: 0,
+      operatingIncome: 0,
+      netProfit: 0,
+      undistributedProfit: 0,
+      perShareUndistributedProfit: 0,
+      perShareEarnings: 0,
+      perShareCashFlow: 0,
+      perShareOperatingCashFlow: 0,
+    );
+  }
+
+  // 计算同比增长率
+  double calculateYoYGrowth(ShareFinance? previousYearData) {
+    if (previousYearData == null || previousYearData.netProfit == 0) {
+      return 0.0;
+    }
+
+    return ((netProfit - previousYearData.netProfit) / previousYearData.netProfit) * 100;
+  }
+
+  // 转换为Map
+  Map<String, dynamic> serialize() {
+    return {
+      'code': code,
+      'year': year,
+      'quarter': quarter,
+      'mainBusinessIncome': mainBusinessIncome,
+      'mainBusinessProfit': mainBusinessProfit,
+      'totalAssets': totalAssets,
+      'currentAssets': currentAssets,
+      'fixedAssets': fixedAssets,
+      'intangibleAssets': intangibleAssets,
+      'longTermInvestment': longTermInvestment,
+      'currentLiabilities': currentLiabilities,
+      'longTermLiabilities': longTermLiabilities,
+      'capitalReserve': capitalReserve,
+      'perShareReserve': perShareReserve,
+      'shareholderEquity': shareholderEquity,
+      'perShareNetAssets': perShareNetAssets,
+      'operatingIncome': operatingIncome,
+      'netProfit': netProfit,
+      'undistributedProfit': undistributedProfit,
+      'perShareUndistributedProfit': perShareUndistributedProfit,
+      'perShareEarnings': perShareEarnings,
+      'perShareCashFlow': perShareCashFlow,
+      'perShareOperatingCashFlow': perShareOperatingCashFlow,
+      'netProfitRate': netProfitRate,
+      'grossProfitRate': grossProfitRate,
+      'roe': roe,
+      'roeAfterNonRecurring': roeAfterNonRecurring,
+      'weightedRoe': weightedRoe,
+      'netProfitAfterNonRecurring': netProfitAfterNonRecurring,
+      'weightedRoeAfterNonRecurring': weightedRoeAfterNonRecurring,
+      'debtRatio': debtRatio,
+      'currentRatio': currentRatio,
+      'quickRatio': quickRatio,
+      'netProfitGrowthRate': netProfitGrowthRate,
+      'operatingIncomeGrowthRate': operatingIncomeGrowthRate,
+      'totalAssetsGrowthRate': totalAssetsGrowthRate,
+      'shareholderEquityGrowthRate': shareholderEquityGrowthRate,
+      'operatingCashFlow': operatingCashFlow,
+      'investmentCashFlow': investmentCashFlow,
+      'financingCashFlow': financingCashFlow,
+      'cashIncrease': cashIncrease,
+      'perShareOperatingCashFlowNet': perShareOperatingCashFlowNet,
+      'perShareCashIncrease': perShareCashIncrease,
+      'perShareEarningsAfterNonRecurring': perShareEarningsAfterNonRecurring,
+    };
+  }
+
+  // 从Map创建
+  factory ShareFinance.fromMap(Map<String, dynamic> map) {
+    return ShareFinance(
+      code: map['code'] ?? '',
+      year: map['year'] ?? 0,
+      quarter: map['quarter'] ?? 0,
+      mainBusinessIncome: map['mainBusinessIncome']?.toDouble() ?? 0.0,
+      mainBusinessProfit: map['mainBusinessProfit']?.toDouble() ?? 0.0,
+      totalAssets: map['totalAssets']?.toDouble() ?? 0.0,
+      currentAssets: map['currentAssets']?.toDouble() ?? 0.0,
+      fixedAssets: map['fixedAssets']?.toDouble() ?? 0.0,
+      intangibleAssets: map['intangibleAssets']?.toDouble() ?? 0.0,
+      longTermInvestment: map['longTermInvestment']?.toDouble() ?? 0.0,
+      currentLiabilities: map['currentLiabilities']?.toDouble() ?? 0.0,
+      longTermLiabilities: map['longTermLiabilities']?.toDouble() ?? 0.0,
+      capitalReserve: map['capitalReserve']?.toDouble() ?? 0.0,
+      perShareReserve: map['perShareReserve']?.toDouble() ?? 0.0,
+      shareholderEquity: map['shareholderEquity']?.toDouble() ?? 0.0,
+      perShareNetAssets: map['perShareNetAssets']?.toDouble() ?? 0.0,
+      operatingIncome: map['operatingIncome']?.toDouble() ?? 0.0,
+      netProfit: map['netProfit']?.toDouble() ?? 0.0,
+      undistributedProfit: map['undistributedProfit']?.toDouble() ?? 0.0,
+      perShareUndistributedProfit: map['perShareUndistributedProfit']?.toDouble() ?? 0.0,
+      perShareEarnings: map['perShareEarnings']?.toDouble() ?? 0.0,
+      perShareCashFlow: map['perShareCashFlow']?.toDouble() ?? 0.0,
+      perShareOperatingCashFlow: map['perShareOperatingCashFlow']?.toDouble() ?? 0.0,
+      netProfitRate: map['netProfitRate']?.toDouble(),
+      grossProfitRate: map['grossProfitRate']?.toDouble(),
+      roe: map['roe']?.toDouble(),
+      debtRatio: map['debtRatio']?.toDouble(),
+      currentRatio: map['currentRatio']?.toDouble(),
+      quickRatio: map['quickRatio']?.toDouble(),
+      netProfitGrowthRate: map['netProfitGrowthRate']?.toDouble() ?? 0.0,
+      operatingIncomeGrowthRate: map['operatingIncomeGrowthRate']?.toDouble() ?? 0.0,
+      totalAssetsGrowthRate: map['totalAssetsGrowthRate']?.toDouble() ?? 0.0,
+      shareholderEquityGrowthRate: map['shareholderEquityGrowthRate']?.toDouble() ?? 0.0,
+      operatingCashFlow: map['operatingCashFlow']?.toDouble() ?? 0.0,
+      investmentCashFlow: map['investmentCashFlow']?.toDouble() ?? 0.0,
+      financingCashFlow: map['financingCashFlow']?.toDouble() ?? 0.0,
+      cashIncrease: map['cashIncrease']?.toDouble() ?? 0.0,
+      perShareOperatingCashFlowNet: map['perShareOperatingCashFlowNet']?.toDouble() ?? 0.0,
+      perShareCashIncrease: map['perShareCashIncrease']?.toDouble() ?? 0.0,
+      perShareEarningsAfterNonRecurring:
+          map['perShareEarningsAfterNonRecurring']?.toDouble() ?? 0.0,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'ShareFinance{code: $code, year: $year, quarter: $quarter, ROE: $roe%, 净利润: $netProfit万元, 净利润率: $netProfitRate%}';
+  }
+}
+
 bool isUpLimitPrice(UiKline kline, Share pShare) {
   // 检查股票是否是ST股票
   if (isStShare(pShare)) {
