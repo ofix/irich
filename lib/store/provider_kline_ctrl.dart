@@ -241,20 +241,9 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
         if (minuteKlines.isNotEmpty) {
           double todayMinPrice = double.infinity;
           double todayMaxPrice = double.negativeInfinity;
-          BigInt todayVolume = BigInt.from(0);
-          double todayAmount = 0;
-          double todayChangeRate = 0;
-          for (final minuteKline in minuteKlines) {
-            if (minuteKline.price < todayMinPrice) {
-              todayMinPrice = minuteKline.price;
-            }
-            if (minuteKline.price > todayMaxPrice) {
-              todayMaxPrice = minuteKline.price;
-            }
-            todayVolume += minuteKline.volume;
-            todayAmount += minuteKline.amount;
-            todayChangeRate += minuteKline.changeRate;
-          }
+          BigInt todayVolume = minuteKlines.last.totalVolume;
+          double todayAmount = minuteKlines.last.totalAmount;
+          double todayChangeRate = minuteKlines.last.changeRate;
           if (state.klines.isNotEmpty) {
             // 更新日K线的最后一条记录，周/月/季/年的K线图需要额外处理
             final todayKline = state.klines.last;

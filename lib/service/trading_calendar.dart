@@ -88,10 +88,16 @@ class TradingCalendar {
     final time = TimeOfDay.fromDateTime(now);
     final marketOpen = TimeOfDay(hour: 9, minute: 30);
     final marketClose = TimeOfDay(hour: 15, minute: 0);
-    return time.hour > marketOpen.hour ||
-        (time.hour == marketOpen.hour && time.minute >= marketOpen.minute) &&
-            time.hour < marketClose.hour ||
+    // 更清晰的时间比较逻辑
+    final isAfterOpen =
+        time.hour > marketOpen.hour ||
+        (time.hour == marketOpen.hour && time.minute >= marketOpen.minute);
+
+    final isBeforeClose =
+        time.hour < marketClose.hour ||
         (time.hour == marketClose.hour && time.minute < marketClose.minute);
+
+    return isAfterOpen && isBeforeClose;
   }
 
   /// 判断过去第N天是否为交易日 (n=1表示昨天，n=2表示前天...)
