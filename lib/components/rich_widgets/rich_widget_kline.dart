@@ -1,6 +1,6 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/components/panels/day_kline_rich_panel.dart
-// Purpose:     day kline rich panel
+// Name:        irich/lib/components/rich_widgets/rich_widget_kline.dart
+// Purpose:     kline rich widget
 // Author:      songhuabiao
 // Created:     2025-07-02 20:30
 // Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
@@ -23,22 +23,22 @@ import 'package:irich/components/kline_ctrl/cross_line_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/kline_ctrl/kline_info_panel.dart';
-import 'package:irich/components/panels/rich_panel.dart';
+import 'package:irich/components/rich_widgets/rich_widget.dart';
 import 'package:irich/components/rich_radio_button_group.dart';
 import 'package:irich/global/stock.dart';
-import 'package:irich/store/provider_rich_panel.dart';
+import 'package:irich/store/rich_widgets/rich_widget_provider.dart';
 import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/theme/stock_colors.dart';
 
 // 股票日K线图
-class DayKlineRichPanel extends RichPanel {
-  const DayKlineRichPanel({super.key, required super.name, super.groupId = 0});
+class RichWidgetKline extends RichWidget {
+  const RichWidgetKline({super.key, required super.panelId, super.groupId = 0});
   @override
-  ConsumerState<DayKlineRichPanel> createState() => _DayKlineRichPanelState();
+  ConsumerState<RichWidgetKline> createState() => _RichWidgetKlineState();
 }
 
-class _DayKlineRichPanelState extends ConsumerState<DayKlineRichPanel> {
+class _RichWidgetKlineState extends ConsumerState<RichWidgetKline> {
   // K线类型
   static const Map<String, KlineType> klineTypeMap = {
     '分时': KlineType.minute,
@@ -88,7 +88,7 @@ class _DayKlineRichPanelState extends ConsumerState<DayKlineRichPanel> {
     // ref.watch(watchShareListProvider);
     // 监听指定名称的面板的指定数据
     ref.watch(
-      richPanelProviders(RichPanelParams(name: widget.name, groupId: widget.groupId)).select(
+      richPanelProviders(RichWidgetParams(panelId: widget.panelId, groupId: widget.groupId)).select(
         (s) => (
           s['dayKline']['klineCtrlWidth'],
           s['dayKline']['klineCtrlHeight'],
@@ -104,7 +104,7 @@ class _DayKlineRichPanelState extends ConsumerState<DayKlineRichPanel> {
     final stockColors = Theme.of(context).extension<StockColors>()!;
     final klineCtrlState = ref.read(
       richPanelProviders(
-        RichPanelParams(name: widget.name, groupId: widget.groupId),
+        RichWidgetParams(panelId: widget.panelId, groupId: widget.groupId),
       ).select((s) => s['dayKline']),
     );
     return Focus(
@@ -130,7 +130,9 @@ class _DayKlineRichPanelState extends ConsumerState<DayKlineRichPanel> {
         // final parentWidth = constraints.maxWidth; // 父容器可用宽度
         Size size = Size(constraints.maxWidth, constraints.maxHeight);
         final notifier = ref.read(
-          richPanelProviders(RichPanelParams(name: widget.name, groupId: widget.groupId)).notifier,
+          richPanelProviders(
+            RichWidgetParams(panelId: widget.panelId, groupId: widget.groupId),
+          ).notifier,
         );
         if (size.width != state.klineCtrlWidth || size.height != state.klineCtrlHeight) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -230,7 +232,7 @@ class _DayKlineRichPanelState extends ConsumerState<DayKlineRichPanel> {
               ref
                   .read(
                     richPanelProviders(
-                      RichPanelParams(name: widget.name, groupId: widget.groupId),
+                      RichWidgetParams(panelId: widget.panelId, groupId: widget.groupId),
                     ).notifier,
                   )
                   .updatePanelState('minuteKline', 'changeMinuteWndMode', {'newMode': newMode});
@@ -316,7 +318,9 @@ class _DayKlineRichPanelState extends ConsumerState<DayKlineRichPanel> {
     final klineType = klineTypeMap[value]!;
     ref
         .read(
-          richPanelProviders(RichPanelParams(name: widget.name, groupId: widget.groupId)).notifier,
+          richPanelProviders(
+            RichWidgetParams(panelId: widget.panelId, groupId: widget.groupId),
+          ).notifier,
         )
         .updatePanelState('dayKline', 'changeKlineType', {'klineType': klineType});
   }
@@ -326,10 +330,12 @@ class _DayKlineRichPanelState extends ConsumerState<DayKlineRichPanel> {
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
       // 提前获取 notifier 和 state，避免重复读取
       final notifier = ref.read(
-        richPanelProviders(RichPanelParams(name: widget.name, groupId: widget.groupId)).notifier,
+        richPanelProviders(
+          RichWidgetParams(panelId: widget.panelId, groupId: widget.groupId),
+        ).notifier,
       );
       final state = ref.read(
-        richPanelProviders(RichPanelParams(name: widget.name, groupId: widget.groupId)),
+        richPanelProviders(RichWidgetParams(panelId: widget.panelId, groupId: widget.groupId)),
       );
       switch (event.logicalKey) {
         case LogicalKeyboardKey.arrowLeft:
@@ -390,7 +396,9 @@ class _DayKlineRichPanelState extends ConsumerState<DayKlineRichPanel> {
     // 计算点击的K线索引
     ref
         .read(
-          richPanelProviders(RichPanelParams(name: widget.name, groupId: widget.groupId)).notifier,
+          richPanelProviders(
+            RichWidgetParams(panelId: widget.panelId, groupId: widget.groupId),
+          ).notifier,
         )
         .updatePanelState('dayKline', 'updateCrossLine', {
           'mode': CrossLineMode.followCursor,
@@ -407,7 +415,9 @@ class _DayKlineRichPanelState extends ConsumerState<DayKlineRichPanel> {
   void _onMouseMove(Offset localPosition) {
     ref
         .read(
-          richPanelProviders(RichPanelParams(name: widget.name, groupId: widget.groupId)).notifier,
+          richPanelProviders(
+            RichWidgetParams(panelId: widget.panelId, groupId: widget.groupId),
+          ).notifier,
         )
         .updatePanelState('dayKline', 'updateCrossLine', {'pos': localPosition});
   }
