@@ -18,6 +18,13 @@ import 'package:irich/components/split_panel_ctrl/split_panel_layout.dart';
 
 enum Direction { up, down, left, right }
 
+// 自定义组件
+class CustomWidget {
+  String zhName;
+  String name;
+  CustomWidget(this.zhName, this.name);
+}
+
 class SplitPanelCtrl extends ConsumerStatefulWidget {
   const SplitPanelCtrl({super.key});
 
@@ -44,6 +51,18 @@ class _SplitPanelCtrlState extends ConsumerState<SplitPanelCtrl> {
     "grid_4x4": SplitMode.grid_4_4,
   };
   final FocusNode focusNode = FocusNode(); // 替代RawKeyboardListener
+
+  List<CustomWidget> customWidgets = [
+    CustomWidget("自选股", "WatchList"),
+    CustomWidget("沪深京个股", "MarketList"),
+    CustomWidget("沪深板块", "BkList"), // 全部板块，行业板块，概念板块，地域板块，行业分类，概念分类，风格分类
+    CustomWidget("沪深京指数", "IndexList"),
+    CustomWidget("分时K线(简)", "MinuteKlineSimple"),
+    CustomWidget("分时K线(全)", "MinuteKline"),
+    CustomWidget("沪深板块成分股", "BkDetail"),
+    CustomWidget("多周期同列", "MultiPeiriod"),
+    CustomWidget("资讯公告", "News"),
+  ];
 
   @override
   void initState() {
