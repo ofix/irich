@@ -25,6 +25,13 @@ class CustomWidget {
   CustomWidget(this.zhName, this.name);
 }
 
+// 分组颜色
+class WidgetGroupColor {
+  int groupId;
+  Color groupColor;
+  WidgetGroupColor(this.groupId, this.groupColor);
+}
+
 class SplitPanelCtrl extends ConsumerStatefulWidget {
   const SplitPanelCtrl({super.key});
 
@@ -62,6 +69,20 @@ class _SplitPanelCtrlState extends ConsumerState<SplitPanelCtrl> {
     CustomWidget("沪深板块成分股", "BkDetail"),
     CustomWidget("多周期同列", "MultiPeiriod"),
     CustomWidget("资讯公告", "News"),
+  ];
+
+  List<WidgetGroupColor> widgetGroupColors = [
+    WidgetGroupColor(0, Color.fromARGB(255, 255, 20, 20)),
+    WidgetGroupColor(1, Color.fromARGB(255, 20, 255, 251)),
+    WidgetGroupColor(2, Color.fromARGB(255, 106, 63, 199)),
+    WidgetGroupColor(3, Color.fromARGB(255, 184, 101, 12)),
+    WidgetGroupColor(4, Color.fromARGB(255, 4, 192, 76)),
+    WidgetGroupColor(5, Color.fromARGB(255, 255, 20, 173)),
+    WidgetGroupColor(6, Color.fromARGB(255, 18, 38, 154)),
+    WidgetGroupColor(7, Color.fromARGB(255, 101, 18, 18)),
+    WidgetGroupColor(8, Color.fromARGB(255, 54, 2, 2)),
+    WidgetGroupColor(8, Color.fromARGB(255, 184, 255, 20)),
+    WidgetGroupColor(9, Color.fromARGB(255, 139, 6, 94)),
   ];
 
   @override
