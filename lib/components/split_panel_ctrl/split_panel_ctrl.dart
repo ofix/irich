@@ -68,7 +68,7 @@ class _SplitPanelCtrlState extends ConsumerState<SplitPanelCtrl> {
     CustomWidget("分时K线(全)", "MinuteKline"),
     CustomWidget("沪深板块成分股", "BkDetail"),
     CustomWidget("多周期同列", "MultiPeiriod"),
-    CustomWidget("资讯公告", "News"),
+    // CustomWidget("资讯公告", "News"),
   ];
 
   List<WidgetGroupColor> widgetGroupColors = [
