@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/formula/function_cross.dart
+// Name:        irich/lib/formula_engine/function_cross.dart
 // Purpose:     cross function
 // Author:      songhuabiao
 // Created:     2025-07-08 20:30
@@ -7,7 +7,7 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'package:irich/formula/expression.dart';
+import 'package:irich/service/formula_engine/expression.dart';
 
 class CrossFunction implements Expression {
   final CurveFunction left;

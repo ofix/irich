@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/formula/expression_engine.dart
+// Name:        irich/lib/formula_engine/formula/expression_engine.dart
 // Purpose:     expression engine
 // Author:      songhuabiao
 // Created:     2025-07-08 20:30
@@ -7,7 +7,7 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'package:irich/formula/expression.dart';
+import 'package:irich/service/formula_engine/expression.dart';
 import 'package:irich/global/stock.dart';
 
 // 表达式执行引擎

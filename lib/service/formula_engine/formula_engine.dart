@@ -15,7 +15,7 @@ class FormulaEngine {
 
   FormulaEngine([this._data = const {}]);
 
-  Future<bool> evaluate(List<SyntaxToken> tokens) async {
+  Future<bool> evaluate(List<Token> tokens) async {
     final parser = FormulaParser(tokens);
     final ast = parser.parseProgram();
 

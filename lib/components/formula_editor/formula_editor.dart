@@ -28,7 +28,7 @@ class _FormulaEditorScreenState extends State<FormulaEditorScreen> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  List<SyntaxToken> _tokens = [];
+  List<Token> _tokens = [];
   List<Statement> _statements = []; // 初始值为一个空的 AST 节点
   List<CompletionItem> _completions = [];
   int _cursorPosition = 0;
@@ -148,7 +148,7 @@ class _FormulaEditorScreenState extends State<FormulaEditorScreen> {
                   _tokens
                       .map(
                         (token) => TextSpan(
-                          text: token.value,
+                          text: token.name,
                           style: TextStyle(
                             color: syntaxHighlighting[token.type],
                             backgroundColor:

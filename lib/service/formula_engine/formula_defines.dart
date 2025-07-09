@@ -15,58 +15,61 @@ class StockFormula {
   });
 }
 
+// 语法标记类型
+enum TokenType {
+  strategy, // 策略
+  function, // 内置函数
+  identifier, // 标识符
+  add, // +
+  plus, // -
+  multi, // *
+  div, // /
+  greater, // >
+  greaterEqual, // >=
+  less, // <
+  lessEqual, // <=
+  assign, // =
+  number, // 0-9.0-9
+  parenLeft, // (
+  parenRight, // )
+  comma, // ,
+  comment, // //
+  semicolon, // ;
+  not, // !
+  or, // ||
+  and, // &&
+}
+
 /// 表示公式中的一个语法标记
-class SyntaxToken {
-  /// 标记的类型
-  final TokenType type;
-
-  /// 标记在源代码中的原始字符串值
-  final String value;
-
-  /// 标记在源代码中的起始位置（字符偏移量）
-  final int offset;
+class Token {
+  final TokenType type; // 标记的类型
+  final String name; // 标记在源代码中的原始字符串值
+  final int row; // 第几行
+  final int col; // 第几列
 
   /// 构造函数
-  const SyntaxToken({required this.type, required this.value, required this.offset});
+  const Token({required this.type, required this.name, required this.row, required this.col});
 
   @override
-  String toString() => 'SyntaxToken($type, "$value", $offset)';
+  String toString() => 'Token($type, "$name")';
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SyntaxToken &&
+      other is Token &&
           runtimeType == other.runtimeType &&
           type == other.type &&
-          value == other.value &&
-          offset == other.offset;
+          name == other.name &&
+          row == other.row &&
+          col == other.col;
 
   @override
-  int get hashCode => type.hashCode ^ value.hashCode ^ offset.hashCode;
-}
-
-// 语法标记类型
-enum TokenType {
-  function,
-  field,
-  identifier,
-  operator,
-  logic,
-  number,
-  parenLeft,
-  parenRight,
-  comma,
-  comment,
-  assign,
-  semicolon,
+  int get hashCode => type.hashCode ^ name.hashCode ^ row.hashCode ^ col.hashCode;
 }
 
 // 语法高亮颜色配置
 const syntaxHighlighting = {
   TokenType.function: Colors.blue,
-  TokenType.field: Colors.green,
-  TokenType.operator: Colors.red,
-  TokenType.logic: Colors.purple,
   TokenType.number: Colors.orange,
   TokenType.comment: Colors.grey,
 };

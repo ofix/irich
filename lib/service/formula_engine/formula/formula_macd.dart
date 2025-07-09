@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/formula/formula_macd.dart
+// Name:        irich/lib/formula_engine/formula/formula_macd.dart
 // Purpose:     day kline macd formula
 // Author:      songhuabiao
 // Created:     2025-06-05 20:30
@@ -9,8 +9,8 @@
 
 import 'dart:math';
 
-import 'package:irich/formula/formula.dart';
-import 'package:irich/formula/formula_ema.dart';
+import 'package:irich/service/formula_engine/formula/formula.dart';
+import 'package:irich/service/formula_engine/formula/formula_ema.dart';
 import 'package:irich/global/stock.dart';
 
 /// 股票 MACD 技术指标

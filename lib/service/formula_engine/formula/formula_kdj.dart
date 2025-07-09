@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/formula/formula_kdj.dart
+// Name:        irich/lib/formula_engine/formula/formula_kdj.dart
 // Purpose:     day kline kdj formula
 // Author:      songhuabiao
 // Created:     2025-06-05 20:30
@@ -7,7 +7,7 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'package:irich/formula/formula.dart';
+import 'package:irich/service/formula_engine/formula/formula.dart';
 import 'package:irich/global/stock.dart';
 
 /// 股票 KDJ 指标

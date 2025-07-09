@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/formula/formula_ema.dart
+// Name:        irich/lib/formula_engine/formula/formula_ema.dart
 // Purpose:     day kline ema formula
 // Author:      songhuabiao
 // Created:     2025-04-26 20:30
@@ -7,7 +7,7 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'package:irich/formula/formula.dart';
+import 'package:irich/service/formula_engine/formula/formula.dart';
 import 'package:irich/global/stock.dart';
 
 class FormulaEma extends Formula {

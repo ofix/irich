@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/formula/expression_binary.dart
+// Name:        irich/lib/formula_engine/expression_binary.dart
 // Purpose:     binary expression
 // Author:      songhuabiao
 // Created:     2025-07-08 20:30
@@ -7,7 +7,7 @@
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
 
-import 'package:irich/formula/expression.dart';
+import 'package:irich/service/formula_engine/expression.dart';
 
 enum Operator {
   div, // + 运算符
