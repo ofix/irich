@@ -33,12 +33,38 @@ class FormulaTokenizer {
   int x = 1; // 当前源码列位置
   int y = 1; // 当前源码行位置
   String? cur; // 当前字符
+  List<LexerError> errors = [];
 
   FormulaTokenizer(this.src) {
     for (final function in buildInFunctions) {
       functionTrie.add(function);
     }
   }
+
+  bool isAlphaDigit(String? char) {
+    return isAlpha(char) || isDigit(char);
+  }
+
+  bool isDigit(String? char) {
+    if (char == null) {
+      return false;
+    }
+    return char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;
+  }
+
+  bool isAlpha(String? char) {
+    if (char == null) {
+      return false;
+    }
+    return (char.codeUnitAt(0) >= 65 && char.codeUnitAt(0) <= 90) ||
+        (char.codeUnitAt(0) >= 97 && char.codeUnitAt(0) <= 122) ||
+        (char == '_');
+  }
+
+  bool isWhitespace(String char) {
+    return char == ' ' || char == '\t' || char == '\n' || char == '\r';
+  }
+
   // 跳过空白字符
   void skipWhitespace() {
     while (pos < src.length && isWhitespace(src[pos])) {
@@ -52,8 +78,24 @@ class FormulaTokenizer {
     }
   }
 
+  // 扫描下一个字符
   void advance() {
     if (pos < src.length) {
+      cur = src[pos];
+      if (cur == '\r' || cur == '\n') {
+        y++;
+        x = 1;
+      } else {
+        x++;
+      }
+      pos++;
+    }
+  }
+
+  // 跳过下一个字符
+  void skip() {
+    if (pos < src.length) {
+      pos++;
       cur = src[pos];
       if (cur == '\r' || cur == '\n') {
         y++;
@@ -100,7 +142,8 @@ class FormulaTokenizer {
     return Token(type: TokenType.blockComment, name: src.substring(begin, pos), y: y, x: x);
   }
 
-  Token scanDigit() {
+  // 处理数字
+  Token? scanDigit() {
     begin = pos;
     while (isDigit(cur)) {
       advance();
@@ -108,36 +151,43 @@ class FormulaTokenizer {
     // 处理小数部分
     if (cur == '.') {
       advance();
-      while (isDigit(cur)) {
-        advance();
+      if (isDigit(cur)) {
+        while (isDigit(cur)) {
+          advance();
+        }
+      } else {
+        newError(LexerError.invalidNumber);
       }
     }
     final value = src.substring(begin, pos);
     return Token(type: TokenType.number, name: value, y: y, x: x);
   }
 
-  bool isAlphaDigit(String? char) {
-    return isAlpha(char) || isDigit(char);
-  }
-
-  bool isDigit(String? char) {
-    if (char == null) {
-      return false;
+  // 处理字符串, 允许字符串换行
+  Token scanString() {
+    begin = pos;
+    while (cur != '"') {
+      if (cur == '\\') {
+        skip();
+      }
+      if (cur == '\r' || cur == '\n') {
+        skip();
+      }
+      advance();
     }
-    return char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;
-  }
-
-  bool isAlpha(String? char) {
-    if (char == null) {
-      return false;
+    if (cur == '"') {
+      advance();
+    } else {
+      newError(LexerError.missingQuote); // 词法分析过程中发现的错误
     }
-    return (char.codeUnitAt(0) >= 65 && char.codeUnitAt(0) <= 90) ||
-        (char.codeUnitAt(0) >= 97 && char.codeUnitAt(0) <= 122) ||
-        (char == '_');
+    final value = src.substring(begin, pos);
+    return Token(type: TokenType.string, name: value, y: y, x: x);
   }
 
-  bool isWhitespace(String char) {
-    return char == ' ' || char == '\t' || char == '\n' || char == '\r';
+  // 词法分析过程中发现的错误
+  void newError(LexerError error) {
+    // 跳过当前错误解析行，直到遇到分号
+    errors.add(error);
   }
 
   Token? getNextToken() {
@@ -224,6 +274,14 @@ class FormulaTokenizer {
       case ',':
         {
           return Token(type: TokenType.comma, name: ',', y: y, x: x);
+        }
+      case '.':
+        {
+          return Token(type: TokenType.dot, name: '.', y: y, x: x);
+        }
+      case '"':
+        {
+          return scanString();
         }
     }
     return null;

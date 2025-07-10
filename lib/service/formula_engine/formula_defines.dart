@@ -40,6 +40,8 @@ enum TokenType {
   not, // !
   or, // ||
   and, // &&
+  dot, // .
+  string, // string
 }
 
 /// 表示公式中的一个语法标记
@@ -67,6 +69,13 @@ class Token {
 
   @override
   int get hashCode => type.hashCode ^ name.hashCode ^ y.hashCode ^ x.hashCode;
+}
+
+class FormulaError {
+  int errorCode; // 错误码
+  String zhMsg; // 中文错误描述信息
+  String enMsg; // 英文错误描述信息
+  FormulaError(this.errorCode, this.zhMsg, this.enMsg);
 }
 
 // 语法高亮颜色配置
@@ -269,5 +278,28 @@ enum FormulaType {
   /// 检查类型是否兼容
   bool isAssignableFrom(FormulaType other) {
     return this == any || other == any || this == other;
+  }
+}
+
+// 语法错误信息
+enum LexerError {
+  missingQuote(101, '缺少双引号', 'missing double quote'),
+  invalidNumber(102, '非法的数字', 'invalid floatint number');
+
+  final int code;
+  final String chinese; // 中文描述
+  final String english; // 英文描述
+  const LexerError(this.code, this.chinese, this.english);
+
+  // 数字转枚举的工厂方法
+  static LexerError fromVal(int value) {
+    switch (value) {
+      case 101:
+        return LexerError.missingQuote;
+      case 102:
+        return LexerError.invalidNumber;
+      default:
+        throw ArgumentError('Invalid market code: $value');
+    }
   }
 }
