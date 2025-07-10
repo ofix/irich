@@ -34,6 +34,8 @@ enum TokenType {
   parenRight, // )
   comma, // ,
   comment, // //
+  inlineComment, // //
+  blockComment, // /* */
   semicolon, // ;
   not, // !
   or, // ||
@@ -44,11 +46,11 @@ enum TokenType {
 class Token {
   final TokenType type; // 标记的类型
   final String name; // 标记在源代码中的原始字符串值
-  final int row; // 第几行
-  final int col; // 第几列
+  final int y; // 第几行
+  final int x; // 第几列
 
   /// 构造函数
-  const Token({required this.type, required this.name, required this.row, required this.col});
+  const Token({required this.type, required this.name, required this.y, required this.x});
 
   @override
   String toString() => 'Token($type, "$name")';
@@ -60,11 +62,11 @@ class Token {
           runtimeType == other.runtimeType &&
           type == other.type &&
           name == other.name &&
-          row == other.row &&
-          col == other.col;
+          y == other.y &&
+          x == other.x;
 
   @override
-  int get hashCode => type.hashCode ^ name.hashCode ^ row.hashCode ^ col.hashCode;
+  int get hashCode => type.hashCode ^ name.hashCode ^ y.hashCode ^ x.hashCode;
 }
 
 // 语法高亮颜色配置

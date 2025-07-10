@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:irich/service/formula_engine/formula_completer.dart';
 import 'package:irich/service/formula_engine/formula_defines.dart';
 import 'package:irich/service/formula_engine/formula_engine.dart';
-import 'package:irich/service/formula_engine/formula_parser.dart';
+import 'package:irich/service/formula_engine/formula_tokenizer.dart';
 
 class FormulaEditorScreen extends StatefulWidget {
   final StockFormula? initialFormula = null;
@@ -89,16 +89,7 @@ class _FormulaEditorScreenState extends State<FormulaEditorScreen> {
     });
   }
 
-  Future<void> _analyzeFormula() async {
-    final analyzer = FormulaAnalyzer(functions: _functions, fields: _fields);
-
-    final result = analyzer.analyze(_controller.text);
-
-    setState(() {
-      _tokens = result.tokens;
-      _statements = result.statements;
-    });
-  }
+  Future<void> _analyzeFormula() async {}
 
   void _updateCompletions() {
     final completer = FormulaCompleter(

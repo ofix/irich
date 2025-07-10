@@ -8,7 +8,7 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:irich/service/formula_engine/formula_defines.dart';
-import 'package:irich/service/formula_engine/formula_parser.dart';
+import 'package:irich/service/formula_engine/formula_lexer.dart';
 
 class FormulaEngine {
   final Map<String, List<double>> _data;
@@ -16,8 +16,8 @@ class FormulaEngine {
   FormulaEngine([this._data = const {}]);
 
   Future<bool> evaluate(List<Token> tokens) async {
-    final parser = FormulaParser(tokens);
-    final ast = parser.parseProgram();
+    final lexer = FormulaLexer(tokens);
+    final ast = lexer.parse();
 
     final evaluator = FormulaEvaluator(_data);
     return evaluator.evaluate(ast) as bool;
