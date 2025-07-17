@@ -616,6 +616,10 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
             crossLineFollowKlineIndex: klineIndex,
             crossLineMode: CrossLineMode.followCursor,
           );
+          final klineInfo = ref.read(klineInfoCtrlProvider);
+          if (klineInfo.visible) {
+            showKlineInfoCtrl(true);
+          }
         }
       }
     }
