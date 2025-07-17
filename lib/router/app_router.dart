@@ -20,7 +20,7 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 // 禁用GoRouter默认页面切换动画
 final appRouter = GoRouter(
-  initialLocation: '/settings',
+  initialLocation: '/market',
   navigatorKey: rootNavigatorKey,
   routes: [
     GoRoute(
