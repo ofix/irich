@@ -363,9 +363,9 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     final RenderBox box = context.findRenderObject() as RenderBox;
     final localPosition = box.globalToLocal(details.globalPosition);
     // 计算点击的K线索引
-    ref
-        .read(klineCtrlProvider.notifier)
-        .updateCrossLine(mode: CrossLineMode.followCursor, pos: localPosition);
+    final notifier = ref.read(klineCtrlProvider.notifier);
+    notifier.updateCrossLine(mode: CrossLineMode.followCursor, pos: localPosition);
+    notifier.showKlineInfoCtrl(true);
   }
 
   /// 鼠标移动事件
