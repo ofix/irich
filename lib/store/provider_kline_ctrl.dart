@@ -216,11 +216,36 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
     }
   }
 
+  /// 获取分时K线数据的最高价
+  /// 若列表为空则返回 0 表示无效值
+  double getMaxMinuteKlinePrice(List<MinuteKline> klines) {
+    if (klines.isEmpty) return 0;
+
+    double max = klines[0].price;
+    for (final kline in klines.skip(1)) {
+      if (kline.price > max) max = kline.price;
+    }
+    return max;
+  }
+
+  /// 获取分时K线数据的最低价
+  /// 若列表为空则返回 0 表示无效值
+  double getMinMinuteKlinePrice(List<MinuteKline> klines) {
+    if (klines.isEmpty) return 0;
+
+    double min = klines[0].price;
+    for (final kline in klines.skip(1)) {
+      if (kline.price < min) min = kline.price;
+    }
+    return min;
+  }
+
   void startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
       if (state.shareCode.isEmpty) return; // 没有股票代码时不执行
       List<MinuteKline> minuteKlines = [];
+      RichResult result;
       // 交易时间，如果是日/周/月/季/年的K线图，则必须请求分时数据
       if (state.klineType == KlineType.day ||
           state.klineType == KlineType.week ||
@@ -228,7 +253,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
           state.klineType == KlineType.quarter ||
           state.klineType == KlineType.year ||
           state.klineType == KlineType.minute) {
-        final (result, minuteKlines) = await _queryKlines<MinuteKline>(
+        (result, minuteKlines) = await _queryKlines<MinuteKline>(
           store: storeKlines,
           shareCode: state.shareCode,
           klineType: KlineType.minute,
@@ -239,8 +264,8 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
         }
         // 更新日K线的最后一条记录的最低价，最高价，最新价，成交量，成交额等
         if (minuteKlines.isNotEmpty) {
-          double todayMinPrice = double.infinity;
-          double todayMaxPrice = double.negativeInfinity;
+          double todayMinPrice = getMinMinuteKlinePrice(minuteKlines);
+          double todayMaxPrice = getMaxMinuteKlinePrice(minuteKlines);
           BigInt todayVolume = minuteKlines.last.totalVolume;
           double todayAmount = minuteKlines.last.totalAmount;
           double todayChangeRate = minuteKlines.last.changeRate;
@@ -259,7 +284,7 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
           }
         }
       } else {
-        final (result, minuteKlines) = await _queryKlines<MinuteKline>(
+        (result, minuteKlines) = await _queryKlines<MinuteKline>(
           store: storeKlines,
           shareCode: state.shareCode,
           klineType: state.klineType,
