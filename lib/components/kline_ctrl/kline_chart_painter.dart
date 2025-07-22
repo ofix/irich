@@ -397,8 +397,8 @@ class KlinePainter extends CustomPainter {
     maxPrice = yesterdayClosePrice + changePrice;
     final priceRange = changePrice * 2;
     final priceRatio = klineChartHeight / priceRange;
-    double minPercent = (minPrice - yesterdayClosePrice) / priceRange;
-    double maxPercent = (maxPrice - yesterdayClosePrice) / priceRange;
+    double minPercent = (minPrice - yesterdayClosePrice) / yesterdayClosePrice;
+    double maxPercent = (maxPrice - yesterdayClosePrice) / yesterdayClosePrice;
 
     int nMinuteKlines = minuteKlines.length.clamp(0, 240);
 
