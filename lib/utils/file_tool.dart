@@ -158,6 +158,46 @@ class FileTool {
     }
   }
 
+  /// delete the last line of file efficiently
+  ///
+  /// [filename] Path to the file
+  ///
+  /// Returns: A tuple containing (success status, last line content)
+  static Future<void> removeLastLineOfFile(String filePath, {int chunkSize = 1024}) async {
+    final file = File(filePath);
+    final raf = await file.open(mode: FileMode.append);
+
+    try {
+      int fileSize = await raf.length();
+      int pos = fileSize;
+      bool foundNewline = false;
+      final buffer = List<int>.filled(chunkSize, 0);
+
+      while (pos > 0 && !foundNewline) {
+        // 计算当前块的起始位置和大小
+        int readSize = (pos >= chunkSize) ? chunkSize : pos;
+        pos -= readSize;
+        await raf.setPosition(pos);
+        await raf.readInto(buffer, 0, readSize);
+
+        // 从后向前搜索换行符，跳过最后几个换行符字符
+        for (int i = readSize - 3; i >= 0; i--) {
+          if (buffer[i] == 10 || buffer[i] == 13) {
+            // 10是\n的ASCII码，13 是\r的ASCII码
+            foundNewline = true;
+            pos += i + 1; // 定位到换行符后
+            break;
+          }
+        }
+      }
+
+      // 截断文件到倒数第二行末尾
+      await raf.truncate(pos);
+    } finally {
+      await raf.close();
+    }
+  }
+
   /// 检查每日需要更新的本地数据文件是否过期
   static Future<bool> isDailyFileExpired(String filePath) async {
     // 获取本地行情数据文件修改时间

@@ -130,6 +130,8 @@ class StoreKlines {
           // 爬取增量K线数据失败
           return (result, newestDayKlines);
         }
+        // 删除最后一行记录避免重复
+        await FileTool.removeLastLineOfFile(filePath);
         result = await _saveIncrementalDayKlines(shareCode, newestDayKlines);
         if (!result.ok()) {
           // 保存增量K线数据失败
