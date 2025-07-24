@@ -4,6 +4,8 @@ import 'package:irich/components/kline_ctrl/kline_ctrl.dart';
 import 'package:irich/store/provider_kline_grid.dart';
 
 class MultiKlineView extends ConsumerWidget {
+  const MultiKlineView({super.key});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(multiKlineProvider);
@@ -21,6 +23,9 @@ class MultiKlineView extends ConsumerWidget {
 class KlineGridPage extends ConsumerWidget {
   List<String> shareList = [];
 
+  KlineGridPage({super.key});
+
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListView.builder(
       itemCount: shareList.length,
