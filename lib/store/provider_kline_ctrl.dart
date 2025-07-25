@@ -41,13 +41,13 @@ class KlineCtrlParams {
   int get hashCode => shareCode.hashCode;
 }
 
-final klineCtrlMultiProviders =
-    StateNotifierProvider.family<KlineCtrlNotifier, KlineCtrlState, KlineCtrlParams>((ref, params) {
+final miniKlineCtrlProviders =
+    StateNotifierProvider.family<KlineCtrlNotifier, KlineCtrlState, String>((ref, shareCode) {
       final notifier = KlineCtrlNotifier(
         ref: ref,
-        shareCode: params.shareCode,
-        wndMode: params.wndMode,
-        klineType: params.klineType,
+        shareCode: shareCode,
+        wndMode: KlineWndMode.mini,
+        klineType: KlineType.day,
       );
       // ✅ 关键修复：主动获取当前值并同步
       final currentCode = ref.read(currentShareCodeProvider);

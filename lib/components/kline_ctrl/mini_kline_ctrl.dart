@@ -1,8 +1,8 @@
 // ///////////////////////////////////////////////////////////////////////////
-// Name:        irich/lib/components/kline_ctrl/kline_ctrl.dart
+// Name:        irich/lib/components/kline_ctrl/mini_kline_ctrl.dart
 // Purpose:     kline chart painter
 // Author:      songhuabiao
-// Created:     2025-05-22 20:30
+// Created:     2025-07-25 20:30
 // Copyright:   (C) Copyright 2025, Wealth Corporation, All Rights Reserved.
 // Licence:     GNU GENERAL PUBLIC LICENSE, Version 3
 // ///////////////////////////////////////////////////////////////////////////
@@ -15,20 +15,17 @@ import 'package:irich/components/kline_ctrl/cross_line_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/kline_ctrl/kline_info_panel.dart';
-import 'package:irich/components/rich_radio_button_group.dart';
 import 'package:irich/store/provider_kline_ctrl.dart';
-import 'package:irich/global/stock.dart';
-import 'package:irich/store/state_quote.dart';
-import 'package:irich/store/store_quote.dart';
 import 'package:irich/theme/stock_colors.dart';
 
-class KlineCtrl extends ConsumerStatefulWidget {
-  const KlineCtrl({super.key});
+class MiniKlineCtrl extends ConsumerStatefulWidget {
+  final String shareCode; // 从父组件传入的股票代码
+  const MiniKlineCtrl({super.key, required this.shareCode});
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() => _KlineCtrlState();
+  ConsumerState<ConsumerStatefulWidget> createState() => _MiniKlineCtrlState();
 }
 
-class _KlineCtrlState extends ConsumerState<KlineCtrl> {
+class _MiniKlineCtrlState extends ConsumerState<MiniKlineCtrl> {
   late final FocusNode _focusNode;
   @override
   void initState() {
@@ -40,13 +37,9 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
   // 加载K线数据
   @override
   Widget build(BuildContext context) {
-    // final shareCode = ref.watch(currentShareCodeProvider);
-    // final parentWidth = MediaQuery.of(context).size.width; 此方法获取的是屏幕宽度
-    ref.watch(currentShareCodeProvider);
-    ref.watch(watchShareListProvider);
     final stockColors = Theme.of(context).extension<StockColors>()!;
     ref.watch(
-      klineCtrlProvider.select(
+      miniKlineCtrlProviders(widget.shareCode).select(
         (s) => (
           s.klineCtrlWidth,
           s.klineCtrlHeight,
@@ -59,7 +52,7 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
         ),
       ),
     );
-    final klineCtrlState = ref.read(klineCtrlProvider);
+    final miniKlineCtrlState = ref.read(miniKlineCtrlProviders(widget.shareCode));
     return Focus(
       autofocus: true,
       focusNode: _focusNode,
@@ -70,14 +63,14 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
           onPointerSignal: _onMouseScroll,
           child: GestureDetector(
             onTapDown: _onTapDown,
-            child: buildKlineCtrl(stockColors, klineCtrlState),
+            child: buildMiniKlineCtrl(stockColors, miniKlineCtrlState),
           ),
         ),
       ),
     );
   }
 
-  Widget buildKlineCtrl(StockColors stockColors, KlineCtrlState state) {
+  Widget buildMiniKlineCtrl(StockColors stockColors, KlineCtrlState state) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         // final parentWidth = constraints.maxWidth; // 父容器可用宽度
@@ -101,20 +94,6 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
           children: [
             Column(
               children: [
-                // K线类型切换
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(children: [_buildKlineName(state.share!.name), _buildKlineTypeTabs()]),
-                    Row(
-                      children: [
-                        _buildMinuteKlineWndMode(state), // 分时窗口模式选择
-                        SizedBox(width: 8),
-                        _buildFavoriteButton(state, stockColors), // 自选按钮
-                      ],
-                    ),
-                  ],
-                ),
                 // K线主图
                 KlineChart(stockColors: stockColors, shareCode: state.shareCode),
                 // 技术指标图
@@ -132,94 +111,6 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
           ],
         );
       },
-    );
-  }
-
-  /// 股票名称组件
-  Widget _buildKlineName(String shareName) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8), // 左右各16像素
-      child: Text(
-        shareName,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: const Color.fromARGB(255, 219, 137, 36),
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
-  }
-
-  /// K线类别组件
-  Widget _buildKlineTypeTabs() {
-    return RichRadioButtonGroup(
-      options: ["日K", "周K", "月K", "季K", "年K", "分时", "五日"],
-      onChanged: (value) {
-        _onKlineTypeChanged(value);
-      },
-      height: KlineCtrlLayout.titleBarHeight,
-    );
-  }
-
-  Widget _buildMinuteKlineWndMode(KlineCtrlState klineState) {
-    if (klineState.klineType.isMinuteType) {
-      return DropdownButtonHideUnderline(
-        child: DropdownButton<MinuteKlineWndMode>(
-          value: klineState.minuteWndMode,
-          hint: Text('请选择模式'),
-          items:
-              MinuteKlineWndMode.values.map((mode) {
-                return DropdownMenuItem<MinuteKlineWndMode>(
-                  value: mode,
-                  child: Text(mode.displayName),
-                );
-              }).toList(),
-          onChanged: (newMode) {
-            if (newMode != null) {
-              debugPrint("newMode: ${newMode.displayName}");
-              ref.read(klineCtrlProvider.notifier).changeMinuteWndMode(newMode);
-            }
-          },
-          //dropdownColor: Colors.transparent, // Remove dropdown background color
-          icon: Icon(Icons.arrow_drop_down), // Custom icon if needed
-          style: TextStyle(
-            color: Colors.blue, // Custom text color
-            // Add other text styling as needed
-          ),
-          elevation: 0, // Remove shadow
-        ),
-      );
-    }
-    return Container();
-  }
-
-  // 自选按钮组件
-  Widget _buildFavoriteButton(KlineCtrlState klineState, StockColors stockColors) {
-    return // 自选按钮
-    MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: _onToggleFavoriteButton,
-        child: Row(
-          children: [
-            Icon(
-              klineState.share!.isFavorite ? Icons.remove : Icons.add,
-              size: 18,
-              color: stockColors.hilight,
-            ),
-            Text(
-              "自选",
-              style: TextStyle(
-                backgroundColor: Colors.transparent,
-                color: stockColors.hilight,
-                fontSize: 14,
-              ),
-            ),
-            SizedBox(width: 8),
-          ],
-        ),
-      ),
     );
   }
 
@@ -244,30 +135,12 @@ class _KlineCtrlState extends ConsumerState<KlineCtrl> {
     return widgets;
   }
 
-  /// 添加股票到自选池
-  void _onToggleFavoriteButton() {
-    final shareCode = ref.read(currentShareCodeProvider);
-    Share share = StoreQuote.query(shareCode)!;
-    share.isFavorite = !share.isFavorite;
-    if (share.isFavorite) {
-      ref.read(watchShareListProvider.notifier).add(shareCode);
-    } else {
-      ref.read(watchShareListProvider.notifier).remove(shareCode);
-    }
-  }
-
-  /// 切换股票类别
-  void _onKlineTypeChanged(String value) async {
-    final klineType = klineTypeMap[value]!;
-    ref.read(klineCtrlProvider.notifier).changeKlineType(klineType);
-  }
-
   // 键盘上/下/左/右/Escape/Home/End功能键 事件响应
   KeyEventResult _onKeyEvent(FocusNode focusNode, KeyEvent event) {
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
       // 提前获取 notifier 和 state，避免重复读取
-      final notifier = ref.read(klineCtrlProvider.notifier);
-      final state = ref.read(klineCtrlProvider);
+      final notifier = ref.read(miniKlineCtrlProviders(widget.shareCode).notifier);
+      final state = ref.read(miniKlineCtrlProviders(widget.shareCode));
       switch (event.logicalKey) {
         case LogicalKeyboardKey.arrowLeft:
           notifier.keyDownArrowLeft();

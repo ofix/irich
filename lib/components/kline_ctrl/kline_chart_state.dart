@@ -8,9 +8,18 @@
 // ///////////////////////////////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:irich/components/indicators/amount_indicator.dart';
+import 'package:irich/components/indicators/boll_indicator.dart';
+import 'package:irich/components/indicators/kdj_indicator.dart';
+import 'package:irich/components/indicators/macd_indicator.dart';
+import 'package:irich/components/indicators/minute_amount_indicator.dart';
+import 'package:irich/components/indicators/minute_volume_indicator.dart';
+import 'package:irich/components/indicators/turnoverrate_indicator.dart';
+import 'package:irich/components/indicators/volume_indicator.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/settings/ema_curve_setting.dart';
 import 'package:irich/store/store_quote.dart';
+import 'package:irich/theme/stock_colors.dart';
 
 enum CrossLineMode {
   none, // 不显示
@@ -289,6 +298,41 @@ enum KlinePaneType {
   minutePrice, // 分时价格
   minutePercent, // 分时百分比
 }
+
+// K线类型
+const Map<String, KlineType> klineTypeMap = {
+  '分时': KlineType.minute,
+  '五日': KlineType.fiveDay,
+  '日K': KlineType.day,
+  '周K': KlineType.week,
+  '月K': KlineType.month,
+  '季K': KlineType.quarter,
+  '年K': KlineType.year,
+};
+
+final indicatorBuilders =
+    <UiIndicatorType, Widget Function(KlineCtrlState state, StockColors colors)>{
+      UiIndicatorType.amount:
+          (state, colors) => AmountIndicator(klineCtrlState: state, stockColors: colors),
+      UiIndicatorType.volume:
+          (state, colors) => VolumeIndicator(klineCtrlState: state, stockColors: colors),
+      UiIndicatorType.turnoverRate:
+          (state, colors) => TurnoverRateIndicator(klineCtrlState: state, stockColors: colors),
+      UiIndicatorType.minuteAmount:
+          (state, colors) => MinuteAmountIndicator(klineCtrlState: state, stockColors: colors),
+      UiIndicatorType.minuteVolume:
+          (state, colors) => MinuteVolumeIndicator(klineCtrlState: state, stockColors: colors),
+      UiIndicatorType.fiveDayMinuteAmount:
+          (state, colors) => MinuteAmountIndicator(klineCtrlState: state, stockColors: colors),
+      UiIndicatorType.fiveDayMinuteVolume:
+          (state, colors) => MinuteVolumeIndicator(klineCtrlState: state, stockColors: colors),
+      UiIndicatorType.macd:
+          (state, colors) => MacdIndicator(klineCtrlState: state, stockColors: colors),
+      UiIndicatorType.kdj:
+          (state, colors) => KdjIndicator(klineCtrlState: state, stockColors: colors),
+      UiIndicatorType.boll:
+          (state, colors) => BollIndicator(klineCtrlState: state, stockColors: colors),
+    };
 
 /// 绘制边框
 /// [canvas] 绘制画布
