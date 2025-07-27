@@ -16,6 +16,7 @@ import 'package:irich/components/kline_ctrl/kline_chart.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/components/kline_ctrl/kline_info_panel.dart';
 import 'package:irich/store/provider_kline_ctrl.dart';
+import 'package:irich/store/provider_kline_grid.dart';
 import 'package:irich/theme/stock_colors.dart';
 
 class MiniKlineCtrl extends ConsumerStatefulWidget {
@@ -39,7 +40,7 @@ class _MiniKlineCtrlState extends ConsumerState<MiniKlineCtrl> {
   Widget build(BuildContext context) {
     final stockColors = Theme.of(context).extension<StockColors>()!;
     ref.watch(
-      miniKlineCtrlProviders(widget.shareCode).select(
+      gridKlineCtrlProviders(widget.shareCode).select(
         (s) => (
           s.klineCtrlWidth,
           s.klineCtrlHeight,
@@ -52,7 +53,7 @@ class _MiniKlineCtrlState extends ConsumerState<MiniKlineCtrl> {
         ),
       ),
     );
-    final miniKlineCtrlState = ref.read(miniKlineCtrlProviders(widget.shareCode));
+    final miniKlineCtrlState = ref.read(gridKlineCtrlProviders(widget.shareCode));
     return Focus(
       autofocus: true,
       focusNode: _focusNode,
@@ -139,8 +140,8 @@ class _MiniKlineCtrlState extends ConsumerState<MiniKlineCtrl> {
   KeyEventResult _onKeyEvent(FocusNode focusNode, KeyEvent event) {
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
       // 提前获取 notifier 和 state，避免重复读取
-      final notifier = ref.read(miniKlineCtrlProviders(widget.shareCode).notifier);
-      final state = ref.read(miniKlineCtrlProviders(widget.shareCode));
+      final notifier = ref.read(gridKlineCtrlProviders(widget.shareCode).notifier);
+      final state = ref.read(gridKlineCtrlProviders(widget.shareCode));
       switch (event.logicalKey) {
         case LogicalKeyboardKey.arrowLeft:
           notifier.keyDownArrowLeft();

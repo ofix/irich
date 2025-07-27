@@ -11,76 +11,134 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/provider_kline_ctrl.dart';
+import 'package:irich/store/state_quote.dart';
 
-class MultiKlineState {
-  final Map<String, KlineCtrlState> shares; // key: 股票代码
-  final String activeShare; // 当前聚焦的股票
-  final KlineType klineType; // 全局K线类型
+enum ShareGridLayout {
+  twoByTwo,
+  threeByTwo,
+  threeByThree,
+  fourByFour;
 
-  MultiKlineState({
+  int getBoundary() {
+    switch (this) {
+      case ShareGridLayout.twoByTwo:
+        return 2 * 2; // 4
+      case ShareGridLayout.threeByTwo:
+        return 3 * 2; // 6
+      case ShareGridLayout.threeByThree:
+        return 3 * 3; // 9
+      case ShareGridLayout.fourByFour:
+        return 4 * 4; // 16
+    }
+  }
+}
+
+class SubGridKline {
+  KlineType klineType;
+  String shareCode;
+
+  SubGridKline({required this.klineType, required this.shareCode});
+
+  SubGridKline copyWith({KlineType? klineType, String? shareCode}) {
+    return SubGridKline(
+      klineType: klineType ?? this.klineType,
+      shareCode: shareCode ?? this.shareCode,
+    );
+  }
+}
+
+class GridKlineState {
+  List<SubGridKline> shares; // key: 股票代码
+  List<List<SubGridKline>> history; // 历史股票
+  int startBoundary; // 截取排好序的股票列表
+  int activePos; // 当前聚焦的股票下标
+  ShareGridLayout layout;
+
+  GridKlineState({
     required this.shares,
-    required this.activeShare,
-    this.klineType = KlineType.day,
+    this.history = const [],
+    this.activePos = 0,
+    this.startBoundary = 0,
+    this.layout = ShareGridLayout.twoByTwo,
   });
   // 实现 copyWith 方法
-  MultiKlineState copyWith({
-    Map<String, KlineCtrlState>? shares,
-    String? activeShare,
-    KlineType? klineType,
+  GridKlineState copyWith({
+    List<SubGridKline>? shares,
+    List<List<SubGridKline>>? history,
+    int? activePos,
+    int? startBoundary,
+    ShareGridLayout? layout,
   }) {
-    return MultiKlineState(
+    return GridKlineState(
       shares: shares ?? this.shares,
-      activeShare: activeShare ?? this.activeShare,
-      klineType: klineType ?? this.klineType,
+      history: history ?? this.history,
+      activePos: activePos ?? this.activePos,
+      startBoundary: startBoundary ?? this.startBoundary,
+      layout: layout ?? this.layout,
     );
   }
 }
 
-class MultiKlineNotifier extends StateNotifier<MultiKlineState> {
+class GridKlineNotifier extends StateNotifier<GridKlineState> {
   final Ref ref;
-  MultiKlineNotifier({required this.ref})
-    : super(MultiKlineState(shares: {}, activeShare: '', klineType: KlineType.day));
+  GridKlineNotifier({required this.ref}) : super(GridKlineState(shares: [], activePos: 0));
 
   // 复用原有KlineCtrlNotifier的逻辑
-  void addShare(String shareCode) {
-    final notifier = KlineCtrlNotifier(ref: ref, shareCode: shareCode, klineType: state.klineType);
-    state = state.copyWith(shares: {...state.shares, shareCode: notifier.state});
+  void addShare(String shareCode, KlineType klineType) {
+    final subGridKline = SubGridKline(klineType: klineType, shareCode: shareCode);
+    final shares = state.shares;
+    shares.add(subGridKline);
+    state = state.copyWith(shares: shares);
   }
 
-  void addShareList(List<String> shareCodes) {
-    final newShares = Map.fromEntries(
-      shareCodes.map(
-        (code) => MapEntry(
-          code,
-          KlineCtrlNotifier(ref: ref, shareCode: code, klineType: state.klineType).state,
-        ),
-      ),
-    );
-    state = state.copyWith(shares: {...state.shares, ...newShares});
+  // 更新指定位置的股票
+  void updateShare(int pos, String shareCode, KlineType klineType) {
+    if (pos > state.shares.length) {
+      return;
+    }
+    final shares = state.shares;
+    shares[pos] = SubGridKline(klineType: klineType, shareCode: shareCode);
+    state = state.copyWith(shares: shares);
   }
 
-  // 全局切换K线类型
-  void changeKlineType(KlineType type) {
-    final newShares = Map.fromEntries(
-      state.shares.entries.map((e) {
-        final notifier = KlineCtrlNotifier(ref: ref, shareCode: e.key, klineType: type);
-        return MapEntry(e.key, notifier.state);
-      }),
+  // 下一批股票
+  void nextSubShareList() {
+    final shareList = ref.read(shareListProvider);
+    final subShares = shareList.sublist(
+      state.startBoundary,
+      state.startBoundary + state.layout.getBoundary(),
     );
-    state = state.copyWith(klineType: type, shares: newShares);
+    final newShares = <SubGridKline>[];
+    final history = state.history;
+    history.add(state.shares);
+    for (int i = 0; i < subShares.length; i++) {
+      newShares.add(
+        SubGridKline(klineType: state.shares[i].klineType, shareCode: subShares[i].code),
+      );
+    }
+    state = state.copyWith(history: history, shares: newShares);
+  }
+
+  // 上一批股票
+  void prevSubShareList() {
+    if (state.history.isNotEmpty) {
+      List<SubGridKline> subShares = state.history.removeLast();
+      state.copyWith(shares: subShares);
+    }
   }
 }
 
-final multiKlineProvider = StateNotifierProvider<MultiKlineNotifier, MultiKlineState>((ref) {
-  return MultiKlineNotifier(ref: ref);
+final gridKlinePanelProvider = StateNotifierProvider<GridKlineNotifier, GridKlineState>((ref) {
+  return GridKlineNotifier(ref: ref);
 });
 
-final klineGridProvider = StateNotifierProvider.autoDispose
-    .family<KlineCtrlNotifier, KlineCtrlState, String>((ref, shareCode) {
-      return KlineCtrlNotifier(
+final gridKlineCtrlProviders =
+    StateNotifierProvider.family<KlineCtrlNotifier, KlineCtrlState, String>((ref, shareCode) {
+      final notifier = KlineCtrlNotifier(
         ref: ref,
         shareCode: shareCode,
         wndMode: KlineWndMode.mini,
         klineType: KlineType.day,
       );
+      return notifier;
     });

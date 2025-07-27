@@ -5,11 +5,10 @@ import 'package:irich/components/kline_ctrl/mini_kline_ctrl.dart';
 import 'package:irich/components/rich_radio_button_group.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/provider_kline_ctrl.dart';
+import 'package:irich/store/provider_kline_grid.dart';
 import 'package:irich/store/state_quote.dart';
 import 'package:irich/store/store_quote.dart';
 import 'package:irich/theme/stock_colors.dart';
-
-enum ShareGridLayout { twoByTwo, threeByTwo, threeByThree, fourByFour }
 
 class ShareGridPage extends ConsumerStatefulWidget {
   const ShareGridPage({super.key});
@@ -20,9 +19,6 @@ class ShareGridPage extends ConsumerStatefulWidget {
 
 class _ShareGridPageState extends ConsumerState<ShareGridPage> {
   late final FocusNode _focusNode;
-  List<String> shares = [];
-  ShareGridLayout layout = ShareGridLayout.twoByTwo;
-  late Share activeShare;
   @override
   void initState() {
     super.initState();
@@ -38,10 +34,9 @@ class _ShareGridPageState extends ConsumerState<ShareGridPage> {
   }
 
   Widget buildGridView(StockColors stockColors) {
+    final state = ref.watch(gridKlinePanelProvider);
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        // final parentWidth = constraints.maxWidth; // 父容器可用宽度
-        Size size = Size(constraints.maxWidth, constraints.maxHeight);
         return Column(
           children: [
             // K线类型切换
@@ -58,7 +53,7 @@ class _ShareGridPageState extends ConsumerState<ShareGridPage> {
                 ),
               ],
             ),
-            buildKlineGrid(stockColors, shares),
+            buildKlineGrid(stockColors, state),
           ],
         );
       },
@@ -79,7 +74,7 @@ class _ShareGridPageState extends ConsumerState<ShareGridPage> {
   /// 切换股票类别
   void _onKlineTypeChanged(String value) async {
     final klineType = klineTypeMap[value]!;
-    ref.read(miniKlineCtrlProviders(value).notifier).changeKlineType(klineType);
+    ref.read(gridKlinePanelProvider(value).notifier).changeKlineType(klineType);
   }
 
   Widget _buildMinuteKlineWndMode() {
@@ -152,12 +147,23 @@ class _ShareGridPageState extends ConsumerState<ShareGridPage> {
     }
   }
 
-  Widget buildKlineGrid(StockColors stockColors, List<String> shares) {
+  Widget buildKlineGrid(StockColors stockColors, GridKlineState state) {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-      itemCount: shares.length,
+      itemCount: state.shares.length,
       itemBuilder: (_, index) {
-        return MiniKlineCtrl(shareCode: shares[index]);
+        // return MiniKlineCtrl(shareCode: shares[index]);
+        return Container(
+          margin: EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: state.activePos == index ? Colors.blue : Colors.grey, // 高亮边框
+              width: state.activePos == index ? 2.0 : 1.0,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: MiniKlineCtrl(shareCode: state.shares[index].shareCode), // 自定义K线图组件
+        );
       },
     );
   }

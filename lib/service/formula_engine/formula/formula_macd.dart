@@ -80,7 +80,8 @@ class FormulaMacd implements Formula {
 
     // 计算后续EMA
     for (int i = safePeriod; i < prices.length; i++) {
-      ema[i] = (prices[i] - ema[i - 1]) * multiplier + ema[i - 1];
+      final iPrev = i - 1 < 0 ? 0 : i - 1;
+      ema[i] = (prices[i] - ema[iPrev]) * multiplier + ema[iPrev];
     }
 
     return ema;
