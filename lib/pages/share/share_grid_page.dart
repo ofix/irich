@@ -74,7 +74,7 @@ class _ShareGridPageState extends ConsumerState<ShareGridPage> {
   /// 切换股票类别
   void _onKlineTypeChanged(String value) async {
     final klineType = klineTypeMap[value]!;
-    ref.read(gridKlinePanelProvider(value).notifier).changeKlineType(klineType);
+    ref.read(gridKlinePanelProvider.notifier).changeActiveKlineType(klineType);
   }
 
   Widget _buildMinuteKlineWndMode() {
@@ -108,6 +108,7 @@ class _ShareGridPageState extends ConsumerState<ShareGridPage> {
 
   // 自选按钮组件
   Widget _buildFavoriteButton(StockColors stockColors) {
+    final notifier = ref.read(gridKlinePanelProvider.notifier);
     return // 自选按钮
     MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -116,7 +117,7 @@ class _ShareGridPageState extends ConsumerState<ShareGridPage> {
         child: Row(
           children: [
             Icon(
-              activeShare.isFavorite ? Icons.remove : Icons.add,
+              notifier.isActiveShareFavorite() ? Icons.remove : Icons.add,
               size: 18,
               color: stockColors.hilight,
             ),

@@ -12,6 +12,7 @@ import 'package:irich/components/kline_ctrl/kline_chart_state.dart';
 import 'package:irich/global/stock.dart';
 import 'package:irich/store/provider_kline_ctrl.dart';
 import 'package:irich/store/state_quote.dart';
+import 'package:irich/store/store_quote.dart';
 
 enum ShareGridLayout {
   twoByTwo,
@@ -125,6 +126,28 @@ class GridKlineNotifier extends StateNotifier<GridKlineState> {
       List<SubGridKline> subShares = state.history.removeLast();
       state.copyWith(shares: subShares);
     }
+  }
+
+  // 修改当前选中股票的类型
+  void changeActiveKlineType(KlineType klineType) {
+    if (state.activePos < 0 || state.activePos >= state.shares.length) {
+      state.activePos = 0; // 防止越界
+    }
+    if (state.activePos < state.shares.length) {
+      final shares = state.shares;
+      shares[state.activePos] = shares[state.activePos].copyWith(klineType: klineType);
+      state = state.copyWith(shares: shares);
+    }
+  }
+
+  // 检查当前选中的股票是否收藏
+  bool isActiveShareFavorite() {
+    if (state.activePos < 0 || state.activePos >= state.shares.length) {
+      return false; // 防止越界
+    }
+    final shareCode = state.shares[state.activePos].shareCode;
+    final share = StoreQuote.query(shareCode);
+    return share?.isFavorite ?? false;
   }
 }
 
