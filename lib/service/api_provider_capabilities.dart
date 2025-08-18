@@ -12,12 +12,14 @@ import 'package:irich/service/api_providers/api_provider_baidu.dart';
 import 'package:irich/service/api_providers/api_provider_eastmoney.dart';
 import 'package:irich/service/api_providers/api_provider_hexun.dart';
 import 'package:irich/service/api_providers/api_provider_ifind.dart';
+import 'package:irich/service/api_providers/api_provider_sina.dart';
 
 enum EnumApiProvider {
   eastMoney(1), // 东方财富
   heXun(2), // 和讯网
   baiduFinance(3), // 百度财经
   iFind(4), // 同花顺
+  sina(5), // 新浪财经
   unknown(255); // 未知供应商
 
   final int provider;
@@ -34,6 +36,8 @@ enum EnumApiProvider {
         return EnumApiProvider.baiduFinance;
       case 4:
         return EnumApiProvider.iFind;
+      case 5:
+        return EnumApiProvider.sina;
       case 255:
         return EnumApiProvider.unknown;
       default:
@@ -51,6 +55,8 @@ enum EnumApiProvider {
         return 'baidu_finance';
       case EnumApiProvider.iFind:
         return 'ifind';
+      case EnumApiProvider.sina:
+        return "sina";
       case EnumApiProvider.unknown:
         return 'unknown';
     }
@@ -66,6 +72,8 @@ enum EnumApiProvider {
         return '百度财经';
       case EnumApiProvider.iFind:
         return '同花顺';
+      case EnumApiProvider.sina:
+        return "新浪财经";
       case EnumApiProvider.unknown:
         return '未知供应商';
     }
@@ -143,7 +151,7 @@ enum ProviderApiType {
 
 class ApiProviderCapabilities {
   final Map<ProviderApiType, List<EnumApiProvider>> _capabilities = {
-    ProviderApiType.quote: [EnumApiProvider.heXun],
+    ProviderApiType.quote: [EnumApiProvider.sina],
     ProviderApiType.quoteExtra: [EnumApiProvider.eastMoney],
     ProviderApiType.industry: [EnumApiProvider.eastMoney],
     ProviderApiType.concept: [EnumApiProvider.eastMoney],
@@ -177,6 +185,8 @@ class ApiProviderCapabilities {
         return ApiProviderBaidu();
       case EnumApiProvider.iFind:
         return ApiProviderIfind();
+      case EnumApiProvider.sina:
+        return ApiProviderSina();
       case EnumApiProvider.unknown:
         throw ArgumentError('Unknown API provider: $provider');
     }
