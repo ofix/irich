@@ -1,7 +1,7 @@
 import 'package:irich/utils/helper.dart';
 import 'package:trina_grid/trina_grid.dart';
 
-enum CellType { number, text, price, pricePercent, amount, volume }
+enum CellType { number, text, price, priceYesterdayClose, pricePercent, amount, volume }
 
 class TrinaColumnTypeStock
     with TrinaColumnTypeDefaultMixin
@@ -34,10 +34,10 @@ class TrinaColumnTypeStock
 
   @override
   String applyFormat(dynamic value) {
-    if (cellType == CellType.price) {
+    if (cellType == CellType.price || cellType == CellType.priceYesterdayClose) {
       return value.toStringAsFixed(2); // Format as price with 2 decimal places
     } else if (cellType == CellType.pricePercent) {
-      return '${(value * 100).toStringAsFixed(2)}%'; // Format as percentage
+      return '${value.toStringAsFixed(2)}%'; // Format as percentage
     } else if (cellType == CellType.amount) {
       return Helper.richUnit(value);
     } else if (cellType == CellType.volume) {

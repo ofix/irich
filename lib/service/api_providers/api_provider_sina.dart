@@ -141,32 +141,48 @@ class ApiProviderSina extends ApiProvider {
   List<Share> _parseMarketShare(String response, String market) {
     List<Share> shares = [];
     String code = "";
+    Map<String, dynamic> errorItem = {};
     try {
       final arr = jsonDecode(response) as List<dynamic>;
       for (final json in arr) {
         final item = json as Map<String, dynamic>;
+        code = item['code'] as String;
+        if (code == "000627") {
+          debugPrint(code);
+        }
+        errorItem = item;
         final share = Share(
           code: item['code'] as String,
           name: item['name'] as String,
           market: _toMarket(market),
           priceYesterdayClose: double.tryParse((item['settlement'] ?? "")) ?? 0.0,
           priceNow: double.tryParse((item['buy'] ?? "")) ?? 0.0,
-          changeRate: (item['changepercent'] as num).toDouble(),
+          changeRate:
+              (item['changepercent'] is num)
+                  ? (item['changepercent'] as num).toDouble()
+                  : (item['changepercent'] is String)
+                  ? double.tryParse(item['changepercent']) ?? 0.0
+                  : 0.0,
           priceOpen: double.tryParse((item['open'] ?? "")) ?? 0.0,
           priceMax: double.tryParse((item['high'] ?? "")) ?? 0.0,
           priceMin: double.tryParse((item['low'] ?? "")) ?? 0.0,
           volume: item['volume'] as int,
           amount: (item['amount'] as num).toDouble(),
           turnoverRate: (item['turnoverratio'] as num).toDouble(),
-          priceAmplitude: (item['pricechange'] as num).toDouble(),
+          priceAmplitude:
+              (item['pricechange'] is num)
+                  ? (item['pricechange'] as num).toDouble()
+                  : (item['pricechange'] is String)
+                  ? double.tryParse(item['pricechange']) ?? 0.0
+                  : 0.0,
           qrr: 0.0,
         );
-        code = item['code'] as String;
         shares.add(share);
       }
       return shares;
     } catch (e) {
-      throw Exception('Failed to parse stock data: $e, code : $code,response: $response');
+      debugPrint(errorItem.toString());
+      throw Exception('Failed to parse stock data: $e, code : $code');
     }
   }
 }

@@ -194,7 +194,7 @@ class _MarketPageState extends ConsumerState<MarketPage> with WidgetsBindingObse
         'priceYesterdayClose',
         100,
         TrinaColumnTextAlign.right,
-        TrinaColumnTypeStock(cellType: CellType.price),
+        TrinaColumnTypeStock(cellType: CellType.priceYesterdayClose),
       ],
       [
         '今开',
@@ -267,7 +267,7 @@ class _MarketPageState extends ConsumerState<MarketPage> with WidgetsBindingObse
         TrinaColumnTypeStock(cellType: CellType.text),
       ],
     ];
-
+    Color greyColor = const Color.fromARGB(255, 249, 240, 240);
     return List.generate(fields.length, (index) {
       final field = fields[index];
       return TrinaColumn(
@@ -280,7 +280,6 @@ class _MarketPageState extends ConsumerState<MarketPage> with WidgetsBindingObse
         enableContextMenu: false,
         renderer: (TrinaColumnRendererContext ctx) {
           // 获取列的类型
-          Color greyColor = const Color.fromARGB(255, 249, 240, 240);
           final columnType = ctx.column.type as TrinaColumnTypeStock;
           final isUp = ctx.row.cells['changeRate']!.value > 0;
           String text = columnType.applyFormat(ctx.cell.value);
@@ -291,11 +290,38 @@ class _MarketPageState extends ConsumerState<MarketPage> with WidgetsBindingObse
                   ? TextAlign.right
                   : TextAlign.center;
           if (columnType.cellType == CellType.price) {
-            return _buildPriceCell(text, isUp, columnType.cellType, textAlign);
+            if (ctx.column.field == 'qrr') {
+              return _buildCell(text, greyColor, columnType.cellType, textAlign);
+            }
+            if (ctx.cell.value > ctx.row.cells['priceYesterdayClose']!.value) {
+              return _buildPriceCell(text, true, columnType.cellType, textAlign);
+            } else if (ctx.cell.value == ctx.row.cells['priceYesterdayClose']!.value) {
+              return _buildCell(text, greyColor, columnType.cellType, textAlign);
+            } else {
+              return _buildPriceCell(text, false, columnType.cellType, textAlign);
+            }
           } else if (columnType.cellType == CellType.pricePercent) {
+            if (ctx.column.field == 'turnoverRate') {
+              // 换手率显示分3个等级，10%，20%，30%
+              Color levelColor = greyColor;
+              if (ctx.cell.value > 30) {
+                levelColor = Color.fromARGB(255, 253, 3, 207);
+              } else if (ctx.cell.value > 20) {
+                levelColor = Color.fromARGB(255, 240, 47, 49);
+              } else if (ctx.cell.value > 10) {
+                levelColor = Color.fromARGB(255, 253, 207, 2);
+              }
+              return _buildCell(text, levelColor, columnType.cellType, textAlign);
+            } else if (ctx.column.field == 'priceAmplitude') {
+              return _buildCell(text, greyColor, columnType.cellType, textAlign);
+            }
             return _buildPriceCell(text, isUp, columnType.cellType, textAlign);
           } else if (columnType.cellType == CellType.amount) {
-            return _buildCell(text, greyColor, columnType.cellType, textAlign);
+            Color levelColor = greyColor; // 10亿金额凸出显示
+            if (ctx.cell.value >= 1000000000) {
+              levelColor = Color.fromARGB(255, 5, 249, 224);
+            }
+            return _buildCell(text, levelColor, columnType.cellType, textAlign);
           } else if (columnType.cellType == CellType.volume) {
             return _buildCell(text, greyColor, columnType.cellType, textAlign);
           } else if (columnType.cellType == CellType.text) {
@@ -314,9 +340,9 @@ class _MarketPageState extends ConsumerState<MarketPage> with WidgetsBindingObse
 
   Widget _buildPriceCell(String text, bool isUp, CellType cellType, TextAlign textAlign) {
     if (isUp) {
-      return _buildCell(text, Colors.red, cellType, TextAlign.right);
+      return _buildCell(text, const Color.fromARGB(255, 240, 47, 49), cellType, TextAlign.right);
     } else {
-      return _buildCell(text, Colors.green, cellType, TextAlign.right);
+      return _buildCell(text, const Color.fromARGB(255, 33, 211, 39), cellType, TextAlign.right);
     }
   }
 

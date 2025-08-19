@@ -106,7 +106,7 @@ class _MarketShareTabState extends ConsumerState<MarektShareTab>
                     style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
                   ),
                   Text(
-                    '${(share.changeRate * 100).toStringAsFixed(2)}%',
+                    '${(share.changeRate).toStringAsFixed(2)}%',
                     style: TextStyle(color: share.changeRate >= 0 ? Colors.red : Colors.green),
                   ),
                 ],
