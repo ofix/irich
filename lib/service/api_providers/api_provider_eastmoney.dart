@@ -17,6 +17,21 @@ import "package:irich/service/api_providers/api_provider.dart";
 import "package:irich/global/stock.dart";
 import "package:irich/service/request_log.dart";
 
+// 东方财富股票列表 URL 生成函数
+String quoteUrlEastMoney(int pageOffset, int pageSize) {
+  return "https://push2.eastmoney.com/api/qt/clist/get"
+      "?pn=$pageOffset"
+      "&pz=$pageSize"
+      "&po=1"
+      "&np=1"
+      "&fltt=1"
+      "&dect=1"
+      "&fid=f3"
+      "wbp2u=|0|0|0|web"
+      "&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048" // 0: 沪市, 1: 深市, 6: A股
+      "&fields=f12,f13,f14,f1,f2,f4,f3,f152,f5,f6,f7,f15,f18,f16,f17,f10,f8,f9";
+}
+
 // 东方财富分时K线 URL 生成函数
 String klineUrlEastMoneyMinute(String shareCode, int market) {
   return "https://78.push2his.eastmoney.com/api/qt/stock/trends2/"
@@ -104,6 +119,8 @@ class ApiProviderEastMoney extends ApiProvider {
     void Function(RequestLog requestLog)? onPagerProgress,
   ]) async {
     switch (apiType) {
+      case ProviderApiType.quote:
+        return fetchQuote();
       case ProviderApiType.quoteExtra:
         return fetchQuoteExtra(params);
       case ProviderApiType.industry:
@@ -127,6 +144,8 @@ class ApiProviderEastMoney extends ApiProvider {
   @override
   dynamic parseResponse(ProviderApiType apiType, dynamic response) {
     switch (apiType) {
+      case ProviderApiType.quote:
+        return response; // 股票列表数据
       case ProviderApiType.quoteExtra:
         return parseQuoteExtra(response); // 侧边栏数据
       case ProviderApiType.industry:
@@ -143,6 +162,62 @@ class ApiProviderEastMoney extends ApiProvider {
         return parseIndexList(response);
       default:
         throw UnimplementedError('Unsupported API type: $ProviderApiType');
+    }
+  }
+
+  // 获取东方财富股票列表
+  Future<dynamic> fetchQuote() async {
+    try {
+      const int pageSize = 100; // 每页100条数据
+      int total = 6000; // 假设总共有6000条数据
+      int pageOffset = 1; // 从第一页开始
+      final List<Share> marketShares = [];
+
+      for (int i = 0; i < total;) {
+        final url = quoteUrlEastMoney(pageOffset, pageSize);
+        debugPrint("[东方财富][行情] $url");
+        final result = await getJson(url);
+
+        final response = jsonDecode(result.response);
+        final data = response['data']['diff'] as List<dynamic>;
+        if (i == 0) {
+          total = response['data']['total'] as int; // 获取总条数
+          debugPrint("[东方财富][行情] 股票总数: $total");
+        }
+        for (final item in data) {
+          marketShares.add(
+            Share(
+              code: item['f12'], // 股票代码
+              name: item['f14'], // 股票名称
+              market: getMarket(item['f1'] as int), // 市场代码
+              priceYesterdayClose: (item['f18'] as num).toDouble() / 100, // 昨日收盘价
+              priceNow: (item['f2'] as num).toDouble() / 100, // 当前价格
+              priceAmplitude: (item['f7'] as num).toDouble() / 100, // 振幅
+              qrr:
+                  (item['f10'] is num)
+                      ? (item['f10'] as num).toDouble()
+                      : (item['f10'] is String)
+                      ? double.tryParse(item['f10']) ?? 0.0
+                      : 0.0, // 量比
+              changeRate: (item['f3'] as num).toDouble() / 100, // 涨跌幅
+              volume: item['f5'], // 成交量
+              amount: (item['f6'] as num).toDouble(), // 成交额
+              priceOpen: (item['f17'] as num).toDouble() / 100, // 开盘价
+              priceMax: (item['f15'] as num).toDouble() / 100, // 最高价
+              priceMin: (item['f16'] as num).toDouble() / 100, // 最低价
+              priceClose: (item['f2'] as num).toDouble() / 100, // 收盘价
+              turnoverRate: (item['f8'] as num).toDouble() / 100, // 换手率
+              pe: (item['f9'] is num) ? (item['f9'] as num).toDouble() : 0.0, // 市盈率(动态)
+            ),
+          );
+        }
+        i += data.length; // 累加已获取的条数
+        if (i >= total) break; // 如果已获取条数大于等于总条数，则结束循环
+        pageOffset++; // 分页处理，下一页
+      }
+      return marketShares;
+    } catch (e, stackTrace) {
+      throw Exception('Failed to fetch market shares: ${stackTrace.toString()}');
     }
   }
 
@@ -233,6 +308,15 @@ class ApiProviderEastMoney extends ApiProvider {
       return 0;
     }
     return 0;
+  }
+
+  Market getMarket(int marketCode) {
+    if (marketCode == 0) {
+      return Market.shenZhen;
+    } else if (marketCode == 1) {
+      return Market.shangHai;
+    }
+    return Market.shenZhen; // 默认返回深市
   }
 
   int getKlineType(KlineType klineType) {

@@ -151,7 +151,7 @@ enum ProviderApiType {
 
 class ApiProviderCapabilities {
   final Map<ProviderApiType, List<EnumApiProvider>> _capabilities = {
-    ProviderApiType.quote: [EnumApiProvider.sina],
+    ProviderApiType.quote: [EnumApiProvider.eastMoney],
     ProviderApiType.quoteExtra: [EnumApiProvider.eastMoney],
     ProviderApiType.industry: [EnumApiProvider.eastMoney],
     ProviderApiType.concept: [EnumApiProvider.eastMoney],

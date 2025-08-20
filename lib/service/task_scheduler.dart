@@ -449,7 +449,7 @@ class TaskScheduler {
         stackTrace: stackTrace,
       );
       task.onErrorUi(event);
-      debugPrint("[Task][MainError]: ${e.toString()}");
+      debugPrint("[Task][MainError]: ${stackTrace.toString()}");
     } finally {
       runningTaskList.removeAt(runningTaskIndex);
       _schedule();
