@@ -291,6 +291,9 @@ class _MarketPageState extends ConsumerState<MarketPage> with WidgetsBindingObse
                   : TextAlign.center;
           if (columnType.cellType == CellType.price) {
             if (ctx.column.field == 'qrr') {
+              if (ctx.cell.value == 0) {
+                text = '--'; // 量比为0时显示为--
+              }
               return _buildCell(text, greyColor, columnType.cellType, textAlign);
             }
             if (ctx.cell.value > ctx.row.cells['priceYesterdayClose']!.value) {

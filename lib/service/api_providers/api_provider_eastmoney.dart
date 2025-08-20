@@ -195,7 +195,7 @@ class ApiProviderEastMoney extends ApiProvider {
               priceAmplitude: (item['f7'] as num).toDouble() / 100, // 振幅
               qrr:
                   (item['f10'] is num)
-                      ? (item['f10'] as num).toDouble()
+                      ? (item['f10'] as num).toDouble() / 100
                       : (item['f10'] is String)
                       ? double.tryParse(item['f10']) ?? 0.0
                       : 0.0, // 量比
