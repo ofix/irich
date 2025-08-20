@@ -539,6 +539,9 @@ class KlineCtrlNotifier extends StateNotifier<KlineCtrlState> {
 
   void showKlineInfoCtrl(bool visible) {
     int crossLineFollowKlineIndex = state.crossLineFollowKlineIndex;
+    if (crossLineFollowKlineIndex < 0) {
+      return; // 十字线未设置时不显示K线信息
+    }
     final klines = state.klines;
     final kline = visible ? klines[crossLineFollowKlineIndex] : klines[0];
     double yesterdayPriceClose = 0;
