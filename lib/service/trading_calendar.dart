@@ -129,6 +129,11 @@ class TradingCalendar {
     return previousDay;
   }
 
+  String currentTradingDay() {
+    final today = DateTime.now();
+    return _formatDate(today);
+  }
+
   // 计算两个日期之间的交易日天数
   int countTradingDays(DateTime start, DateTime end) {
     int count = 0;

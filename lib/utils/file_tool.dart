@@ -209,10 +209,12 @@ class FileTool {
       // 如果当天是交易日
       // String lastTradeDay = getNearestTradeDay(-1);
       // 上一个交易日的收盘时间
-      String currentTradeDay = calendar.lastTradingDay();
+      String lastTradeDay = calendar.lastTradingDay();
+      String currentTradeDay = calendar.currentTradingDay();
+      String lastTradeCloseTime = "$lastTradeDay 15:00:00"; // 当天开盘时间
       String currentTradeOpenTime = "$currentTradeDay 09:30:00"; // 当天开盘时间
       String currentTradeCloseTime = "$currentTradeDay 15:00:00"; // 当天收盘时间
-      if (compareTime(localQuoteFileModifiedTime, currentTradeCloseTime) > 0 && // 文件时间大于昨天收盘时间
+      if (compareTime(localQuoteFileModifiedTime, lastTradeCloseTime) > 0 && // 文件时间大于上一次收盘时间
           compareTime(nowTime, currentTradeOpenTime) < 0 && // 当前时间未开盘
           compareTime(localQuoteFileModifiedTime, currentTradeOpenTime) <
               0 // 文件时间小于今天开盘时间
