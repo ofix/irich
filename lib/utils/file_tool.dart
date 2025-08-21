@@ -211,7 +211,7 @@ class FileTool {
       // 上一个交易日的收盘时间
       String lastTradeDay = calendar.lastTradingDay();
       String currentTradeDay = calendar.currentTradingDay();
-      String lastTradeCloseTime = "$lastTradeDay 15:00:00"; // 当天开盘时间
+      String lastTradeCloseTime = "$lastTradeDay 15:00:00"; // 上一个交易日收盘时间
       String currentTradeOpenTime = "$currentTradeDay 09:30:00"; // 当天开盘时间
       String currentTradeCloseTime = "$currentTradeDay 15:00:00"; // 当天收盘时间
       if (compareTime(localQuoteFileModifiedTime, lastTradeCloseTime) > 0 && // 文件时间大于上一次收盘时间
