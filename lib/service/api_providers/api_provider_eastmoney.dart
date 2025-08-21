@@ -189,7 +189,7 @@ class ApiProviderEastMoney extends ApiProvider {
             Share(
               code: item['f12'], // 股票代码
               name: item['f14'], // 股票名称
-              market: getMarket(item['f1'] as int), // 市场代码
+              market: getMarket(item['f13'] as int), // 市场代码
               priceYesterdayClose: (item['f18'] as num).toDouble() / 100, // 昨日收盘价
               priceNow: (item['f2'] as num).toDouble() / 100, // 当前价格
               priceAmplitude: (item['f7'] as num).toDouble() / 100, // 振幅
